@@ -743,11 +743,64 @@
     event.target.closest('.tab-btn').classList.add('active');
   }
 
-  // ===== FIREBASE REST API =====
-  async function fetchTasks() {
+  // ===== QUEUE OFFLINE POUR SYNC DIFFÉRÉE =====
+  const offlineQueue = {
+    operations: JSON.parse(localStorage.getItem('gesta-offline-queue')) || [],
+    
+    add(operation) {
+      this.operations.push({
+        ...operation,
+        queuedAt: new Date().toISOString()
+      });
+      this.save();
+    },
+    
+    save() {
+      localStorage.setItem('gesta-offline-queue', JSON.stringify(this.operations));
+    },
+    
+    async processQueue() {
+      if (this.operations.length === 0) return;
+      
+      console.log(`📤 Synchronisation ${this.operations.length} opération(s) offline...`);
+      
+      for (const op of this.operations) {
+        try {
+          if (op.type === 'add') {
+            await saveTask(op.task);
+          } else if (op.type === 'update') {
+            await updateTask(op.taskId, op.updates);
+          } else if (op.type === 'delete') {
+            await deleteTaskFirebase(op.taskId);
+          }
+        } catch (error) {
+          console.error('Erreur sync queue:', error);
+          break;
+        }
+      }
+      
+      this.operations = [];
+      this.save();
+      await fetchTasks();
+    }
+  };
+
+  // ===== FETCH TASKS AVEC TIMEOUT =====
+  async function fetchTasks(isRetry = false) {
     try {
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${FIREBASE_API_KEY}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${FIREBASE_API_KEY}`, {
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Firebase HTTP ${response.status}`);
+      }
       
       const data = await response.json();
       tasks = [];
@@ -761,68 +814,104 @@
         });
       }
       
+      saveLocalTasks();
       renderAll();
       updateSyncStatus('connecté');
+      
     } catch (error) {
-      console.error('Erreur fetch:', error);
+      console.error('Erreur fetchTasks:', error.message);
+      
       loadLocalTasks();
+      renderAll();
       updateSyncStatus('hors ligne');
+      
+      if (!isRetry) {
+        console.log('🔄 Nouvelle tentative dans 3s...');
+        setTimeout(() => fetchTasks(true), 3000);
+      }
     }
   }
 
+  // ===== SAVE TASK =====
   async function saveTask(task) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${FIREBASE_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify(task)
       });
       
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+      clearTimeout(timeout);
       
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const data = await response.json();
       saveLocalTasks();
       updateSyncStatus('connecté');
       return data.name;
+      
     } catch (error) {
-      console.error('Erreur save:', error);
+      console.error('saveTask échoué, ajout queue:', error.message);
+      offlineQueue.add({ type: 'add', task });
       saveLocalTasks();
       updateSyncStatus('hors ligne');
       return null;
     }
   }
 
+  // ===== UPDATE TASK =====
   async function updateTask(taskId, updates) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${FIREBASE_API_KEY}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify(updates)
       });
+      
+      clearTimeout(timeout);
       
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
       saveLocalTasks();
       updateSyncStatus('connecté');
+      
     } catch (error) {
-      console.error('Erreur update:', error);
+      console.error('updateTask échoué, ajout queue:', error.message);
+      offlineQueue.add({ type: 'update', taskId, updates });
       saveLocalTasks();
       updateSyncStatus('hors ligne');
     }
   }
 
+  // ===== DELETE TASK =====
   async function deleteTaskFirebase(taskId) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${FIREBASE_API_KEY}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        signal: controller.signal
       });
+      
+      clearTimeout(timeout);
       
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
       saveLocalTasks();
       updateSyncStatus('connecté');
+      
     } catch (error) {
-      console.error('Erreur delete:', error);
+      console.error('deleteTask échoué, ajout queue:', error.message);
+      offlineQueue.add({ type: 'delete', taskId });
       saveLocalTasks();
       updateSyncStatus('hors ligne');
     }
@@ -1095,17 +1184,65 @@
     if (container) container.innerHTML = messages.join('');
   }
 
+  // ===== INIT FIREBASE ROBUSTE =====
+  async function initializeFirebaseConnection(maxRetries = 3) {
+    let lastError = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(`${FIREBASE_DB_URL}/.json?auth=${FIREBASE_API_KEY}`, {
+          signal: controller.signal,
+          method: 'GET'
+        });
+        
+        clearTimeout(timeout);
+        
+        if (response.ok) {
+          console.log('✅ Firebase connecté au démarrage');
+          updateSyncStatus('connecté');
+          return true;
+        }
+      } catch (error) {
+        lastError = error;
+        console.warn(`🔄 Tentative ${attempt}/${maxRetries} échouée:`, error.message);
+        
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt - 1)));
+        }
+      }
+    }
+    
+    console.error('❌ Firebase inaccessible après', maxRetries, 'tentatives:', lastError?.message);
+    updateSyncStatus('hors ligne');
+    loadLocalTasks();
+    return false;
+  }
+
   // ===== INIT =====
-  function initializeApp() {
+  async function initializeApp() {
     const permissions = rolePermissions[currentRole];
     
     showMessage(`Connecté en tant que ${currentRole}`, 'success');
     
-    fetchTasks();
+    await initializeFirebaseConnection();
     
-    // Sync toutes les 5 secondes
+    await fetchTasks();
+    
+    if (offlineQueue.operations.length > 0) {
+      console.log('📤 Tâches offline détectées, synchronisation...');
+      await offlineQueue.processQueue();
+    }
+    
     if (syncInterval) clearInterval(syncInterval);
-    syncInterval = setInterval(fetchTasks, 5000);
+    syncInterval = setInterval(() => {
+      fetchTasks();
+      if (offlineQueue.operations.length > 0) {
+        offlineQueue.processQueue();
+      }
+    }, 8000);
   }
 
   // ===== STARTUP =====
