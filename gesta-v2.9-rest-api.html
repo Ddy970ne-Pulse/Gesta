@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GESTA v2.9 - Gestion de Tâches Firebase</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --primary: #D63384;
+      --primary-dark: #B8217E;
+      --secondary: #FFC107;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-700);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    
+    .container { max-width: 1800px; margin: 0 auto; }
+    
+    .role-selector {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .role-selector.hidden { display: none; }
+    
+    .role-modal {
+      background: white;
+      padding: 48px;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      text-align: center;
+    }
+    
+    .role-modal h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--primary);
+    }
+    
+    .role-modal p {
+      color: var(--gray-400);
+      margin-bottom: 32px;
+      font-size: 14px;
+    }
+    
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    
+    .role-btn {
+      padding: 20px;
+      border: 2px solid var(--gray-200);
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .role-btn i {
+      font-size: 24px;
+      color: var(--primary);
+    }
+    
+    .role-btn:hover {
+      border-color: var(--primary);
+      background: #f9fafb;
+      transform: translateY(-2px);
+    }
+    
+    .role-btn.selected {
+      border-color: var(--primary);
+      background: #f3e5f5;
+      color: var(--primary);
+    }
+    
+    .header {
+      background: white;
+      color: var(--gray-700);
+      padding: 20px 32px;
+      margin-bottom: 32px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      border-bottom: 2px solid var(--primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 8px;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header-left h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 12px;
+    }
+    
+    .role-badge {
+      background: #E8D5F2;
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    
+    .sync-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--gray-400);
+    }
+    
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      border-bottom: 2px solid var(--gray-200);
+      overflow-x: auto;
+      flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+      padding: 14px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--gray-400);
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .tab-btn:hover { color: var(--primary); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn i { font-size: 16px; }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    .btn {
+      padding: 11px 16px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      box-shadow: 0 4px 12px rgba(214, 51, 132, 0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      border: 1px solid var(--gray-200);
+    }
+    
+    .btn-secondary:hover { background: var(--gray-200); }
+    
+    .btn-success {
+      background: var(--secondary);
+      color: #333;
+      font-weight: 700;
+    }
+    
+    .btn-success:hover { background: #FFB300; }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-danger:hover { background: #dc2626; }
+    
+    .btn-small { padding: 7px 12px; font-size: 12px; }
+    
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--gray-200);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--gray-700);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .card-title i { color: var(--primary); font-size: 18px; }
+    
+    .quadrant {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--gray-200);
+      border-top: 4px solid;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .quadrant.q1 { border-top-color: #D63384; }
+    .quadrant.q2 { border-top-color: var(--primary); }
+    .quadrant.q3 { border-top-color: var(--secondary); }
+    .quadrant.q4 { border-top-color: #8b5cf6; }
+    
+    .quadrant-header {
+      padding: 20px;
+      font-weight: 700;
+      color: white;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .quadrant.q1 .quadrant-header { background: linear-gradient(135deg, #D63384 0%, #B8217E 100%); }
+    .quadrant.q2 .quadrant-header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+    .quadrant.q3 .quadrant-header { background: linear-gradient(135deg, var(--secondary) 0%, #FFA500 100%); color: #333; }
+    .quadrant.q4 .quadrant-header { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+    
+    .quadrant-content {
+      padding: 16px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .task-item {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 3px solid var(--gray-200);
+    }
+    
+    .task-item:hover {
+      background: var(--gray-100);
+      border-left-color: var(--primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+    
+    .task-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--gray-700);
+    }
+    
+    .task-meta {
+      font-size: 11px;
+      color: var(--gray-400);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    
+    .status-planifie { background: #E8D5F2; color: var(--primary); }
+    .status-confirme { background: #FFF4E6; color: #FF9800; }
+    .status-bloque { background: #FFEBEE; color: #D63384; }
+    .status-complete { background: #DCFCE7; color: #166534; }
+    
+    input, textarea, select {
+      padding: 11px 12px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      width: 100%;
+      transition: all 0.2s ease;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.1);
+    }
+    
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+    
+    .input-section {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--gray-200);
+      margin-bottom: 24px;
+      border-left: 4px solid var(--primary);
+    }
+    
+    .message {
+      background: #FFF4E6;
+      color: #FF9800;
+      border: 1px solid #FFE0B2;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .message i { color: var(--secondary); }
+    
+    .message.success {
+      background: #DCFCE7;
+      color: #166534;
+      border-color: #BBFCDC;
+    }
+    
+    .message.success i { color: var(--success); }
+    
+    .message.error {
+      background: #FFEBEE;
+      color: #D63384;
+      border-color: #FFCDD2;
+    }
+    
+    .message.error i { color: var(--danger); }
+    
+    @media (max-width: 768px) {
+      .grid-2, .grid-4 { grid-template-columns: 1fr; }
+      .role-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="role-selector" id="roleSelector">
+  <div class="role-modal">
+    <h1><i class="fas fa-rocket" style="margin-right: 12px;"></i>GESTA</h1>
+    <p style="margin-bottom: 12px;">Gestion de Tâches Intelligent</p>
+    <p style="font-size: 11px; color: var(--gray-400); margin-bottom: 24px;">v2.9.0 • Firebase REST API</p>
+    
+    <div class="role-grid" id="roleGrid">
+      <button class="role-btn" onclick="selectRole('Director')">
+        <i class="fas fa-crown"></i>
+        <span>Directeur</span>
+      </button>
+      <button class="role-btn" onclick="selectRole('Coordinateur RH')">
+        <i class="fas fa-users"></i>
+        <span>Coord. RH</span>
+      </button>
+      <button class="role-btn" onclick="selectRole('Coordinateur Ateliers')">
+        <i class="fas fa-tools"></i>
+        <span>Coord. Ateliers</span>
+      </button>
+      <button class="role-btn" onclick="selectRole('Coordinateur Finance')">
+        <i class="fas fa-calculator"></i>
+        <span>Coord. Finance</span>
+      </button>
+      <button class="role-btn" onclick="selectRole('Chef Atelier')">
+        <i class="fas fa-hard-hat"></i>
+        <span>Chef Atelier</span>
+      </button>
+      <button class="role-btn" onclick="selectRole('Psychologue')">
+        <i class="fas fa-brain"></i>
+        <span>Psychologue</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="appContainer" style="display: none;">
+  <div class="header">
+    <div class="header-left">
+      <div style="width: 8px; height: 32px; background: var(--primary); border-radius: 2px;"></div>
+      <h1>GESTA</h1>
+    </div>
+    <div class="header-right">
+      <div style="font-size: 10px; color: var(--gray-400); font-weight: 600;">v2.9.0</div>
+      <div class="sync-indicator">
+        <div class="sync-dot"></div>
+        <span id="syncStatus">Connecté</span>
+      </div>
+      <div class="role-badge" id="roleBadge">Director</div>
+      <button class="btn btn-secondary btn-small" onclick="changeRole()">Changer</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fas fa-chart-bar"></i> Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('task-detail')"><i class="fas fa-file-alt"></i> Détail</button>
+    <button class="tab-btn" onclick="switchTab('analytics')"><i class="fas fa-chart-line"></i> Analytics</button>
+    <button class="tab-btn" onclick="switchTab('coach')"><i class="fas fa-brain"></i> Coach</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard-tab" class="tab-content active">
+    <div class="input-section">
+      <div class="form-row">
+        <div class="input-group">
+          <input type="text" id="taskInput" placeholder="Ajouter une tâche..." onkeypress="if(event.key==='Enter') addTask()">
+        </div>
+        <button class="btn btn-primary" onclick="addTask()" style="align-self: flex-end; width: auto;">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+      </div>
+      <div id="messageContainer"></div>
+    </div>
+
+    <div class="grid-4" id="quadrantsContainer">
+      <div class="quadrant q1">
+        <div class="quadrant-header">
+          <div><i class="fas fa-fire"></i> Urgent & Important</div>
+          <span id="q1-count">0</span>
+        </div>
+        <div class="quadrant-content" id="q1-tasks"></div>
+      </div>
+      <div class="quadrant q2">
+        <div class="quadrant-header">
+          <div><i class="fas fa-star"></i> Important</div>
+          <span id="q2-count">0</span>
+        </div>
+        <div class="quadrant-content" id="q2-tasks"></div>
+      </div>
+      <div class="quadrant q3">
+        <div class="quadrant-header">
+          <div><i class="fas fa-bell"></i> Urgent</div>
+          <span id="q3-count">0</span>
+        </div>
+        <div class="quadrant-content" id="q3-tasks"></div>
+      </div>
+      <div class="quadrant q4">
+        <div class="quadrant-header">
+          <div><i class="fas fa-inbox"></i> À Déléguer</div>
+          <span id="q4-count">0</span>
+        </div>
+        <div class="quadrant-content" id="q4-tasks"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DÉTAIL TÂCHE -->
+  <div id="task-detail-tab" class="tab-content">
+    <div class="input-section">
+      <div class="card-title"><i class="fas fa-file-alt"></i> Sélectionner Tâche</div>
+      <select id="taskSelect" onchange="selectTask()">
+        <option value="">-- Sélectionner --</option>
+      </select>
+    </div>
+
+    <div id="taskDetailContainer" style="display: none;">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title" id="detailTaskTitle"></div>
+          
+          <div class="input-group">
+            <label>Status</label>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+              <button class="btn btn-secondary btn-small status-btn" data-status="planifié" onclick="updateTaskStatus('planifié')">Planifié</button>
+              <button class="btn btn-secondary btn-small status-btn" data-status="confirmé" onclick="updateTaskStatus('confirmé')">Confirmé</button>
+              <button class="btn btn-secondary btn-small status-btn" data-status="bloqué" onclick="updateTaskStatus('bloqué')">Bloqué</button>
+              <button class="btn btn-success btn-small" onclick="completeTask()">Complété</button>
+            </div>
+          </div>
+
+          <button class="btn btn-danger" style="width: 100%; justify-content: center; margin-top: 20px;" onclick="deleteTask()">
+            <i class="fas fa-trash"></i> Supprimer
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><i class="fas fa-info-circle"></i> Infos</div>
+          <div style="font-size: 12px; color: var(--gray-600);">
+            <div style="margin-bottom: 12px;">
+              <strong>Source:</strong> <span id="taskSource">-</span>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <strong>Quadrant:</strong> <span id="taskQuadrant">-</span>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <strong>Créée:</strong> <span id="taskCreated">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div id="analytics-tab" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><i class="fas fa-chart-line"></i> Distribution</div>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+              <span style="font-weight: 600;">Q1</span>
+              <strong id="dist-q1">0%</strong>
+            </div>
+            <div style="height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden;">
+              <div id="dist-q1-bar" style="width: 0%; height: 100%; background: #D63384;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+              <span style="font-weight: 600;">Q2</span>
+              <strong id="dist-q2">0%</strong>
+            </div>
+            <div style="height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden;">
+              <div id="dist-q2-bar" style="width: 0%; height: 100%; background: var(--primary);"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+              <span style="font-weight: 600;">Q3</span>
+              <strong id="dist-q3">0%</strong>
+            </div>
+            <div style="height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden;">
+              <div id="dist-q3-bar" style="width: 0%; height: 100%; background: var(--secondary);"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+              <span style="font-weight: 600;">Q4</span>
+              <strong id="dist-q4">0%</strong>
+            </div>
+            <div style="height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden;">
+              <div id="dist-q4-bar" style="width: 0%; height: 100%; background: #8b5cf6;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fas fa-calculator"></i> Stats</div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div style="background: var(--gray-50); padding: 16px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 28px; font-weight: 700; color: var(--primary); margin: 8px 0;">
+              <span id="stat-total">0</span>
+            </div>
+            <div style="font-size: 11px; color: var(--gray-400);">Total</div>
+          </div>
+          <div style="background: var(--gray-50); padding: 16px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 28px; font-weight: 700; color: var(--success); margin: 8px 0;">
+              <span id="stat-done">0</span>
+            </div>
+            <div style="font-size: 11px; color: var(--gray-400);">Complétées</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COACH -->
+  <div id="coach-tab" class="tab-content">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-brain"></i> Recommandations</div>
+      <div id="coachMessages" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== CONFIG FIREBASE =====
+  const FIREBASE_DB_URL = 'https://gesta-7ffed-default-rtdb.europe-west1.firebasedatabase.app';
+  const FIREBASE_API_KEY = 'AIzaSyD84cJZZwm3-VsV8bJFzlx-U4KqGQnAhLY';
+
+  // ===== VARIABLES GLOBALES =====
+  let currentRole = null;
+  let tasks = [];
+  let currentTaskId = null;
+  let syncInterval = null;
+
+  // ===== PERMISSIONS PAR RÔLE =====
+  const rolePermissions = {
+    'Director': {
+      canView: ['Audit', 'Finance', 'RH', 'Opérations'],
+      canEdit: true,
+      canDelete: true,
+      canAddTask: true
+    },
+    'Coordinateur RH': {
+      canView: ['Audit', 'Finance', 'RH', 'Opérations'],
+      canEdit: true,
+      canDelete: true,
+      canAddTask: true
+    },
+    'Coordinateur Ateliers': {
+      canView: ['Opérations'],
+      canEdit: true,
+      canDelete: false,
+      canAddTask: true
+    },
+    'Coordinateur Finance': {
+      canView: ['Finance'],
+      canEdit: true,
+      canDelete: false,
+      canAddTask: true
+    },
+    'Chef Atelier': {
+      canView: ['Opérations'],
+      canEdit: false,
+      canDelete: false,
+      canAddTask: true
+    },
+    'Psychologue': {
+      canView: ['RH'],
+      canEdit: true,
+      canDelete: false,
+      canAddTask: true
+    }
+  };
+
+  // ===== ROLE SELECTION =====
+  function selectRole(role) {
+    document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('selected'));
+    if (event && event.target) {
+      event.target.closest('.role-btn').classList.add('selected');
+    }
+    
+    currentRole = role;
+    localStorage.setItem('gestRole', role);
+    document.getElementById('roleBadge').textContent = role;
+    
+    setTimeout(() => {
+      document.getElementById('roleSelector').classList.add('hidden');
+      document.getElementById('appContainer').style.display = 'block';
+      initializeApp();
+    }, 300);
+  }
+
+  function changeRole() {
+    document.getElementById('roleSelector').classList.remove('hidden');
+    document.getElementById('appContainer').style.display = 'none';
+    document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('selected'));
+    if (syncInterval) clearInterval(syncInterval);
+  }
+
+  // ===== TAB SWITCHING =====
+  function switchTab(name) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(name + '-tab').classList.add('active');
+    event.target.closest('.tab-btn').classList.add('active');
+  }
+
+  // ===== FIREBASE REST API =====
+  async function fetchTasks() {
+    try {
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${FIREBASE_API_KEY}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const data = await response.json();
+      tasks = [];
+      
+      if (data) {
+        Object.keys(data).forEach(key => {
+          tasks.push({
+            id: key,
+            ...data[key]
+          });
+        });
+      }
+      
+      renderAll();
+      updateSyncStatus('connecté');
+    } catch (error) {
+      console.error('Erreur fetch:', error);
+      loadLocalTasks();
+      updateSyncStatus('hors ligne');
+    }
+  }
+
+  async function saveTask(task) {
+    try {
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      });
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      
+      saveLocalTasks();
+      updateSyncStatus('connecté');
+      return data.name;
+    } catch (error) {
+      console.error('Erreur save:', error);
+      saveLocalTasks();
+      updateSyncStatus('hors ligne');
+      return null;
+    }
+  }
+
+  async function updateTask(taskId, updates) {
+    try {
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${FIREBASE_API_KEY}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      saveLocalTasks();
+      updateSyncStatus('connecté');
+    } catch (error) {
+      console.error('Erreur update:', error);
+      saveLocalTasks();
+      updateSyncStatus('hors ligne');
+    }
+  }
+
+  async function deleteTaskFirebase(taskId) {
+    try {
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${FIREBASE_API_KEY}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      saveLocalTasks();
+      updateSyncStatus('connecté');
+    } catch (error) {
+      console.error('Erreur delete:', error);
+      saveLocalTasks();
+      updateSyncStatus('hors ligne');
+    }
+  }
+
+  // ===== LOCAL STORAGE FALLBACK =====
+  function saveLocalTasks() {
+    localStorage.setItem('gesta-tasks-local', JSON.stringify(tasks));
+  }
+
+  function loadLocalTasks() {
+    const local = localStorage.getItem('gesta-tasks-local');
+    if (local) {
+      tasks = JSON.parse(local);
+      renderAll();
+    }
+  }
+
+  function updateSyncStatus(status) {
+    const dot = document.querySelector('.sync-dot');
+    const text = document.getElementById('syncStatus');
+    
+    if (status === 'connecté') {
+      dot.style.background = 'var(--success)';
+      text.textContent = 'Synchronisé';
+    } else {
+      dot.style.background = 'var(--warning)';
+      text.textContent = 'Hors ligne (local)';
+    }
+  }
+
+  // ===== TASK ANALYSIS =====
+  function analyzeTask(desc) {
+    const d = desc.toLowerCase();
+    let quad = 'Q2', source = 'Autre', conf = 0.75;
+    const sources = {
+      'Audit': ['ageval', 'audit', 'inspection'],
+      'Finance': ['paie', 'bailleur', 'cej', 'financement', 'livio'],
+      'RH': ['absence', 'congé', 'visite', 'contrat', 'maladie'],
+      'Opérations': ['atelier', 'coordinateur', 'planning', 'restaurant', 'menuiserie', 'garage']
+    };
+    
+    for (const [k, v] of Object.entries(sources)) {
+      if (v.some(x => d.includes(x))) { source = k; break; }
+    }
+    
+    const urg = /aujourd'hui|urgent|demain|immédiat|asap/.test(d);
+    const imp = source !== 'Autre' || /ageval|audit|visite/.test(d);
+    
+    if ((urg && imp) || /ageval|audit|visite/.test(d)) { quad = 'Q1'; conf = 0.95; }
+    else if (!urg && imp) { quad = 'Q2'; conf = 0.85; }
+    else if (urg && !imp) { quad = 'Q3'; conf = 0.75; }
+    else { quad = 'Q4'; conf = 0.65; }
+    
+    return { quadrant: quad, source, confidence: conf };
+  }
+
+  // ===== ADD TASK =====
+  async function addTask() {
+    const input = document.getElementById('taskInput');
+    const desc = input.value.trim();
+    
+    if (!desc) return;
+
+    const analysis = analyzeTask(desc);
+    const permissions = rolePermissions[currentRole];
+    
+    if (!permissions.canView.includes(analysis.source) && analysis.source !== 'Autre') {
+      showMessage('Vous n\'avez pas accès à cette source', 'error');
+      return;
+    }
+
+    const task = {
+      description: desc,
+      quadrant: analysis.quadrant,
+      source: analysis.source,
+      confidence: analysis.confidence,
+      status: 'planifié',
+      completed: false,
+      createdBy: currentRole,
+      createdAt: new Date().toISOString()
+    };
+
+    await saveTask(task);
+    input.value = '';
+    showMessage(`Tâche créée • ${analysis.source}`, 'success');
+    await fetchTasks();
+  }
+
+  // ===== SELECT TASK =====
+  function selectTask() {
+    const id = document.getElementById('taskSelect').value;
+    if (!id) {
+      document.getElementById('taskDetailContainer').style.display = 'none';
+      return;
+    }
+    
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    currentTaskId = id;
+    document.getElementById('detailTaskTitle').textContent = task.description;
+    document.getElementById('taskSource').textContent = task.source;
+    document.getElementById('taskQuadrant').textContent = task.quadrant;
+    document.getElementById('taskCreated').textContent = new Date(task.createdAt).toLocaleDateString('fr-FR');
+    
+    document.querySelectorAll('.status-btn').forEach(btn => {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+      if (btn.dataset.status === task.status) {
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-primary');
+      }
+    });
+
+    document.getElementById('taskDetailContainer').style.display = 'block';
+  }
+
+  // ===== UPDATE STATUS =====
+  async function updateTaskStatus(newStatus) {
+    if (!currentTaskId) return;
+    
+    const permissions = rolePermissions[currentRole];
+    if (!permissions.canEdit) {
+      showMessage('Vous n\'avez pas la permission de modifier', 'error');
+      return;
+    }
+    
+    await updateTask(currentTaskId, {
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentRole
+    });
+    
+    showMessage(`Status: ${newStatus}`, 'success');
+    selectTask();
+    await fetchTasks();
+  }
+
+  // ===== COMPLETE TASK =====
+  async function completeTask() {
+    if (!currentTaskId) return;
+    
+    const permissions = rolePermissions[currentRole];
+    if (!permissions.canEdit) {
+      showMessage('Vous n\'avez pas la permission de modifier', 'error');
+      return;
+    }
+    
+    await updateTask(currentTaskId, {
+      completed: true,
+      status: 'complété',
+      completedAt: new Date().toISOString()
+    });
+    
+    document.getElementById('taskDetailContainer').style.display = 'none';
+    showMessage('Tâche complétée', 'success');
+    await fetchTasks();
+  }
+
+  // ===== DELETE TASK =====
+  async function deleteTask() {
+    if (!currentTaskId) return;
+    
+    const permissions = rolePermissions[currentRole];
+    if (!permissions.canDelete) {
+      showMessage('Vous n\'avez pas la permission de supprimer', 'error');
+      return;
+    }
+    
+    if (!confirm('Supprimer cette tâche?')) return;
+    
+    await deleteTaskFirebase(currentTaskId);
+    document.getElementById('taskDetailContainer').style.display = 'none';
+    showMessage('Tâche supprimée', 'success');
+    await fetchTasks();
+  }
+
+  // ===== SHOW MESSAGE =====
+  function showMessage(text, type = 'info') {
+    const container = document.getElementById('messageContainer');
+    if (container) {
+      const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+      container.innerHTML = `<div class="message ${type}"><i class="fas fa-${icon}"></i> ${text}</div>`;
+      setTimeout(() => container.innerHTML = '', 3000);
+    }
+  }
+
+  // ===== RENDER ALL =====
+  function renderAll() {
+    const permissions = rolePermissions[currentRole];
+    const visibleTasks = tasks.filter(t => 
+      permissions.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH'
+    );
+
+    renderDashboard(visibleTasks);
+    renderTaskSelect(visibleTasks);
+    renderAnalytics(visibleTasks);
+    renderCoach(visibleTasks);
+  }
+
+  function renderDashboard(tasks) {
+    const q1 = tasks.filter(t => !t.completed && t.quadrant === 'Q1');
+    const q2 = tasks.filter(t => !t.completed && t.quadrant === 'Q2');
+    const q3 = tasks.filter(t => !t.completed && t.quadrant === 'Q3');
+    const q4 = tasks.filter(t => !t.completed && t.quadrant === 'Q4');
+
+    document.getElementById('q1-count').textContent = q1.length;
+    document.getElementById('q2-count').textContent = q2.length;
+    document.getElementById('q3-count').textContent = q3.length;
+    document.getElementById('q4-count').textContent = q4.length;
+
+    const renderQuad = (id, list) => {
+      const html = list.length > 0 ? list.map(t => `
+        <div class="task-item" onclick="document.getElementById('taskSelect').value = '${t.id}'; selectTask(); switchTab('task-detail');">
+          <div class="task-title">${t.description.substring(0, 50)}</div>
+          <div class="task-meta">${t.source} • <span class="status-badge status-${t.status.replace(/ /g, '-')}">${t.status}</span></div>
+        </div>
+      `).join('') : '<div style="text-align: center; color: var(--gray-400); padding: 20px; font-size: 12px;">Aucune tâche</div>';
+      const container = document.getElementById(id);
+      if (container) container.innerHTML = html;
+    };
+
+    renderQuad('q1-tasks', q1);
+    renderQuad('q2-tasks', q2);
+    renderQuad('q3-tasks', q3);
+    renderQuad('q4-tasks', q4);
+  }
+
+  function renderTaskSelect(tasks) {
+    const select = document.getElementById('taskSelect');
+    const html = tasks.filter(t => !t.completed).map(t => `<option value="${t.id}">${t.description.substring(0, 40)}</option>`).join('');
+    select.innerHTML = '<option value="">-- Sélectionner --</option>' + html;
+  }
+
+  function renderAnalytics(tasks) {
+    const all = tasks.length;
+    const done = tasks.filter(t => t.completed).length;
+    const q1 = tasks.filter(t => t.quadrant === 'Q1').length;
+    const q2 = tasks.filter(t => t.quadrant === 'Q2').length;
+    const q3 = tasks.filter(t => t.quadrant === 'Q3').length;
+    const q4 = tasks.filter(t => t.quadrant === 'Q4').length;
+
+    document.getElementById('stat-total').textContent = all;
+    document.getElementById('stat-done').textContent = done;
+
+    if (all > 0) {
+      const update = (id, bar, count) => {
+        const pct = Math.round((count / all) * 100);
+        document.getElementById(id).textContent = pct + '%';
+        document.getElementById(bar).style.width = pct + '%';
+      };
+      update('dist-q1', 'dist-q1-bar', q1);
+      update('dist-q2', 'dist-q2-bar', q2);
+      update('dist-q3', 'dist-q3-bar', q3);
+      update('dist-q4', 'dist-q4-bar', q4);
+    }
+  }
+
+  function renderCoach(tasks) {
+    const blocked = tasks.filter(t => !t.completed && t.status === 'bloqué').length;
+    const active = tasks.filter(t => !t.completed).length;
+
+    const messages = [];
+    if (blocked > 0) messages.push(`<div style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 18px; border-radius: 8px; margin-bottom: 12px;"><i class="fas fa-exclamation-circle"></i> ${blocked} tâche(s) bloquée(s)</div>`);
+    if (active > 5) messages.push(`<div style="background: linear-gradient(135deg, var(--secondary) 0%, #FFA500 100%); color: #333; padding: 18px; border-radius: 8px; margin-bottom: 12px;"><i class="fas fa-lightbulb"></i> ${active} tâches actives. Focusez les priorités!</div>`);
+    if (messages.length === 0) messages.push(`<div style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: white; padding: 18px; border-radius: 8px;"><i class="fas fa-thumbs-up"></i> Productivité saine</div>`);
+
+    const container = document.getElementById('coachMessages');
+    if (container) container.innerHTML = messages.join('');
+  }
+
+  // ===== INIT =====
+  function initializeApp() {
+    const permissions = rolePermissions[currentRole];
+    
+    showMessage(`Connecté en tant que ${currentRole}`, 'success');
+    
+    fetchTasks();
+    
+    // Sync toutes les 5 secondes
+    if (syncInterval) clearInterval(syncInterval);
+    syncInterval = setInterval(fetchTasks, 5000);
+  }
+
+  // ===== STARTUP =====
+  window.addEventListener('load', () => {
+    const savedRole = localStorage.getItem('gestRole');
+    if (savedRole && rolePermissions[savedRole]) {
+      selectRole(savedRole);
+    }
+  });
+</script>
+
+</body>
+</html>
