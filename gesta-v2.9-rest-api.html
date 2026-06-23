@@ -1902,13 +1902,13 @@
       <div class="ai-panel-header">
         <i class="fas fa-robot" style="font-size:20px; color:var(--primary);"></i>
         <h3>Planificateur IA</h3>
-        <span class="ai-badge">Claude AI</span>
+        <span class="ai-badge">Groq AI</span>
       </div>
 
       <div class="constraint-grid">
         <div class="input-group" style="margin-bottom:0">
-          <label>Clé API Anthropic</label>
-          <input type="password" id="claudeApiKey" placeholder="sk-ant-..." autocomplete="off">
+          <label>Clé API Groq <a href="https://console.groq.com/keys" target="_blank" style="font-size:10px;color:var(--primary);margin-left:4px;">Obtenir gratuitement →</a></label>
+          <input type="password" id="claudeApiKey" placeholder="gsk_..." autocomplete="off">
         </div>
         <div class="input-group" style="margin-bottom:0">
           <label>Congés / Absences</label>
@@ -3900,11 +3900,11 @@
     if (tt) tt.style.display = 'none';
   });
 
-  // ===== IA PLANIFICATEUR =====
+  // ===== IA PLANIFICATEUR (Groq — gratuit) =====
   async function generateAISchedule() {
     const apiKey = document.getElementById('claudeApiKey').value.trim();
     if (!apiKey) {
-      showMessage('Entrez votre clé API Anthropic (sk-ant-...)', 'error');
+      showMessage('Entrez votre clé API Groq (gsk_...)', 'error');
       return;
     }
 
@@ -3924,7 +3924,7 @@
 
     const today = new Date().toISOString().slice(0, 10);
     const taskList = visibleTasks.map(t =>
-      `- [${t.quadrant}] "${t.description}" | Source: ${t.source} | Assigné: ${t.assignedTo || 'Non assigné'} | Heures: ${t.estimatedHours || '?'} | Statut: ${t.status} | Échéance: ${t.dueDate || 'Non définie'}`
+      `- [${t.quadrant}] "${t.description}" | Source: ${t.source} | Assigné: ${Array.isArray(t.assignedTo) ? t.assignedTo.join(', ') : (t.assignedTo || 'Non assigné')} | Heures: ${t.estimatedHours || '?'} | Statut: ${t.status} | Échéance: ${t.dueDate || 'Non définie'}`
     ).join('\n');
 
     const prompt = `Tu es un expert en gestion de projet pour une association guadeloupéenne (AAEA-CAVA).
@@ -3939,7 +3939,7 @@ ${taskList}
 
 Ta mission :
 1. Analyser la charge par coordinateur et par quadrant
-2. Proposer un calendrier optimal sur ${horizon} jours (colonne : Date | Qui | Tâche | Durée | Justification)
+2. Proposer un calendrier optimal sur ${horizon} jours (colonnes : Date | Qui | Tâche | Durée | Justification)
 3. Identifier les risques (surcharge, chevauchements, tâches Q1 sans date)
 4. Donner 3 recommandations concrètes pour l'équipe AAEA-CAVA
 
@@ -3948,8 +3948,7 @@ Règles :
 - Respecter les heures max / semaine
 - Tenir compte des contraintes d'absence
 - Format : tableau Markdown lisible + résumé exécutif + recommandations numérotées
-
-Réponds en français, concis et exploitable directement.`;
+- Réponds en français, concis et exploitable directement.`;
 
     const resultDiv = document.getElementById('aiResult');
     resultDiv.style.display = 'flex';
@@ -3959,18 +3958,20 @@ Réponds en français, concis et exploitable directement.`;
     document.getElementById('clearAIBtn').style.display = 'none';
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-          'anthropic-dangerous-direct-browser-calls': 'true'
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'llama-3.3-70b-versatile',
           max_tokens: 2048,
-          messages: [{ role: 'user', content: prompt }]
+          temperature: 0.3,
+          messages: [
+            { role: 'system', content: 'Tu es un assistant expert en gestion de projet et en planification pour des associations. Tu réponds toujours en français de manière concise et exploitable.' },
+            { role: 'user', content: prompt }
+          ]
         })
       });
 
@@ -3980,7 +3981,7 @@ Réponds en français, concis et exploitable directement.`;
       }
 
       const data = await response.json();
-      const text = data.content?.[0]?.text || 'Aucune réponse reçue.';
+      const text = data.choices?.[0]?.message?.content || 'Aucune réponse reçue.';
       aiSuggestedSchedule = text;
 
       resultDiv.className = 'ai-result';
@@ -3993,7 +3994,7 @@ Réponds en français, concis et exploitable directement.`;
     } catch (error) {
       resultDiv.className = 'ai-result';
       resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `<div style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Erreur : ${error.message}<br><br>Vérifiez votre clé API et que le domaine est autorisé dans votre compte Anthropic.</div>`;
+      resultDiv.innerHTML = `<div style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Erreur : ${error.message}<br><br>Vérifiez votre clé API Groq sur <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>.</div>`;
       document.getElementById('clearAIBtn').style.display = 'inline-flex';
     }
   }
@@ -4027,7 +4028,7 @@ Réponds en français, concis et exploitable directement.`;
       document.getElementById('darkToggle').innerHTML = '<i class="fas fa-sun"></i>';
     }
     // Clé API
-    const savedApiKey = localStorage.getItem('gesta-claude-key');
+    const savedApiKey = localStorage.getItem('gesta-groq-key');
     if (savedApiKey) {
       const keyInput = document.getElementById('claudeApiKey');
       if (keyInput) keyInput.value = savedApiKey;
@@ -4055,7 +4056,7 @@ Réponds en français, concis et exploitable directement.`;
     const keyInput = document.getElementById('claudeApiKey');
     if (keyInput) {
       keyInput.addEventListener('change', () => {
-        if (keyInput.value) localStorage.setItem('gesta-claude-key', keyInput.value);
+        if (keyInput.value) localStorage.setItem('gesta-groq-key', keyInput.value);
       });
     }
   });
