@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GESTA v3.2 - Planificateur Intelligent</title>
+  <title>GESTA v3.3 - Planificateur Intelligent</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
@@ -451,6 +451,201 @@
       .grid-2, .grid-4 { grid-template-columns: 1fr; }
       .role-grid { grid-template-columns: 1fr; }
     }
+
+    /* ===== AUTH LOGIN SCREEN ===== */
+    .login-screen {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #1a0a1e 0%, #2d1040 40%, #0f172a 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000;
+      transition: opacity 0.4s ease;
+    }
+    .login-screen.hidden { opacity: 0; pointer-events: none; }
+    .login-card {
+      background: white;
+      border-radius: 20px;
+      padding: 48px 44px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+      animation: loginEnter 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    body.dark-mode .login-card { background: #1f2937; }
+    @keyframes loginEnter {
+      from { transform: translateY(30px) scale(0.95); opacity: 0; }
+      to   { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .login-logo-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--primary), #9333ea);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 28px;
+      color: white;
+      box-shadow: 0 8px 20px rgba(214,51,132,0.35);
+    }
+    .login-logo h1 { font-size: 28px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+    .login-logo p { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
+    .login-form { display: flex; flex-direction: column; gap: 16px; }
+    .login-field { position: relative; }
+    .login-field i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--gray-400); font-size: 14px; pointer-events: none; }
+    .login-field input {
+      padding: 13px 14px 13px 40px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .login-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214,51,132,0.12); outline: none; }
+    .login-btn {
+      background: linear-gradient(135deg, var(--primary), #9333ea);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(214,51,132,0.3);
+    }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(214,51,132,0.4); }
+    .login-btn:disabled { opacity: 0.6; transform: none; cursor: not-allowed; }
+    .login-divider { text-align: center; font-size: 11px; color: var(--gray-400); margin: 4px 0; position: relative; }
+    .login-divider::before, .login-divider::after { content: ''; position: absolute; top: 50%; width: 38%; height: 1px; background: var(--border); }
+    .login-divider::before { left: 0; } .login-divider::after { right: 0; }
+    .login-demo-btn {
+      background: var(--gray-100); color: var(--gray-600);
+      border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+      width: 100%; transition: all 0.2s;
+    }
+    .login-demo-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .login-error {
+      background: #FFEBEE; color: var(--danger); border: 1px solid #FFCDD2;
+      border-radius: 8px; padding: 10px 14px; font-size: 12px;
+      display: none; align-items: center; gap: 8px;
+    }
+    .login-spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+    /* Badge utilisateur connecté */
+    .user-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--gray-50); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 12px 4px 4px;
+      cursor: default;
+    }
+    .user-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #9333ea);
+      color: white; font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .user-info { display: flex; flex-direction: column; }
+    .user-name { font-size: 12px; font-weight: 700; color: var(--text); }
+    .user-role { font-size: 10px; color: var(--gray-400); }
+
+    /* ===== MON ESPACE ===== */
+    .myspace-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, #9333ea 100%);
+      border-radius: 14px;
+      padding: 28px 32px;
+      color: white;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .myspace-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: white;
+      flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,0.4);
+    }
+    .myspace-hero-info h2 { font-size: 20px; font-weight: 700; }
+    .myspace-hero-info p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    .myspace-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .myspace-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .myspace-kpi-num { font-size: 28px; font-weight: 800; }
+    .myspace-kpi-label { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+    .myspace-task-list { display: flex; flex-direction: column; gap: 8px; }
+    .myspace-task {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: all 0.2s;
+      animation: taskEnter 0.2s ease both;
+    }
+    .myspace-task:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(214,51,132,0.1); }
+    .myspace-task-quad {
+      width: 6px; border-radius: 3px; align-self: stretch; flex-shrink: 0;
+    }
+    .myspace-task-body { flex: 1; }
+    .myspace-task-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .myspace-task-meta { font-size: 11px; color: var(--gray-400); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .myspace-section-title {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      margin: 24px 0 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .myspace-section-title i { color: var(--primary); }
+
+    /* ===== ADMIN PANEL ===== */
+    .admin-user-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex; align-items: center; gap: 14px;
+      animation: taskEnter 0.2s ease both;
+    }
+    .admin-user-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #9333ea);
+      color: white; font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .admin-user-info { flex: 1; }
+    .admin-user-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .admin-user-email { font-size: 11px; color: var(--gray-400); }
+    .admin-user-role { font-size: 11px; }
+    .log-item {
+      display: flex; gap: 12px; padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px; animation: taskEnter 0.15s ease both;
+    }
+    .log-item:last-child { border-bottom: none; }
+    .log-time { color: var(--gray-400); flex-shrink: 0; min-width: 80px; }
+    .log-action { color: var(--text); font-weight: 600; }
+    .log-user { color: var(--primary); }
 
     /* ===== ANIMATIONS ===== */
     @keyframes taskEnter {
@@ -1131,37 +1326,42 @@
 </head>
 <body>
 
-<div class="role-selector" id="roleSelector">
-  <div class="role-modal">
-    <h1><i class="fas fa-rocket" style="margin-right: 12px;"></i>GESTA</h1>
-    <p style="margin-bottom: 12px;">Gestion de Tâches Intelligent</p>
-    <p style="font-size: 11px; color: var(--gray-400); margin-bottom: 24px;">v2.9.0 • Firebase REST API</p>
-    
-    <div class="role-grid" id="roleGrid">
-      <button class="role-btn" onclick="selectRole('Director')">
-        <i class="fas fa-crown"></i>
-        <span>Directeur</span>
+<!-- ===== ÉCRAN DE CONNEXION ===== -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon"><i class="fas fa-rocket"></i></div>
+      <h1>GESTA</h1>
+      <p>Gestion de Tâches Intelligent · AAEA-CAVA</p>
+    </div>
+
+    <form class="login-form" onsubmit="event.preventDefault(); loginUser();">
+      <div id="loginError" class="login-error"><i class="fas fa-exclamation-circle"></i> <span id="loginErrorMsg"></span></div>
+
+      <div class="login-field">
+        <i class="fas fa-envelope"></i>
+        <input type="email" id="loginEmail" placeholder="votre.email@aaea-cava.org" required autocomplete="email">
+      </div>
+      <div class="login-field">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="loginPassword" placeholder="Mot de passe" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="login-btn" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i> Connexion
       </button>
-      <button class="role-btn" onclick="selectRole('Coordinateur RH')">
-        <i class="fas fa-users"></i>
-        <span>Coord. RH</span>
-      </button>
-      <button class="role-btn" onclick="selectRole('Coordinateur Ateliers')">
-        <i class="fas fa-tools"></i>
-        <span>Coord. Ateliers</span>
-      </button>
-      <button class="role-btn" onclick="selectRole('Coordinateur Finance')">
-        <i class="fas fa-calculator"></i>
-        <span>Coord. Finance</span>
-      </button>
-      <button class="role-btn" onclick="selectRole('Chef Atelier')">
-        <i class="fas fa-hard-hat"></i>
-        <span>Chef Atelier</span>
-      </button>
-      <button class="role-btn" onclick="selectRole('Psychologue')">
-        <i class="fas fa-brain"></i>
-        <span>Psychologue</span>
-      </button>
+    </form>
+
+    <div class="login-divider" style="margin:20px 0;">ou</div>
+
+    <div style="margin-bottom:12px;font-size:11px;font-weight:700;color:var(--gray-400);text-align:center;letter-spacing:0.5px;">MODE DÉMO (sans compte)</div>
+    <div class="role-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;">
+      <button class="role-btn" style="padding:12px 8px;font-size:11px;" onclick="selectRole('Director')"><i class="fas fa-crown"></i><span>Directeur</span></button>
+      <button class="role-btn" style="padding:12px 8px;font-size:11px;" onclick="selectRole('Coordinateur RH')"><i class="fas fa-users"></i><span>Coord. RH</span></button>
+      <button class="role-btn" style="padding:12px 8px;font-size:11px;" onclick="selectRole('Coordinateur Ateliers')"><i class="fas fa-tools"></i><span>Ateliers</span></button>
+      <button class="role-btn" style="padding:12px 8px;font-size:11px;" onclick="selectRole('Coordinateur Finance')"><i class="fas fa-calculator"></i><span>Finance</span></button>
+      <button class="role-btn" style="padding:12px 8px;font-size:11px;" onclick="selectRole('Chef Atelier')"><i class="fas fa-hard-hat"></i><span>Chef</span></button>
+      <button class="role-btn" style="padding:12px 8px;font-size:11px;" onclick="selectRole('Psychologue')"><i class="fas fa-brain"></i><span>Psycho</span></button>
     </div>
   </div>
 </div>
@@ -1181,12 +1381,19 @@
         <input type="text" id="globalSearch" placeholder="Rechercher..." oninput="handleSearch(this.value)" onblur="setTimeout(()=>closeSearch(),200)">
         <div id="searchResults" class="search-results" style="display:none;"></div>
       </div>
-      <div style="font-size: 10px; color: var(--gray-400); font-weight: 600;">v3.2.0</div>
+      <div style="font-size: 10px; color: var(--gray-400); font-weight: 600;">v3.3.0</div>
       <div class="sync-indicator">
         <div class="sync-dot"></div>
         <span id="syncStatus">Connecté</span>
       </div>
-      <div class="role-badge" id="roleBadge">Director</div>
+      <div class="user-badge" id="userBadge" style="display:none;">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <span class="user-name" id="userFullName">-</span>
+          <span class="user-role" id="roleBadge">-</span>
+        </div>
+      </div>
+      <div class="role-badge" id="roleBadgeDemo" style="display:none;">-</div>
       <button class="dark-toggle" onclick="toggleDarkMode()" id="darkToggle" title="Mode sombre">
         <i class="fas fa-moon"></i>
       </button>
@@ -1194,17 +1401,20 @@
         <button class="btn btn-secondary btn-small" onclick="exportCSV()" title="Exporter CSV"><i class="fas fa-file-csv"></i></button>
         <button class="btn btn-secondary btn-small" onclick="window.print()" title="Imprimer / PDF"><i class="fas fa-print"></i></button>
       </div>
-      <button class="btn btn-secondary btn-small" onclick="changeRole()">Changer</button>
+      <button class="btn btn-secondary btn-small" onclick="logoutUser()" id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i></button>
+      <button class="btn btn-secondary btn-small" onclick="changeRole()" id="changeRoleBtn">Changer</button>
     </div>
   </div>
 
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fas fa-chart-bar"></i> Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('myspace')"><i class="fas fa-user-circle"></i> Mon Espace</button>
     <button class="tab-btn" onclick="switchTab('task-detail')"><i class="fas fa-file-alt"></i> Détail</button>
     <button class="tab-btn" onclick="switchTab('analytics')"><i class="fas fa-chart-line"></i> Analytics</button>
     <button class="tab-btn" onclick="switchTab('historique')"><i class="fas fa-history"></i> Historique</button>
     <button class="tab-btn" onclick="switchTab('coach')"><i class="fas fa-brain"></i> Coach</button>
     <button class="tab-btn" onclick="switchTab('planner')"><i class="fas fa-calendar-alt"></i> Planificateur ✨</button>
+    <button class="tab-btn" id="adminTabBtn" style="display:none;" onclick="switchTab('admin')"><i class="fas fa-shield-alt"></i> Admin</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -1380,6 +1590,59 @@
     </div>
   </div>
 
+  <!-- MON ESPACE -->
+  <div id="myspace-tab" class="tab-content">
+    <div class="myspace-hero">
+      <div class="myspace-avatar" id="myspaceAvatar">?</div>
+      <div class="myspace-hero-info">
+        <h2 id="myspaceTitle">Mon espace</h2>
+        <p id="myspaceSubtitle">AAEA-CAVA · Guadeloupe</p>
+      </div>
+      <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <div style="font-size:11px;opacity:0.85;" id="myspaceDate"></div>
+        <div style="font-size:11px;opacity:0.7;">Semaine <span id="myspaceWeek"></span></div>
+      </div>
+    </div>
+
+    <div class="myspace-kpi-row">
+      <div class="myspace-kpi">
+        <div class="myspace-kpi-num" style="color:var(--primary);" id="my-total">0</div>
+        <div class="myspace-kpi-label">Mes tâches actives</div>
+      </div>
+      <div class="myspace-kpi">
+        <div class="myspace-kpi-num" style="color:var(--success);" id="my-done">0</div>
+        <div class="myspace-kpi-label">Complétées (total)</div>
+      </div>
+      <div class="myspace-kpi">
+        <div class="myspace-kpi-num" style="color:var(--danger);" id="my-overdue">0</div>
+        <div class="myspace-kpi-label">En retard</div>
+      </div>
+      <div class="myspace-kpi">
+        <div class="myspace-kpi-num" style="color:var(--warning);" id="my-blocked">0</div>
+        <div class="myspace-kpi-label">Bloquées</div>
+      </div>
+      <div class="myspace-kpi">
+        <div class="myspace-kpi-num" style="color:#8b5cf6;" id="my-hours">0h</div>
+        <div class="myspace-kpi-label">Charge semaine</div>
+      </div>
+    </div>
+
+    <div class="myspace-section-title"><i class="fas fa-star"></i> Tâches dont je suis pilote</div>
+    <div class="myspace-task-list" id="myPiloteTasks">
+      <div class="empty-state"><i class="fas fa-star" style="font-size:24px;opacity:0.2;"></i><span class="empty-state-hint">Aucune tâche dont vous êtes pilote.</span></div>
+    </div>
+
+    <div class="myspace-section-title"><i class="fas fa-users"></i> Tâches où je contribue</div>
+    <div class="myspace-task-list" id="myContribTasks">
+      <div class="empty-state"><i class="fas fa-users" style="font-size:24px;opacity:0.2;"></i><span class="empty-state-hint">Aucune tâche assignée.</span></div>
+    </div>
+
+    <div class="myspace-section-title"><i class="fas fa-fire"></i> Urgences Q1 visibles</div>
+    <div class="myspace-task-list" id="myQ1Tasks">
+      <div class="empty-state"><i class="fas fa-check-circle" style="font-size:24px;opacity:0.2;color:var(--success);"></i><span class="empty-state-hint">Aucune urgence en cours.</span></div>
+    </div>
+  </div>
+
   <!-- HISTORIQUE -->
   <div id="historique-tab" class="tab-content">
     <div class="input-section" style="padding:16px 24px;">
@@ -1513,6 +1776,54 @@
     <div class="card">
       <div class="card-title"><i class="fas fa-brain"></i> Recommandations</div>
       <div id="coachMessages" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="admin-tab" class="tab-content">
+    <div class="grid-2" style="margin-bottom:24px;">
+      <!-- Création compte -->
+      <div class="card">
+        <div class="card-title"><i class="fas fa-user-plus"></i> Créer un compte utilisateur</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="input-group" style="margin:0;"><label>Prénom Nom</label><input type="text" id="adminFullName" placeholder="Marie Dupont"></div>
+          <div class="input-group" style="margin:0;"><label>Email</label><input type="email" id="adminEmail" placeholder="marie@aaea-cava.org"></div>
+          <div class="input-group" style="margin:0;"><label>Mot de passe provisoire</label><input type="password" id="adminPassword" placeholder="Min. 6 caractères"></div>
+          <div class="input-group" style="margin:0;"><label>Rôle</label>
+            <select id="adminRole">
+              <option value="Director">Directeur</option>
+              <option value="Coordinateur RH" selected>Coordinateur RH</option>
+              <option value="Coordinateur Ateliers">Coordinateur Ateliers</option>
+              <option value="Coordinateur Finance">Coordinateur Finance</option>
+              <option value="Chef Atelier">Chef Atelier</option>
+              <option value="Psychologue">Psychologue</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="adminCreateUser()" style="justify-content:center;">
+            <i class="fas fa-user-plus"></i> Créer le compte
+          </button>
+          <div id="adminCreateMsg"></div>
+        </div>
+      </div>
+
+      <!-- Logs accès -->
+      <div class="card">
+        <div class="card-title"><i class="fas fa-clipboard-list"></i> Journal d'accès récent</div>
+        <div id="accessLogsList" style="max-height:320px;overflow-y:auto;">
+          <div style="color:var(--gray-400);font-size:12px;padding:12px;">Chargement...</div>
+        </div>
+        <button class="btn btn-secondary" onclick="loadAccessLogs()" style="margin-top:12px;justify-content:center;width:100%;">
+          <i class="fas fa-sync"></i> Rafraîchir
+        </button>
+      </div>
+    </div>
+
+    <!-- Liste utilisateurs -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-users-cog"></i> Utilisateurs enregistrés</div>
+      <div id="adminUsersList" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="color:var(--gray-400);font-size:12px;">Chargement...</div>
+      </div>
     </div>
   </div>
 
@@ -1669,27 +1980,36 @@
 
   // ===== ROLE SELECTION =====
   function selectRole(role) {
-    document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('selected'));
-    if (event && event.target) {
-      event.target.closest('.role-btn').classList.add('selected');
-    }
-    
     currentRole = role;
-    localStorage.setItem('gestRole', role);
-    document.getElementById('roleBadge').textContent = role;
-    
-    setTimeout(() => {
-      document.getElementById('roleSelector').classList.add('hidden');
-      document.getElementById('appContainer').style.display = 'block';
-      initializeApp();
-    }, 300);
+    currentUser = { role, fullName: role, uid: 'demo', idToken: null, isDemo: true };
+
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+
+    // Header: show demo badge
+    document.getElementById('userBadge').style.display = 'none';
+    document.getElementById('roleBadgeDemo').style.display = 'flex';
+    document.getElementById('roleBadgeDemo').textContent = role;
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('changeRoleBtn').style.display = 'flex';
+
+    // Mon Espace hero for demo
+    document.getElementById('myspaceAvatar').textContent = role[0];
+    document.getElementById('myspaceTitle').textContent = role;
+    document.getElementById('myspaceSubtitle').textContent = 'Mode démo · AAEA-CAVA';
+
+    // Admin tab visibility
+    document.getElementById('adminTabBtn').style.display = role === 'Director' ? 'flex' : 'none';
+
+    initializeApp();
   }
 
   function changeRole() {
-    document.getElementById('roleSelector').classList.remove('hidden');
-    document.getElementById('appContainer').style.display = 'none';
-    document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('selected'));
+    currentUser = null;
+    currentRole = null;
     if (syncInterval) clearInterval(syncInterval);
+    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
   }
 
   // ===== TAB SWITCHING =====
@@ -1698,6 +2018,10 @@
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(name + '-tab').classList.add('active');
     event.target.closest('.tab-btn').classList.add('active');
+    if (name === 'admin' && currentUser && !currentUser.isDemo) {
+      loadAccessLogs();
+      loadAdminUsers();
+    }
   }
 
   // ===== QUEUE OFFLINE POUR SYNC DIFFÉRÉE =====
@@ -2113,6 +2437,7 @@
     );
 
     renderDashboard(visibleTasks);
+    renderMySpace(tasks);
     renderTaskSelect(visibleTasks);
     renderAnalytics(visibleTasks);
     renderCoach(visibleTasks);
@@ -2579,6 +2904,295 @@
     await updateTask(taskId, { completed: false, status: 'planifié', completedAt: null, restoredAt: new Date().toISOString(), restoredBy: currentRole });
     showMessage('Tâche réactivée', 'success');
     await fetchTasks();
+  }
+
+  // ===== AUTH v3.3 =====
+  let currentUser = null; // { email, uid, idToken, role, fullName, isDemo }
+  const FIREBASE_AUTH_URL = 'https://identitytoolkit.googleapis.com/v1/accounts';
+
+  async function loginUser() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const btn = document.getElementById('loginBtn');
+    const errDiv = document.getElementById('loginError');
+    const errMsg = document.getElementById('loginErrorMsg');
+
+    errDiv.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...';
+
+    try {
+      const res = await fetch(`${FIREBASE_AUTH_URL}:signInWithPassword?key=${FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const code = data?.error?.message || 'UNKNOWN';
+        const msgs = {
+          'INVALID_LOGIN_CREDENTIALS': 'Email ou mot de passe incorrect.',
+          'EMAIL_NOT_FOUND': 'Aucun compte avec cet email.',
+          'INVALID_PASSWORD': 'Mot de passe incorrect.',
+          'USER_DISABLED': 'Ce compte a été désactivé.',
+          'TOO_MANY_ATTEMPTS_TRY_LATER': 'Trop de tentatives. Réessayez plus tard.'
+        };
+        throw new Error(msgs[code] || `Erreur : ${code}`);
+      }
+
+      const profile = await loadUserProfile(data.localId, data.idToken);
+      currentUser = {
+        email: data.email,
+        uid: data.localId,
+        idToken: data.idToken,
+        role: profile.role || 'Coordinateur RH',
+        fullName: profile.fullName || data.email.split('@')[0],
+        isDemo: false
+      };
+
+      sessionStorage.setItem('gesta-session', JSON.stringify({
+        uid: currentUser.uid, idToken: currentUser.idToken,
+        email: currentUser.email, role: currentUser.role, fullName: currentUser.fullName
+      }));
+
+      await logAccess('login', { email: currentUser.email, role: currentUser.role });
+      applyUserSession();
+    } catch (e) {
+      errMsg.textContent = e.message;
+      errDiv.style.display = 'flex';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Connexion';
+    }
+  }
+
+  async function loadUserProfile(uid, idToken) {
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/userProfiles/${uid}.json?auth=${idToken}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data || {};
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  async function logAccess(action, meta = {}) {
+    try {
+      const token = currentUser?.idToken;
+      const authParam = token ? `?auth=${token}` : `?auth=${FIREBASE_API_KEY}`;
+      await fetch(`${FIREBASE_DB_URL}/accessLogs.json${authParam}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          ...meta,
+          timestamp: new Date().toISOString(),
+          uid: currentUser?.uid || 'demo'
+        })
+      });
+    } catch (_) {}
+  }
+
+  function applyUserSession() {
+    currentRole = currentUser.role;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+
+    // Header badges
+    document.getElementById('userBadge').style.display = 'flex';
+    document.getElementById('roleBadgeDemo').style.display = 'none';
+    document.getElementById('changeRoleBtn').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'flex';
+    document.getElementById('userFullName').textContent = currentUser.fullName;
+    document.getElementById('roleBadge').textContent = currentUser.role;
+    const initials = currentUser.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    document.getElementById('userAvatar').textContent = initials;
+
+    // Mon Espace hero
+    document.getElementById('myspaceAvatar').textContent = initials;
+    document.getElementById('myspaceTitle').textContent = currentUser.fullName;
+    document.getElementById('myspaceSubtitle').textContent = currentUser.role + ' · AAEA-CAVA';
+
+    // Admin tab visibility
+    document.getElementById('adminTabBtn').style.display = currentUser.role === 'Director' ? 'flex' : 'none';
+
+    initializeApp();
+  }
+
+  async function logoutUser() {
+    if (currentUser && !currentUser.isDemo) {
+      await logAccess('logout', { email: currentUser.email });
+    }
+    currentUser = null;
+    currentRole = null;
+    sessionStorage.removeItem('gesta-session');
+    if (syncInterval) clearInterval(syncInterval);
+
+    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('userBadge').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('changeRoleBtn').style.display = 'flex';
+  }
+
+  // Mon Espace
+  function renderMySpace(allTasks) {
+    const role = currentUser?.role || currentRole;
+    const name = currentUser?.fullName || role;
+    const today = new Date();
+
+    // Date & semaine
+    const dateEl = document.getElementById('myspaceDate');
+    const weekEl = document.getElementById('myspaceWeek');
+    if (dateEl) dateEl.textContent = today.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (weekEl) {
+      const startOfYear = new Date(today.getFullYear(), 0, 1);
+      const weekNum = Math.ceil(((today - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+      weekEl.textContent = weekNum;
+    }
+
+    const active = allTasks.filter(t => !t.completed);
+    const isPilote = t => t.pilote === role;
+    const isAssigned = t => Array.isArray(t.assignedTo) ? t.assignedTo.includes(role) : t.assignedTo === role;
+    const isOverdue = t => t.dueDate && new Date(t.dueDate) < today;
+    const thisWeekEnd = new Date(today); thisWeekEnd.setDate(today.getDate() + (6 - today.getDay()));
+
+    const piloteTasks = active.filter(isPilote);
+    const contribTasks = active.filter(t => isAssigned(t) && !isPilote(t));
+    const q1Tasks = active.filter(t => t.quadrant === 'Q1');
+    const doneTasks = allTasks.filter(t => t.completed && (isPilote(t) || isAssigned(t)));
+    const overdueTasks = active.filter(t => (isPilote(t) || isAssigned(t)) && isOverdue(t));
+    const blockedTasks = active.filter(t => (isPilote(t) || isAssigned(t)) && t.status === 'bloqué');
+    const weekHours = active.filter(t => {
+      if (!(isPilote(t) || isAssigned(t)) || !t.scheduledDate) return false;
+      const d = new Date(t.scheduledDate);
+      return d >= today && d <= thisWeekEnd;
+    }).reduce((s, t) => s + (t.estimatedHours || 0), 0);
+
+    document.getElementById('my-total').textContent = piloteTasks.length + contribTasks.length;
+    document.getElementById('my-done').textContent = doneTasks.length;
+    document.getElementById('my-overdue').textContent = overdueTasks.length;
+    document.getElementById('my-blocked').textContent = blockedTasks.length;
+    document.getElementById('my-hours').textContent = weekHours + 'h';
+
+    const qColors = { Q1: '#D63384', Q2: '#9333ea', Q3: '#f59e0b', Q4: '#8b5cf6' };
+    const taskCard = t => `
+      <div class="myspace-task" onclick="openTaskDetail('${t.id}')">
+        <div class="myspace-task-quad" style="background:${qColors[t.quadrant] || 'var(--primary)'};min-height:40px;"></div>
+        <div class="myspace-task-body">
+          <div class="myspace-task-title">${t.description}</div>
+          <div class="myspace-task-meta">
+            <span style="font-weight:700;color:${qColors[t.quadrant]}">${t.quadrant}</span>
+            ${t.dueDate ? `<span ${isOverdue(t) ? 'style="color:var(--danger);font-weight:600;"' : ''}><i class="fas fa-calendar"></i> ${new Date(t.dueDate).toLocaleDateString('fr-FR')}</span>` : ''}
+            ${t.estimatedHours ? `<span><i class="fas fa-clock"></i> ${t.estimatedHours}h</span>` : ''}
+            <span style="padding:1px 6px;border-radius:6px;background:var(--gray-100);font-weight:600;">${t.status}</span>
+          </div>
+        </div>
+      </div>`;
+
+    const emptyPilote = '<div class="empty-state"><i class="fas fa-star" style="font-size:24px;opacity:0.2;"></i><span class="empty-state-hint">Aucune tâche dont vous êtes pilote.</span></div>';
+    const emptyContrib = '<div class="empty-state"><i class="fas fa-users" style="font-size:24px;opacity:0.2;"></i><span class="empty-state-hint">Aucune tâche assignée.</span></div>';
+    const emptyQ1 = '<div class="empty-state"><i class="fas fa-check-circle" style="font-size:24px;opacity:0.2;color:var(--success);"></i><span class="empty-state-hint">Aucune urgence en cours.</span></div>';
+
+    document.getElementById('myPiloteTasks').innerHTML = piloteTasks.length ? piloteTasks.map(taskCard).join('') : emptyPilote;
+    document.getElementById('myContribTasks').innerHTML = contribTasks.length ? contribTasks.map(taskCard).join('') : emptyContrib;
+    document.getElementById('myQ1Tasks').innerHTML = q1Tasks.length ? q1Tasks.map(taskCard).join('') : emptyQ1;
+  }
+
+  // ===== ADMIN =====
+  async function adminCreateUser() {
+    if (!currentUser || currentUser.role !== 'Director') { showMessage('Accès refusé', 'error'); return; }
+    const fullName = document.getElementById('adminFullName').value.trim();
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const role = document.getElementById('adminRole').value;
+    const msgEl = document.getElementById('adminCreateMsg');
+
+    if (!fullName || !email || !password) { showMessage('Tous les champs sont requis', 'error'); return; }
+    if (password.length < 6) { showMessage('Mot de passe : 6 caractères minimum', 'error'); return; }
+
+    msgEl.innerHTML = '<span style="color:var(--gray-400);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Création...</span>';
+
+    try {
+      // Create Firebase Auth account
+      const res = await fetch(`${FIREBASE_AUTH_URL}:signUp?key=${FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || 'Erreur création compte');
+
+      // Save profile in DB
+      await fetch(`${FIREBASE_DB_URL}/userProfiles/${data.localId}.json?auth=${currentUser.idToken}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, email, role, createdAt: new Date().toISOString(), createdBy: currentUser.email })
+      });
+
+      await logAccess('admin_create_user', { targetEmail: email, targetRole: role });
+      msgEl.innerHTML = `<span style="color:var(--success);font-size:12px;"><i class="fas fa-check"></i> Compte créé pour ${fullName}</span>`;
+      document.getElementById('adminFullName').value = '';
+      document.getElementById('adminEmail').value = '';
+      document.getElementById('adminPassword').value = '';
+      loadAdminUsers();
+    } catch (e) {
+      msgEl.innerHTML = `<span style="color:var(--danger);font-size:12px;"><i class="fas fa-times"></i> ${e.message}</span>`;
+    }
+  }
+
+  async function loadAccessLogs() {
+    const container = document.getElementById('accessLogsList');
+    container.innerHTML = '<div style="color:var(--gray-400);font-size:12px;padding:12px;">Chargement...</div>';
+    try {
+      const token = currentUser?.idToken;
+      const res = await fetch(`${FIREBASE_DB_URL}/accessLogs.json?auth=${token}&orderBy="timestamp"&limitToLast=25`);
+      const data = await res.json();
+      if (!data || typeof data !== 'object') { container.innerHTML = '<div style="color:var(--gray-400);font-size:12px;padding:12px;">Aucun log.</div>'; return; }
+      const logs = Object.values(data).reverse();
+      const actionLabels = { login: '🔑 Connexion', logout: '🚪 Déconnexion', admin_create_user: '👤 Création compte' };
+      container.innerHTML = logs.map(l => `
+        <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <div style="font-weight:600;">${actionLabels[l.action] || l.action} — <span style="color:var(--gray-400);">${l.email || l.uid}</span></div>
+          <div style="color:var(--gray-400);margin-top:2px;">${l.role ? l.role + ' · ' : ''}${new Date(l.timestamp).toLocaleString('fr-FR')}</div>
+        </div>`).join('');
+    } catch (e) {
+      container.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:12px;">Erreur chargement logs.</div>';
+    }
+  }
+
+  async function loadAdminUsers() {
+    const container = document.getElementById('adminUsersList');
+    container.innerHTML = '<div style="color:var(--gray-400);font-size:12px;">Chargement...</div>';
+    try {
+      const token = currentUser?.idToken;
+      const res = await fetch(`${FIREBASE_DB_URL}/userProfiles.json?auth=${token}`);
+      const data = await res.json();
+      if (!data || typeof data !== 'object') { container.innerHTML = '<div style="color:var(--gray-400);font-size:12px;">Aucun utilisateur.</div>'; return; }
+      const roleIcons = {
+        'Director': 'fa-crown', 'Coordinateur RH': 'fa-users', 'Coordinateur Ateliers': 'fa-tools',
+        'Coordinateur Finance': 'fa-calculator', 'Chef Atelier': 'fa-hard-hat', 'Psychologue': 'fa-brain'
+      };
+      container.innerHTML = Object.entries(data).map(([uid, p]) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:13px;">
+            ${p.fullName ? p.fullName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?'}
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:600;font-size:13px;">${p.fullName || '-'}</div>
+            <div style="font-size:11px;color:var(--gray-400);">${p.email || '-'}</div>
+          </div>
+          <div style="font-size:11px;background:var(--primary-light);color:var(--primary);padding:3px 8px;border-radius:12px;font-weight:600;">
+            <i class="fas ${roleIcons[p.role] || 'fa-user'}"></i> ${p.role || '-'}
+          </div>
+        </div>`).join('');
+    } catch (e) {
+      container.innerHTML = '<div style="color:var(--danger);font-size:12px;">Erreur chargement utilisateurs.</div>';
+    }
   }
 
   // ===== DARK MODE =====
@@ -3129,17 +3743,29 @@ Réponds en français, concis et exploitable directement.`;
       document.body.classList.add('dark-mode');
       document.getElementById('darkToggle').innerHTML = '<i class="fas fa-sun"></i>';
     }
-    // Rôle sauvegardé
-    const savedRole = localStorage.getItem('gestRole');
-    if (savedRole && rolePermissions[savedRole]) {
-      selectRole(savedRole);
-    }
     // Clé API
     const savedApiKey = localStorage.getItem('gesta-claude-key');
     if (savedApiKey) {
       const keyInput = document.getElementById('claudeApiKey');
       if (keyInput) keyInput.value = savedApiKey;
     }
+
+    // Try to restore Firebase session
+    const savedSession = sessionStorage.getItem('gesta-session');
+    if (savedSession) {
+      try {
+        const s = JSON.parse(savedSession);
+        if (s.uid && s.idToken && s.role) {
+          currentUser = { ...s, isDemo: false };
+          applyUserSession();
+          return;
+        }
+      } catch (_) {}
+    }
+
+    // Show login screen (default state)
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appContainer').style.display = 'none';
   });
 
   document.addEventListener('DOMContentLoaded', () => {
