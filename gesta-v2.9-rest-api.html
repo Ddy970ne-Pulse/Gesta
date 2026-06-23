@@ -2852,7 +2852,7 @@
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);
         
-        const response = await fetch(`${FIREBASE_DB_URL}/.json?auth=${firebaseAuth()}`, {
+        const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}&shallow=true`, {
           signal: controller.signal,
           method: 'GET'
         });
