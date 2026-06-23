@@ -1995,6 +1995,11 @@
   const FIREBASE_DB_URL = 'https://gesta-7ffed-default-rtdb.europe-west1.firebasedatabase.app';
   const FIREBASE_API_KEY = 'AIzaSyAJND_hncATWiAosiHgU3lx7FRC66L5424';
 
+  // Retourne le token d'auth approprié : idToken Firebase Auth si connecté, sinon API key
+  function firebaseAuth() {
+    return (currentUser && currentUser.idToken) ? currentUser.idToken : FIREBASE_API_KEY;
+  }
+
   // ===== VARIABLES GLOBALES =====
   let currentRole = null;
   let tasks = [];
@@ -2140,7 +2145,7 @@
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
       
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${FIREBASE_API_KEY}`, {
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`, {
         signal: controller.signal,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -2187,7 +2192,7 @@
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${FIREBASE_API_KEY}`, {
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -2218,7 +2223,7 @@
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${FIREBASE_API_KEY}`, {
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${firebaseAuth()}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -2246,7 +2251,7 @@
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${FIREBASE_API_KEY}`, {
+      const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${firebaseAuth()}`, {
         method: 'DELETE',
         signal: controller.signal
       });
@@ -2847,7 +2852,7 @@
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);
         
-        const response = await fetch(`${FIREBASE_DB_URL}/.json?auth=${FIREBASE_API_KEY}`, {
+        const response = await fetch(`${FIREBASE_DB_URL}/.json?auth=${firebaseAuth()}`, {
           signal: controller.signal,
           method: 'GET'
         });
@@ -2959,7 +2964,7 @@
     try {
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 5000);
-      const response = await fetch(`${FIREBASE_DB_URL}/comments/${taskId}.json?auth=${FIREBASE_API_KEY}`, { signal: controller.signal });
+      const response = await fetch(`${FIREBASE_DB_URL}/comments/${taskId}.json?auth=${firebaseAuth()}`, { signal: controller.signal });
       if (!response.ok) throw new Error('fetch failed');
       const data = await response.json();
 
@@ -3011,7 +3016,7 @@
     try {
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 5000);
-      await fetch(`${FIREBASE_DB_URL}/comments/${currentTaskId}.json?auth=${FIREBASE_API_KEY}`, {
+      await fetch(`${FIREBASE_DB_URL}/comments/${currentTaskId}.json?auth=${firebaseAuth()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -3261,7 +3266,7 @@
   async function logAccess(action, meta = {}) {
     try {
       const token = currentUser?.idToken;
-      const authParam = token ? `?auth=${token}` : `?auth=${FIREBASE_API_KEY}`;
+      const authParam = token ? `?auth=${token}` : `?auth=${firebaseAuth()}`;
       await fetch(`${FIREBASE_DB_URL}/accessLogs.json${authParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
