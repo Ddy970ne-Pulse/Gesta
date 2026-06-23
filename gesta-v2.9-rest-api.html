@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GESTA v3.1 - Planificateur Intelligent</title>
+  <title>GESTA v3.2 - Planificateur Intelligent</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
@@ -450,6 +450,172 @@
     @media (max-width: 768px) {
       .grid-2, .grid-4 { grid-template-columns: 1fr; }
       .role-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes taskEnter {
+      from { opacity: 0; transform: translateY(10px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes taskDrop {
+      0%   { transform: scale(1.04); box-shadow: 0 8px 24px rgba(214,51,132,0.25); }
+      100% { transform: scale(1); box-shadow: none; }
+    }
+    @keyframes completePop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.06); }
+      100% { transform: scale(0.95); opacity: 0; }
+    }
+    .task-item { animation: taskEnter 0.25s ease both; }
+    .task-item.task-dropping { animation: taskDrop 0.3s ease; }
+    .task-item.completing { animation: completePop 0.4s ease forwards; }
+
+    /* ===== DRAG & DROP ===== */
+    .task-item[draggable="true"] { cursor: grab; }
+    .task-item[draggable="true"]:active { cursor: grabbing; }
+    .task-item.dragging {
+      opacity: 0.4;
+      transform: scale(0.97);
+      border: 2px dashed var(--primary);
+    }
+    .quadrant-content.drag-over {
+      background: rgba(214, 51, 132, 0.06);
+      border: 2px dashed var(--primary);
+      border-radius: 8px;
+    }
+    .drop-hint {
+      text-align: center;
+      padding: 16px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .drag-over .drop-hint { opacity: 1; }
+
+    /* ===== ÉTATS VIDES ===== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      gap: 8px;
+      color: var(--gray-400);
+    }
+    .empty-state svg { opacity: 0.25; }
+    .empty-state-title { font-size: 12px; font-weight: 700; color: var(--gray-400); }
+    .empty-state-hint { font-size: 11px; color: var(--gray-300); text-align: center; }
+
+    /* ===== COMMENTAIRES ===== */
+    .comments-section {
+      margin-top: 20px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+    .comments-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .comment-thread { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; max-height: 260px; overflow-y: auto; }
+    .comment-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      animation: taskEnter 0.2s ease;
+    }
+    .comment-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 11px;
+      color: var(--gray-400);
+    }
+    .comment-author { font-weight: 700; color: var(--primary); }
+    .comment-text { color: var(--text); line-height: 1.5; }
+    .comment-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .comment-input-row textarea {
+      flex: 1;
+      resize: none;
+      min-height: 40px;
+      max-height: 100px;
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+
+    /* ===== ARCHIVAGE / HISTORIQUE ===== */
+    .history-timeline { display: flex; flex-direction: column; gap: 0; }
+    .history-item {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      animation: taskEnter 0.2s ease both;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-dot-col { display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 32px; }
+    .history-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .history-line { width: 2px; flex: 1; background: var(--border); margin-top: 4px; min-height: 20px; }
+    .history-content { flex: 1; }
+    .history-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .history-meta { font-size: 11px; color: var(--gray-400); display: flex; flex-wrap: wrap; gap: 8px; }
+    .history-restore {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--gray-600);
+      transition: all 0.2s;
+    }
+    .history-restore:hover { border-color: var(--primary); color: var(--primary); }
+    .history-filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--gray-600);
+      transition: all 0.2s;
+    }
+    .filter-chip.active { border-color: var(--primary); background: #F3E5F5; color: var(--primary); }
+    body.dark-mode .filter-chip.active { background: #3b1a3f; }
+
+    /* ===== TASK DETAIL AMÉLIORÉ ===== */
+    .detail-assignees-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
     }
 
     /* ===== HEADER SEARCH & DARK MODE ===== */
@@ -1015,7 +1181,7 @@
         <input type="text" id="globalSearch" placeholder="Rechercher..." oninput="handleSearch(this.value)" onblur="setTimeout(()=>closeSearch(),200)">
         <div id="searchResults" class="search-results" style="display:none;"></div>
       </div>
-      <div style="font-size: 10px; color: var(--gray-400); font-weight: 600;">v3.1.0</div>
+      <div style="font-size: 10px; color: var(--gray-400); font-weight: 600;">v3.2.0</div>
       <div class="sync-indicator">
         <div class="sync-dot"></div>
         <span id="syncStatus">Connecté</span>
@@ -1036,6 +1202,7 @@
     <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fas fa-chart-bar"></i> Dashboard</button>
     <button class="tab-btn" onclick="switchTab('task-detail')"><i class="fas fa-file-alt"></i> Détail</button>
     <button class="tab-btn" onclick="switchTab('analytics')"><i class="fas fa-chart-line"></i> Analytics</button>
+    <button class="tab-btn" onclick="switchTab('historique')"><i class="fas fa-history"></i> Historique</button>
     <button class="tab-btn" onclick="switchTab('coach')"><i class="fas fa-brain"></i> Coach</button>
     <button class="tab-btn" onclick="switchTab('planner')"><i class="fas fa-calendar-alt"></i> Planificateur ✨</button>
   </div>
@@ -1105,28 +1272,40 @@
           <div><i class="fas fa-fire"></i> Urgent & Important</div>
           <span id="q1-count">0</span>
         </div>
-        <div class="quadrant-content" id="q1-tasks"></div>
+        <div class="quadrant-content" id="q1-tasks"
+          ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'Q1')">
+          <div class="drop-hint"><i class="fas fa-arrow-down"></i> Déposer ici</div>
+        </div>
       </div>
       <div class="quadrant q2">
         <div class="quadrant-header">
           <div><i class="fas fa-star"></i> Important</div>
           <span id="q2-count">0</span>
         </div>
-        <div class="quadrant-content" id="q2-tasks"></div>
+        <div class="quadrant-content" id="q2-tasks"
+          ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'Q2')">
+          <div class="drop-hint"><i class="fas fa-arrow-down"></i> Déposer ici</div>
+        </div>
       </div>
       <div class="quadrant q3">
         <div class="quadrant-header">
           <div><i class="fas fa-bell"></i> Urgent</div>
           <span id="q3-count">0</span>
         </div>
-        <div class="quadrant-content" id="q3-tasks"></div>
+        <div class="quadrant-content" id="q3-tasks"
+          ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'Q3')">
+          <div class="drop-hint"><i class="fas fa-arrow-down"></i> Déposer ici</div>
+        </div>
       </div>
       <div class="quadrant q4">
         <div class="quadrant-header">
           <div><i class="fas fa-inbox"></i> À Déléguer</div>
           <span id="q4-count">0</span>
         </div>
-        <div class="quadrant-content" id="q4-tasks"></div>
+        <div class="quadrant-content" id="q4-tasks"
+          ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'Q4')">
+          <div class="drop-hint"><i class="fas fa-arrow-down"></i> Déposer ici</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1141,38 +1320,86 @@
     </div>
 
     <div id="taskDetailContainer" style="display: none;">
-      <div class="grid-2">
+      <div class="grid-2" style="margin-bottom:20px;">
         <div class="card">
-          <div class="card-title" id="detailTaskTitle"></div>
-          
+          <div class="card-title" id="detailTaskTitle" style="font-size:15px;line-height:1.4;"></div>
+
           <div class="input-group">
-            <label>Status</label>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-              <button class="btn btn-secondary btn-small status-btn" data-status="planifié" onclick="updateTaskStatus('planifié')">Planifié</button>
-              <button class="btn btn-secondary btn-small status-btn" data-status="confirmé" onclick="updateTaskStatus('confirmé')">Confirmé</button>
-              <button class="btn btn-secondary btn-small status-btn" data-status="bloqué" onclick="updateTaskStatus('bloqué')">Bloqué</button>
-              <button class="btn btn-success btn-small" onclick="completeTask()">Complété</button>
+            <label>Statut</label>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+              <button class="btn btn-secondary btn-small status-btn" data-status="planifié" onclick="updateTaskStatus('planifié')"><i class="fas fa-calendar"></i> Planifié</button>
+              <button class="btn btn-secondary btn-small status-btn" data-status="confirmé" onclick="updateTaskStatus('confirmé')"><i class="fas fa-check"></i> Confirmé</button>
+              <button class="btn btn-secondary btn-small status-btn" data-status="bloqué" onclick="updateTaskStatus('bloqué')"><i class="fas fa-ban"></i> Bloqué</button>
+              <button class="btn btn-success btn-small" onclick="completeTask()"><i class="fas fa-flag-checkered"></i> Terminer</button>
             </div>
           </div>
 
-          <button class="btn btn-danger" style="width: 100%; justify-content: center; margin-top: 20px;" onclick="deleteTask()">
+          <button class="btn btn-danger" style="width:100%;justify-content:center;margin-top:16px;" onclick="deleteTask()">
             <i class="fas fa-trash"></i> Supprimer
           </button>
         </div>
 
         <div class="card">
-          <div class="card-title"><i class="fas fa-info-circle"></i> Infos</div>
-          <div style="font-size: 12px; color: var(--gray-600);">
-            <div style="margin-bottom: 12px;">
-              <strong>Source:</strong> <span id="taskSource">-</span>
-            </div>
-            <div style="margin-bottom: 12px;">
-              <strong>Quadrant:</strong> <span id="taskQuadrant">-</span>
-            </div>
-            <div style="margin-bottom: 12px;">
-              <strong>Créée:</strong> <span id="taskCreated">-</span>
+          <div class="card-title"><i class="fas fa-info-circle"></i> Informations</div>
+          <div style="font-size:12px;color:var(--gray-600);display:flex;flex-direction:column;gap:10px;">
+            <div><strong>Source :</strong> <span id="taskSource">-</span></div>
+            <div><strong>Quadrant :</strong> <span id="taskQuadrant">-</span></div>
+            <div><strong>Créée le :</strong> <span id="taskCreated">-</span></div>
+            <div id="detailDueDate" style="display:none;"><strong>Échéance :</strong> <span id="taskDueDateDisplay">-</span></div>
+            <div id="detailHours" style="display:none;"><strong>Heures estimées :</strong> <span id="taskHoursDisplay">-</span></div>
+            <div id="detailPilote" style="display:none;"><strong>Pilote :</strong> <span id="taskPiloteDisplay" class="assign-chip pilote" style="display:inline-flex;"></span></div>
+            <div id="detailAssignees" style="display:none;">
+              <strong>Assignés :</strong>
+              <div class="detail-assignees-row" id="taskAssigneesDisplay"></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Commentaires -->
+      <div class="card">
+        <div class="comments-title">
+          <i class="fas fa-comments" style="color:var(--primary);"></i>
+          Commentaires <span id="commentCount" style="background:var(--gray-100);color:var(--gray-600);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">0</span>
+        </div>
+        <div class="comment-thread" id="commentThread">
+          <div class="empty-state" style="padding:16px;">
+            <i class="fas fa-comment-slash" style="font-size:20px;opacity:0.3;"></i>
+            <span class="empty-state-hint">Aucun commentaire. Soyez le premier.</span>
+          </div>
+        </div>
+        <div class="comment-input-row">
+          <textarea id="commentInput" placeholder="Ajouter un commentaire..." rows="2"
+            onkeydown="if(event.ctrlKey && event.key==='Enter') addComment()"></textarea>
+          <button class="btn btn-primary btn-small" onclick="addComment()" style="flex-shrink:0;">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+        <div style="font-size:10px;color:var(--gray-400);margin-top:6px;">Ctrl+Entrée pour envoyer</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIQUE -->
+  <div id="historique-tab" class="tab-content">
+    <div class="input-section" style="padding:16px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div class="history-filter-bar" style="margin:0;">
+          <button class="filter-chip active" onclick="filterHistory(this,'all')">Toutes</button>
+          <button class="filter-chip" onclick="filterHistory(this,'Q1')">Q1</button>
+          <button class="filter-chip" onclick="filterHistory(this,'Q2')">Q2</button>
+          <button class="filter-chip" onclick="filterHistory(this,'Q3')">Q3</button>
+          <button class="filter-chip" onclick="filterHistory(this,'Q4')">Q4</button>
+        </div>
+        <div style="font-size:12px;color:var(--gray-400);" id="historyCount">0 tâche(s) complétée(s)</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="history-timeline" id="historyTimeline">
+        <div class="empty-state" style="padding:40px;">
+          <i class="fas fa-clock" style="font-size:36px;opacity:0.2;"></i>
+          <span class="empty-state-title">Aucune tâche complétée</span>
+          <span class="empty-state-hint">Les tâches terminées apparaîtront ici avec leur historique.</span>
         </div>
       </div>
     </div>
@@ -1397,6 +1624,8 @@
   let syncInterval = null;
   let chartDonut = null, chartCharge = null, chartLine = null;
   let dismissedAlerts = new Set();
+  let draggedTaskId = null;
+  let currentHistoryFilter = 'all';
 
   // ===== PERMISSIONS PAR RÔLE =====
   const rolePermissions = {
@@ -1741,22 +1970,58 @@
   }
 
   // ===== SELECT TASK =====
+  function openTaskDetail(id) {
+    document.getElementById('taskSelect').value = id;
+    selectTask();
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('task-detail-tab').classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => { if (b.textContent.includes('Détail')) b.classList.add('active'); });
+  }
+
   function selectTask() {
     const id = document.getElementById('taskSelect').value;
     if (!id) {
       document.getElementById('taskDetailContainer').style.display = 'none';
       return;
     }
-    
     const task = tasks.find(t => t.id === id);
     if (!task) return;
 
     currentTaskId = id;
-    document.getElementById('detailTaskTitle').textContent = task.description;
+    document.getElementById('detailTaskTitle').innerHTML = `<i class="fas fa-tasks" style="color:var(--primary);"></i> ${task.description}`;
     document.getElementById('taskSource').textContent = task.source;
-    document.getElementById('taskQuadrant').textContent = task.quadrant;
-    document.getElementById('taskCreated').textContent = new Date(task.createdAt).toLocaleDateString('fr-FR');
-    
+    document.getElementById('taskQuadrant').innerHTML = `<span style="font-weight:700;color:${task.quadrant==='Q1'?'#D63384':task.quadrant==='Q2'?'#9333ea':task.quadrant==='Q3'?'#f59e0b':'#8b5cf6'}">${task.quadrant}</span>`;
+    document.getElementById('taskCreated').textContent = new Date(task.createdAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+
+    // Champs optionnels
+    if (task.dueDate) {
+      document.getElementById('detailDueDate').style.display = 'block';
+      const dd = new Date(task.dueDate); dd.setHours(0,0,0,0);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const diff = Math.ceil((dd - today) / 86400000);
+      const color = diff < 0 ? 'var(--danger)' : diff <= 2 ? 'var(--warning)' : 'var(--success)';
+      document.getElementById('taskDueDateDisplay').innerHTML = `<span style="color:${color};font-weight:700;">${dd.toLocaleDateString('fr-FR')} ${diff < 0 ? '(retard '+Math.abs(diff)+'j)' : diff === 0 ? "(aujourd'hui)" : '(dans '+diff+'j)'}</span>`;
+    } else { document.getElementById('detailDueDate').style.display = 'none'; }
+
+    if (task.estimatedHours) {
+      document.getElementById('detailHours').style.display = 'block';
+      document.getElementById('taskHoursDisplay').textContent = `${task.estimatedHours}h`;
+    } else { document.getElementById('detailHours').style.display = 'none'; }
+
+    if (task.pilote) {
+      document.getElementById('detailPilote').style.display = 'block';
+      document.getElementById('taskPiloteDisplay').textContent = task.pilote;
+    } else { document.getElementById('detailPilote').style.display = 'none'; }
+
+    const assignees = Array.isArray(task.assignedTo) ? task.assignedTo : (task.assignedTo ? [task.assignedTo] : []);
+    if (assignees.length > 0) {
+      document.getElementById('detailAssignees').style.display = 'block';
+      document.getElementById('taskAssigneesDisplay').innerHTML = assignees.map(a =>
+        `<span class="assign-chip">${a}</span>`
+      ).join('');
+    } else { document.getElementById('detailAssignees').style.display = 'none'; }
+
     document.querySelectorAll('.status-btn').forEach(btn => {
       btn.classList.remove('btn-primary');
       btn.classList.add('btn-secondary');
@@ -1767,6 +2032,7 @@
     });
 
     document.getElementById('taskDetailContainer').style.display = 'block';
+    loadComments(id);
   }
 
   // ===== UPDATE STATUS =====
@@ -1852,6 +2118,7 @@
     renderCoach(visibleTasks);
     renderPlanner(visibleTasks);
     renderAlerts(visibleTasks);
+    renderHistory(visibleTasks, currentHistoryFilter);
   }
 
   function renderDashboard(tasks) {
@@ -1866,8 +2133,21 @@
     document.getElementById('q4-count').textContent = q4.length;
 
     const today = new Date(); today.setHours(0,0,0,0);
+    const emptyStates = {
+      'q1-tasks': { icon: 'fire', title: 'Aucune urgence', hint: 'Bravo ! Pas de tâche critique.' },
+      'q2-tasks': { icon: 'star', title: 'Rien d\'important', hint: 'Planifiez vos objectifs stratégiques.' },
+      'q3-tasks': { icon: 'bell', title: 'Pas d\'urgence', hint: 'Déléguez les urgences peu importantes.' },
+      'q4-tasks': { icon: 'inbox', title: 'Boîte vide', hint: 'Éliminez ou déléguez ces tâches.' }
+    };
+
     const renderQuad = (id, list) => {
-      const html = list.length > 0 ? list.map(t => {
+      const emptyHtml = `<div class="empty-state">
+        <i class="fas fa-${emptyStates[id].icon}" style="font-size:28px;opacity:0.2;"></i>
+        <span class="empty-state-title">${emptyStates[id].title}</span>
+        <span class="empty-state-hint">${emptyStates[id].hint}</span>
+      </div>`;
+
+      const html = list.length > 0 ? list.map((t, i) => {
         const due = t.dueDate ? new Date(t.dueDate) : null;
         const daysLeft = due ? Math.ceil((due - today) / 86400000) : null;
         let dueBadge = '';
@@ -1884,14 +2164,23 @@
           return `<div class="task-assignee-avatar${isPilote ? ' pilote-avatar' : ''}" title="${a}${isPilote ? ' (pilote)' : ''}">${initials}</div>`;
         }).join('');
         return `
-          <div class="${itemClass}" onclick="document.getElementById('taskSelect').value = '${t.id}'; selectTask(); switchTab('task-detail');">
-            <div class="task-title" style="display:flex;align-items:center;gap:6px;">${t.description.substring(0, 46)} ${dueBadge}</div>
+          <div class="${itemClass}" draggable="true"
+            ondragstart="dragStart(event,'${t.id}')"
+            ondragend="dragEnd(event)"
+            onclick="openTaskDetail('${t.id}')"
+            style="animation-delay:${i * 0.04}s">
+            <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${t.description.substring(0, 48)} ${dueBadge}</div>
             <div class="task-meta" style="margin-top:6px;">${t.source} • <span class="status-badge status-${t.status.replace(/ /g, '-')}">${t.status}</span></div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
           </div>`;
-      }).join('') : '<div style="text-align:center;color:var(--gray-400);padding:30px 20px;font-size:12px;"><i class="fas fa-check-circle" style="font-size:24px;display:block;margin-bottom:8px;opacity:0.3;"></i>Aucune tâche</div>';
+      }).join('') : emptyHtml;
+
       const container = document.getElementById(id);
-      if (container) container.innerHTML = html;
+      if (container) {
+        const hint = container.querySelector('.drop-hint');
+        container.innerHTML = html;
+        if (hint) container.prepend(hint);
+      }
     };
 
     renderQuad('q1-tasks', q1);
@@ -2097,6 +2386,199 @@
         offlineQueue.processQueue();
       }
     }, 8000);
+  }
+
+  // ===== DRAG & DROP =====
+  function dragStart(event, taskId) {
+    draggedTaskId = taskId;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', taskId);
+    setTimeout(() => event.target.classList.add('dragging'), 0);
+  }
+
+  function dragEnd(event) {
+    event.target.classList.remove('dragging');
+    document.querySelectorAll('.quadrant-content').forEach(el => el.classList.remove('drag-over'));
+  }
+
+  function dragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const container = event.currentTarget;
+    if (!container.classList.contains('drag-over')) container.classList.add('drag-over');
+  }
+
+  function dragLeave(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      event.currentTarget.classList.remove('drag-over');
+    }
+  }
+
+  async function drop(event, newQuadrant) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    const taskId = draggedTaskId || event.dataTransfer.getData('text/plain');
+    if (!taskId) return;
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.quadrant === newQuadrant) return;
+
+    const oldQ = task.quadrant;
+    task.quadrant = newQuadrant;
+    saveLocalTasks();
+
+    const p = rolePermissions[currentRole];
+    if (!p.canEdit) { showMessage('Permission insuffisante pour déplacer cette tâche', 'error'); return; }
+
+    await updateTask(taskId, { quadrant: newQuadrant, updatedAt: new Date().toISOString(), updatedBy: currentRole });
+    showMessage(`Tâche déplacée ${oldQ} → ${newQuadrant}`, 'success');
+
+    const p2 = rolePermissions[currentRole];
+    const visible = tasks.filter(t => p2.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH');
+    renderDashboard(visible);
+    draggedTaskId = null;
+  }
+
+  // ===== COMMENTAIRES =====
+  async function loadComments(taskId) {
+    const thread = document.getElementById('commentThread');
+    const countEl = document.getElementById('commentCount');
+    thread.innerHTML = '<div style="color:var(--gray-400);font-size:12px;padding:12px;">Chargement...</div>';
+
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(`${FIREBASE_DB_URL}/comments/${taskId}.json?auth=${FIREBASE_API_KEY}`, { signal: controller.signal });
+      if (!response.ok) throw new Error('fetch failed');
+      const data = await response.json();
+
+      const comments = data ? Object.entries(data).map(([k, v]) => ({ id: k, ...v })).sort((a, b) => a.timestamp > b.timestamp ? 1 : -1) : [];
+      countEl.textContent = comments.length;
+
+      if (comments.length === 0) {
+        thread.innerHTML = `<div class="empty-state" style="padding:16px;">
+          <i class="fas fa-comment-slash" style="font-size:20px;opacity:0.3;"></i>
+          <span class="empty-state-hint">Aucun commentaire. Soyez le premier.</span>
+        </div>`;
+        return;
+      }
+
+      thread.innerHTML = comments.map(c => `
+        <div class="comment-item">
+          <div class="comment-meta">
+            <span class="comment-author"><i class="fas fa-user-circle"></i> ${c.author}</span>
+            <span>${new Date(c.timestamp).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</span>
+          </div>
+          <div class="comment-text">${c.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+        </div>`).join('');
+      thread.scrollTop = thread.scrollHeight;
+
+    } catch (e) {
+      const cached = JSON.parse(localStorage.getItem(`gesta-comments-${taskId}`) || '[]');
+      if (cached.length > 0) {
+        countEl.textContent = cached.length;
+        thread.innerHTML = cached.map(c => `
+          <div class="comment-item" style="opacity:0.7;">
+            <div class="comment-meta"><span class="comment-author">${c.author}</span><span>${new Date(c.timestamp).toLocaleDateString('fr-FR')}</span></div>
+            <div class="comment-text">${c.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+          </div>`).join('');
+      } else {
+        thread.innerHTML = '<div style="color:var(--gray-400);font-size:12px;padding:12px;">Commentaires indisponibles hors ligne.</div>';
+      }
+    }
+  }
+
+  async function addComment() {
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
+    if (!text || !currentTaskId) return;
+
+    const comment = { author: currentRole, text, timestamp: new Date().toISOString() };
+    input.value = '';
+    input.style.height = 'auto';
+
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000);
+      await fetch(`${FIREBASE_DB_URL}/comments/${currentTaskId}.json?auth=${FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify(comment)
+      });
+    } catch (e) {
+      const cached = JSON.parse(localStorage.getItem(`gesta-comments-${currentTaskId}`) || '[]');
+      cached.push(comment);
+      localStorage.setItem(`gesta-comments-${currentTaskId}`, JSON.stringify(cached));
+    }
+
+    await loadComments(currentTaskId);
+  }
+
+  // ===== HISTORIQUE =====
+  function renderHistory(visibleTasks, filter = 'all') {
+    const completed = visibleTasks
+      .filter(t => t.completed && (filter === 'all' || t.quadrant === filter))
+      .sort((a, b) => (b.completedAt || b.createdAt) > (a.completedAt || a.createdAt) ? 1 : -1);
+
+    document.getElementById('historyCount').textContent = `${completed.length} tâche(s) complétée(s)`;
+    const timeline = document.getElementById('historyTimeline');
+    if (!timeline) return;
+
+    if (completed.length === 0) {
+      timeline.innerHTML = `<div class="empty-state" style="padding:40px;">
+        <i class="fas fa-clock" style="font-size:36px;opacity:0.2;"></i>
+        <span class="empty-state-title">Aucune tâche complétée</span>
+        <span class="empty-state-hint">Les tâches terminées apparaîtront ici.</span>
+      </div>`;
+      return;
+    }
+
+    const qColors = { Q1:'#D63384', Q2:'#9333ea', Q3:'#f59e0b', Q4:'#8b5cf6' };
+    timeline.innerHTML = completed.map((t, i) => {
+      const completedDate = t.completedAt ? new Date(t.completedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' }) : 'Date inconnue';
+      const createdDate = t.createdAt ? new Date(t.createdAt).toLocaleDateString('fr-FR') : '-';
+      const assignees = Array.isArray(t.assignedTo) ? t.assignedTo.join(', ') : (t.assignedTo || '-');
+      return `
+        <div class="history-item" style="animation-delay:${i*0.03}s">
+          <div class="history-dot-col">
+            <div class="history-dot" style="background:${qColors[t.quadrant]};"></div>
+            ${i < completed.length - 1 ? '<div class="history-line"></div>' : ''}
+          </div>
+          <div class="history-content">
+            <div class="history-title">${t.description}</div>
+            <div class="history-meta">
+              <span style="background:${qColors[t.quadrant]}22;color:${qColors[t.quadrant]};padding:2px 8px;border-radius:8px;font-weight:700;">${t.quadrant}</span>
+              <span><i class="fas fa-tag"></i> ${t.source}</span>
+              <span><i class="fas fa-calendar-check"></i> Terminée le ${completedDate}</span>
+              <span><i class="fas fa-plus"></i> Créée le ${createdDate}</span>
+              ${t.estimatedHours ? `<span><i class="fas fa-clock"></i> ${t.estimatedHours}h</span>` : ''}
+              ${t.pilote ? `<span><i class="fas fa-star"></i> ${t.pilote}</span>` : ''}
+              ${assignees !== '-' ? `<span><i class="fas fa-users"></i> ${assignees}</span>` : ''}
+            </div>
+          </div>
+          <button class="history-restore" onclick="restoreTask('${t.id}')" title="Réactiver cette tâche">
+            <i class="fas fa-undo"></i> Réactiver
+          </button>
+        </div>`;
+    }).join('');
+  }
+
+  function filterHistory(btn, filter) {
+    currentHistoryFilter = filter;
+    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const p = rolePermissions[currentRole];
+    const visible = tasks.filter(t => p.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH');
+    renderHistory(visible, filter);
+  }
+
+  async function restoreTask(taskId) {
+    const p = rolePermissions[currentRole];
+    if (!p.canEdit) { showMessage('Permission insuffisante', 'error'); return; }
+    await updateTask(taskId, { completed: false, status: 'planifié', completedAt: null, restoredAt: new Date().toISOString(), restoredBy: currentRole });
+    showMessage('Tâche réactivée', 'success');
+    await fetchTasks();
   }
 
   // ===== DARK MODE =====
