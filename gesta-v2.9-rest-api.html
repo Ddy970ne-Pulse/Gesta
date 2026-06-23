@@ -3994,7 +3994,14 @@ Règles :
     } catch (error) {
       resultDiv.className = 'ai-result';
       resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `<div style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Erreur : ${error.message}<br><br>Vérifiez votre clé API Groq sur <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>.</div>`;
+      const isCors = error.message === 'Failed to fetch' || error.name === 'TypeError';
+      resultDiv.innerHTML = `<div style="color:var(--danger);">
+        <i class="fas fa-exclamation-triangle"></i> ${isCors
+          ? `<strong>Erreur CORS</strong> — Groq bloque les appels directs depuis le navigateur.<br><br>
+             <strong>Solution :</strong> utilisez le <a href="https://console.groq.com/playground" target="_blank" style="color:var(--primary);">Playground Groq</a> pour tester manuellement, ou contactez-nous pour une alternative sans CORS.`
+          : `Erreur : ${error.message}<br><br>Vérifiez votre clé API sur <a href="https://console.groq.com/keys" target="_blank" style="color:var(--primary);">console.groq.com</a>.`
+        }
+      </div>`;
       document.getElementById('clearAIBtn').style.display = 'inline-flex';
     }
   }
