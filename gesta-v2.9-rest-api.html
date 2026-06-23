@@ -1641,6 +1641,12 @@
         </div>
       </div>
 
+      <!-- Sous-tâches & Rappels -->
+      <div class="card" id="subTasksCard" style="display:none;">
+        <div class="card-title"><i class="fas fa-sitemap" style="color:var(--primary);"></i> Sous-tâches & Rappels</div>
+        <div id="subTasksList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
       <!-- Commentaires -->
       <div class="card">
         <div class="comments-title">
@@ -2431,7 +2437,62 @@
       tags: parseTags(document.getElementById('taskTags').value)
     };
 
-    await saveTask(task);
+    const parentId = await saveTask(task) || null;
+
+    let extraCount = 0;
+
+    // A — Décomposition automatique en sous-tâches
+    if (parentId) {
+      const subDescs = generateSubTasks(desc, analysis.source);
+      for (const subDesc of subDescs) {
+        await saveTask({
+          description: subDesc,
+          quadrant: analysis.quadrant,
+          source: analysis.source,
+          confidence: 0.80,
+          status: 'planifié',
+          completed: false,
+          createdBy: currentRole,
+          createdAt: new Date().toISOString(),
+          assignedTo: task.assignedTo,
+          pilote: task.pilote,
+          dueDate: task.dueDate,
+          parentId,
+          isSubTask: true,
+          tags: task.tags
+        });
+        extraCount++;
+      }
+
+      // B — Rappels automatiques si dueDate définie
+      if (task.dueDate) {
+        const due = new Date(task.dueDate);
+        for (const days of [3, 1]) {
+          const reminderDate = new Date(due);
+          reminderDate.setDate(due.getDate() - days);
+          if (reminderDate > new Date()) {
+            await saveTask({
+              description: `🔔 Rappel J-${days} : ${desc.substring(0, 60)}`,
+              quadrant: 'Q1',
+              source: analysis.source,
+              confidence: 1,
+              status: 'planifié',
+              completed: false,
+              createdBy: currentRole,
+              createdAt: new Date().toISOString(),
+              assignedTo: task.assignedTo,
+              pilote: task.pilote,
+              dueDate: reminderDate.toISOString().split('T')[0],
+              parentId,
+              isReminder: true,
+              reminderType: `J-${days}`
+            });
+            extraCount++;
+          }
+        }
+      }
+    }
+
     input.value = '';
     document.getElementById('taskStartDate').value = '';
     document.getElementById('taskDueDate').value = '';
@@ -2439,8 +2500,45 @@
     document.getElementById('taskRepeat').value = 'none';
     document.getElementById('taskTags').value = '';
     resetAssignDropdown();
-    showMessage(`Tâche créée • ${analysis.source}`, 'success');
+    const msg = extraCount > 0
+      ? `Tâche créée + ${extraCount} sous-tâche(s)/rappel(s) automatique(s)`
+      : `Tâche créée • ${analysis.source}`;
+    showMessage(msg, 'success');
     await fetchTasks();
+  }
+
+  // Dictionnaire de sous-tâches par source et mots-clés
+  function generateSubTasks(desc, source) {
+    const d = desc.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const templates = {
+      'Finance': {
+        'paie|salaire': ['Collecter les heures et absences du mois', 'Vérifier les éléments variables de paie', 'Valider les bulletins avec la direction', 'Transmettre les virements à la banque'],
+        'budget|financement': ['Rassembler les justificatifs de dépenses', 'Comparer au budget prévisionnel', 'Rédiger le rapport financier'],
+        'facture|devis': ['Vérifier la conformité du montant', 'Obtenir le bon de commande', 'Archiver la pièce comptable'],
+        'subvention|bailleur': ['Préparer le dossier de demande', 'Rassembler les justificatifs', 'Envoyer et confirmer la réception']
+      },
+      'RH': {
+        'recrutement|embauche': ['Rédiger la fiche de poste', 'Publier l\'annonce sur les jobboards', 'Sélectionner les candidatures', 'Planifier les entretiens'],
+        'conge|absence': ['Vérifier le solde de congés', 'Valider avec le responsable', 'Mettre à jour le planning d\'équipe'],
+        'contrat|rupture': ['Préparer les documents juridiques', 'Valider avec le conseil juridique', 'Informer les organismes sociaux'],
+        'formation|cpf': ['Identifier l\'organisme de formation', 'Vérifier l\'éligibilité CPF', 'Planifier la session et informer le salarié']
+      },
+      'Audit': {
+        'audit|inspection|ageval': ['Rassembler les documents requis', 'Vérifier la conformité des procédures', 'Préparer les réponses aux questions types', 'Organiser la visite des locaux'],
+        'rapport|bilan': ['Collecter les données des équipes', 'Analyser les écarts par rapport aux objectifs', 'Rédiger le rapport final et le soumettre']
+      },
+      'Opérations': {
+        'atelier|production': ['Vérifier la disponibilité des matériaux', 'Affecter les intervenants', 'Contrôler l\'avancement en milieu de période'],
+        'maintenance|reparation': ['Diagnostiquer le problème', 'Commander les pièces nécessaires', 'Planifier l\'intervention technique'],
+        'planning|organisation': ['Lister les ressources disponibles', 'Établir le calendrier détaillé', 'Communiquer le planning à l\'équipe']
+      }
+    };
+
+    const sourceTemplates = templates[source] || {};
+    for (const [pattern, subs] of Object.entries(sourceTemplates)) {
+      if (new RegExp(pattern).test(d)) return subs;
+    }
+    return []; // Pas de sous-tâches si aucun pattern reconnu
   }
 
   // ===== SELECT TASK =====
@@ -2518,7 +2616,25 @@
       cb.checked = currentAssignees.includes(cb.value);
     });
 
+    loadSubTasks(id);
     loadComments(id);
+  }
+
+  function loadSubTasks(parentId) {
+    const card = document.getElementById('subTasksCard');
+    const list = document.getElementById('subTasksList');
+    const children = tasks.filter(t => t.parentId === parentId);
+    if (!children.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    const qColors = {'Q1':'#D63384','Q2':'#9333ea','Q3':'#f59e0b','Q4':'#8b5cf6'};
+    list.innerHTML = children.map(t => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;${t.completed ? 'opacity:0.5;' : ''}" onclick="openTaskDetail('${t.id}')">
+        <i class="fas ${t.isReminder ? 'fa-bell' : 'fa-tasks'}" style="color:${t.isReminder ? 'var(--warning)' : 'var(--primary)'};font-size:12px;flex-shrink:0;"></i>
+        <div style="flex:1;font-size:12px;${t.completed ? 'text-decoration:line-through;' : ''}">${t.description}</div>
+        ${t.dueDate ? `<span style="font-size:10px;color:var(--gray-400);">${new Date(t.dueDate).toLocaleDateString('fr-FR')}</span>` : ''}
+        <span class="status-badge status-${(t.status||'planifié').replace(/ /g,'-')}" style="font-size:10px;">${t.status || 'planifié'}</span>
+        ${t.completed ? '<i class="fas fa-check-circle" style="color:var(--success);font-size:12px;"></i>' : ''}
+      </div>`).join('');
   }
 
   // ===== CHANGEMENT QUADRANT =====
@@ -2710,7 +2826,7 @@
             ondragend="dragEnd(event)"
             onclick="openTaskDetail('${t.id}')"
             style="animation-delay:${i * 0.04}s">
-            <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${t.description.substring(0, 48)} ${dueBadge}</div>
+            <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${t.description.substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}</div>
             <div class="task-meta" style="margin-top:6px;">${t.source} • <span class="status-badge status-${t.status.replace(/ /g, '-')}">${t.status}</span>${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}</div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
             ${(t.tags && t.tags.length) ? `<div class="task-tags-row">${t.tags.map(tag => `<span class="task-tag">#${tag}</span>`).join('')}</div>` : ''}
