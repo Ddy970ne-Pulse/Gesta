@@ -1641,6 +1641,19 @@
         </div>
       </div>
 
+      <!-- Checklist manuelle -->
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span><i class="fas fa-check-square" style="color:var(--primary);"></i> Checklist <span id="checklistProgress" style="font-size:11px;font-weight:400;color:var(--gray-400);"></span></span>
+          <button class="btn btn-secondary btn-small" onclick="addChecklistItem()" title="Ajouter un élément"><i class="fas fa-plus"></i></button>
+        </div>
+        <div id="checklistItems" style="display:flex;flex-direction:column;gap:6px;min-height:20px;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input type="text" id="checklistInput" placeholder="Nouvelle étape..." style="flex:1;font-size:13px;" onkeypress="if(event.key==='Enter')addChecklistItem()">
+          <button class="btn btn-primary btn-small" onclick="addChecklistItem()"><i class="fas fa-plus"></i> Ajouter</button>
+        </div>
+      </div>
+
       <!-- Sous-tâches & Rappels -->
       <div class="card" id="subTasksCard" style="display:none;">
         <div class="card-title"><i class="fas fa-sitemap" style="color:var(--primary);"></i> Sous-tâches & Rappels</div>
@@ -2616,8 +2629,71 @@
       cb.checked = currentAssignees.includes(cb.value);
     });
 
+    renderChecklist(task.checklist || []);
     loadSubTasks(id);
     loadComments(id);
+  }
+
+  // ===== CHECKLIST =====
+  function renderChecklist(checklist) {
+    const container = document.getElementById('checklistItems');
+    const progress = document.getElementById('checklistProgress');
+    if (!checklist || !checklist.length) {
+      container.innerHTML = '<div style="font-size:12px;color:var(--gray-400);padding:4px 0;">Aucune étape. Ajoutez-en une ci-dessous.</div>';
+      progress.textContent = '';
+      return;
+    }
+    const done = checklist.filter(i => i.checked).length;
+    progress.textContent = `${done}/${checklist.length}`;
+    const pct = Math.round(done / checklist.length * 100);
+    container.innerHTML = `
+      <div style="height:4px;background:var(--gray-100);border-radius:2px;margin-bottom:6px;">
+        <div style="height:100%;width:${pct}%;background:var(--success);border-radius:2px;transition:width 0.3s;"></div>
+      </div>
+      ${checklist.map((item, idx) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;">
+          <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecklistItem(${idx})" style="width:16px;height:16px;cursor:pointer;accent-color:var(--success);">
+          <span style="flex:1;font-size:13px;${item.checked ? 'text-decoration:line-through;color:var(--gray-400);' : ''}">${item.text}</span>
+          ${item.checkedAt ? `<span style="font-size:10px;color:var(--gray-400);">${new Date(item.checkedAt).toLocaleDateString('fr-FR')}</span>` : ''}
+          <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:2px;font-size:11px;" title="Supprimer"><i class="fas fa-times"></i></button>
+        </div>`).join('')}`;
+  }
+
+  async function addChecklistItem() {
+    if (!currentTaskId) return;
+    const input = document.getElementById('checklistInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const task = tasks.find(t => t.id === currentTaskId);
+    const checklist = Array.isArray(task?.checklist) ? [...task.checklist] : [];
+    checklist.push({ text, checked: false, createdAt: new Date().toISOString() });
+    await updateTask(currentTaskId, { checklist });
+    input.value = '';
+    const idx = tasks.findIndex(t => t.id === currentTaskId);
+    if (idx !== -1) tasks[idx].checklist = checklist;
+    renderChecklist(checklist);
+  }
+
+  async function toggleChecklistItem(idx) {
+    if (!currentTaskId) return;
+    const task = tasks.find(t => t.id === currentTaskId);
+    const checklist = Array.isArray(task?.checklist) ? task.checklist.map((item, i) =>
+      i === idx ? { ...item, checked: !item.checked, checkedAt: !item.checked ? new Date().toISOString() : null } : item
+    ) : [];
+    await updateTask(currentTaskId, { checklist });
+    const tidx = tasks.findIndex(t => t.id === currentTaskId);
+    if (tidx !== -1) tasks[tidx].checklist = checklist;
+    renderChecklist(checklist);
+  }
+
+  async function removeChecklistItem(idx) {
+    if (!currentTaskId) return;
+    const task = tasks.find(t => t.id === currentTaskId);
+    const checklist = (task?.checklist || []).filter((_, i) => i !== idx);
+    await updateTask(currentTaskId, { checklist });
+    const tidx = tasks.findIndex(t => t.id === currentTaskId);
+    if (tidx !== -1) tasks[tidx].checklist = checklist;
+    renderChecklist(checklist);
   }
 
   function loadSubTasks(parentId) {
