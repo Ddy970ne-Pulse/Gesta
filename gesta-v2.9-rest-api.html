@@ -617,6 +617,9 @@
     }
     .myspace-section-title i { color: var(--primary); }
 
+    /* ===== SÉLECTION MULTIPLE ===== */
+    .bulk-selected { border-color: var(--danger) !important; background: rgba(214,51,52,0.06) !important; }
+
     /* ===== TAGS ===== */
     .task-tag {
       display: inline-flex; align-items: center;
@@ -1422,6 +1425,7 @@
 
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fas fa-chart-bar"></i> Dashboard</button>
+    <button class="tab-btn" id="bulkSelectBtn" onclick="toggleBulkSelect()" title="Sélection multiple" style="margin-left:auto;"><i class="fas fa-check-square"></i> Sélectionner</button>
     <button class="tab-btn" onclick="switchTab('myspace')"><i class="fas fa-user-circle"></i> Mon Espace</button>
     <button class="tab-btn" onclick="switchTab('task-detail')"><i class="fas fa-file-alt"></i> Détail</button>
     <button class="tab-btn" onclick="switchTab('analytics')"><i class="fas fa-chart-line"></i> Analytics</button>
@@ -1500,6 +1504,14 @@
         </div>
       </div>
       <div id="messageContainer"></div>
+    </div>
+
+    <!-- Barre de sélection multiple -->
+    <div id="bulkBar" style="display:none;background:var(--danger);color:white;padding:10px 20px;border-radius:10px;margin-bottom:12px;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span id="bulkCount" style="font-weight:700;"></span>
+      <span style="flex:1;font-size:12px;">tâche(s) sélectionnée(s)</span>
+      <button class="btn btn-small" style="background:white;color:var(--danger);font-weight:700;" onclick="bulkDelete()"><i class="fas fa-trash"></i> Supprimer</button>
+      <button class="btn btn-small" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4);" onclick="cancelBulkSelect()"><i class="fas fa-times"></i> Annuler</button>
     </div>
 
     <div id="tagFilterBar" style="display:none;padding:0 0 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -2634,6 +2646,58 @@
     loadComments(id);
   }
 
+  // ===== SÉLECTION MULTIPLE =====
+  let bulkMode = false;
+  let selectedTaskIds = new Set();
+
+  function toggleBulkSelect() {
+    bulkMode = !bulkMode;
+    selectedTaskIds.clear();
+    const btn = document.getElementById('bulkSelectBtn');
+    btn.classList.toggle('active', bulkMode);
+    btn.innerHTML = bulkMode
+      ? '<i class="fas fa-times"></i> Annuler'
+      : '<i class="fas fa-check-square"></i> Sélectionner';
+    document.getElementById('bulkBar').style.display = 'none';
+    renderAll();
+  }
+
+  function cancelBulkSelect() {
+    bulkMode = false;
+    selectedTaskIds.clear();
+    document.getElementById('bulkSelectBtn').classList.remove('active');
+    document.getElementById('bulkSelectBtn').innerHTML = '<i class="fas fa-check-square"></i> Sélectionner';
+    document.getElementById('bulkBar').style.display = 'none';
+    renderAll();
+  }
+
+  function toggleTaskSelection(taskId, e) {
+    e.stopPropagation();
+    if (selectedTaskIds.has(taskId)) selectedTaskIds.delete(taskId);
+    else selectedTaskIds.add(taskId);
+    const count = selectedTaskIds.size;
+    const bar = document.getElementById('bulkBar');
+    bar.style.display = count > 0 ? 'flex' : 'none';
+    document.getElementById('bulkCount').textContent = count;
+    // Mettre à jour visuellement la carte
+    const card = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (card) card.classList.toggle('bulk-selected', selectedTaskIds.has(taskId));
+  }
+
+  async function bulkDelete() {
+    if (!selectedTaskIds.size) return;
+    const p = rolePermissions[currentRole];
+    if (!p.canDelete) { showMessage('Permission insuffisante pour supprimer', 'error'); return; }
+    if (!confirm(`Supprimer ${selectedTaskIds.size} tâche(s) définitivement ?`)) return;
+    showMessage(`Suppression en cours...`, 'info');
+    for (const id of selectedTaskIds) {
+      await deleteTaskFirebase(id);
+    }
+    showMessage(`${selectedTaskIds.size} tâche(s) supprimée(s)`, 'success');
+    cancelBulkSelect();
+    await fetchTasks();
+  }
+
   // ===== CHECKLIST =====
   function renderChecklist(checklist) {
     const container = document.getElementById('checklistItems');
@@ -2896,13 +2960,18 @@
           const isPilote = t.pilote === a;
           return `<div class="task-assignee-avatar${isPilote ? ' pilote-avatar' : ''}" title="${a}${isPilote ? ' (pilote)' : ''}">${initials}</div>`;
         }).join('');
+        const isSelected = selectedTaskIds.has(t.id);
         return `
-          <div class="${itemClass}" draggable="true"
-            ondragstart="dragStart(event,'${t.id}')"
-            ondragend="dragEnd(event)"
-            onclick="openTaskDetail('${t.id}')"
-            style="animation-delay:${i * 0.04}s">
-            <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${t.description.substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}</div>
+          <div class="${itemClass}${isSelected ? ' bulk-selected' : ''}" draggable="${!bulkMode}"
+            data-task-id="${t.id}"
+            ondragstart="${bulkMode ? '' : `dragStart(event,'${t.id}')`}"
+            ondragend="${bulkMode ? '' : 'dragEnd(event)'}"
+            onclick="${bulkMode ? `toggleTaskSelection('${t.id}',event)` : `openTaskDetail('${t.id}')`}"
+            style="animation-delay:${i * 0.04}s;${isSelected ? 'border-color:var(--danger);background:rgba(214,51,52,0.06);' : ''}cursor:${bulkMode ? 'pointer' : 'pointer'};">
+            <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              ${bulkMode ? `<input type="checkbox" ${isSelected ? 'checked' : ''} onclick="toggleTaskSelection('${t.id}',event)" style="width:15px;height:15px;accent-color:var(--danger);flex-shrink:0;">` : ''}
+              ${t.description.substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}
+            </div>
             <div class="task-meta" style="margin-top:6px;">${t.source} • <span class="status-badge status-${t.status.replace(/ /g, '-')}">${t.status}</span>${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}</div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
             ${(t.tags && t.tags.length) ? `<div class="task-tags-row">${t.tags.map(tag => `<span class="task-tag">#${tag}</span>`).join('')}</div>` : ''}
