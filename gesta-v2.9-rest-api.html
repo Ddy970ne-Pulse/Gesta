@@ -2031,7 +2031,7 @@
     document.getElementById('myspaceSubtitle').textContent = 'Mode démo · AAEA-CAVA';
 
     // Admin tab visibility
-    document.getElementById('adminTabBtn').style.display = role === 'Director' ? 'flex' : 'none';
+    document.getElementById('adminTabBtn').style.display = role === 'Coordinateur RH' ? 'flex' : 'none';
 
     requestNotifPermission();
     initializeApp();
@@ -3158,7 +3158,7 @@
     document.getElementById('myspaceSubtitle').textContent = currentUser.role + ' · AAEA-CAVA';
 
     // Admin tab visibility
-    document.getElementById('adminTabBtn').style.display = currentUser.role === 'Director' ? 'flex' : 'none';
+    document.getElementById('adminTabBtn').style.display = currentUser.role === 'Coordinateur RH' ? 'flex' : 'none';
 
     initializeApp();
   }
@@ -3248,7 +3248,7 @@
 
   // ===== ADMIN =====
   async function adminCreateUser() {
-    if (!currentUser || currentUser.role !== 'Director') { showMessage('Accès refusé', 'error'); return; }
+    if (!currentUser || currentUser.role !== 'Coordinateur RH') { showMessage('Accès refusé', 'error'); return; }
     const fullName = document.getElementById('adminFullName').value.trim();
     const email = document.getElementById('adminEmail').value.trim();
     const password = document.getElementById('adminPassword').value;
