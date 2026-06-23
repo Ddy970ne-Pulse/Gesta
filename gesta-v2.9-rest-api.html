@@ -617,6 +617,20 @@
     }
     .myspace-section-title i { color: var(--primary); }
 
+    /* ===== TAGS ===== */
+    .task-tag {
+      display: inline-flex; align-items: center;
+      background: var(--primary-light); color: var(--primary);
+      border-radius: 8px; padding: 1px 7px; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.3px; cursor: default;
+    }
+    .task-tags-row { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
+    .recur-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: #e0f2fe; color: #0369a1; border-radius: 8px;
+      padding: 1px 7px; font-size: 10px; font-weight: 700;
+    }
+
     /* ===== ADMIN PANEL ===== */
     .admin-user-card {
       background: var(--surface);
@@ -1472,8 +1486,26 @@
           <label>Heures estimées</label>
           <input type="number" id="taskHours" placeholder="ex: 4" min="0.5" max="40" step="0.5">
         </div>
+        <div class="input-group" style="margin-bottom:0">
+          <label>Récurrence</label>
+          <select id="taskRepeat">
+            <option value="none">Aucune</option>
+            <option value="weekly">Chaque semaine</option>
+            <option value="monthly">Chaque mois</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+          <label>Tags (séparés par virgule)</label>
+          <input type="text" id="taskTags" placeholder="ex: réunion, paie, audit">
+        </div>
       </div>
       <div id="messageContainer"></div>
+    </div>
+
+    <div id="tagFilterBar" style="display:none;padding:0 0 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:11px;font-weight:700;color:var(--gray-400);">TAGS :</span>
+      <span id="tagFilterChips"></span>
+      <button class="filter-chip active" id="tagFilterAll" onclick="filterByTag(null,this)" style="font-size:11px;">Tous</button>
     </div>
 
     <div class="grid-4" id="quadrantsContainer">
@@ -2001,6 +2033,7 @@
     // Admin tab visibility
     document.getElementById('adminTabBtn').style.display = role === 'Director' ? 'flex' : 'none';
 
+    requestNotifPermission();
     initializeApp();
   }
 
@@ -2280,7 +2313,9 @@
       dueDate: document.getElementById('taskDueDate').value || null,
       assignedTo: assignedTo.length > 0 ? assignedTo : null,
       pilote: pilote,
-      estimatedHours: parseFloat(document.getElementById('taskHours').value) || null
+      estimatedHours: parseFloat(document.getElementById('taskHours').value) || null,
+      repeat: document.getElementById('taskRepeat').value || 'none',
+      tags: parseTags(document.getElementById('taskTags').value)
     };
 
     await saveTask(task);
@@ -2288,6 +2323,8 @@
     document.getElementById('taskStartDate').value = '';
     document.getElementById('taskDueDate').value = '';
     document.getElementById('taskHours').value = '';
+    document.getElementById('taskRepeat').value = 'none';
+    document.getElementById('taskTags').value = '';
     resetAssignDropdown();
     showMessage(`Tâche créée • ${analysis.source}`, 'success');
     await fetchTasks();
@@ -2395,9 +2432,16 @@
       status: 'complété',
       completedAt: new Date().toISOString()
     });
-    
+
+    const completedTask = tasks.find(t => t.id === currentTaskId);
+    if (completedTask && completedTask.repeat && completedTask.repeat !== 'none') {
+      await generateRecurrence(completedTask);
+      showMessage('Tâche complétée · Occurrence suivante créée automatiquement', 'success');
+    } else {
+      showMessage('Tâche complétée', 'success');
+    }
+
     document.getElementById('taskDetailContainer').style.display = 'none';
-    showMessage('Tâche complétée', 'success');
     await fetchTasks();
   }
 
@@ -2436,7 +2480,9 @@
       permissions.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH'
     );
 
-    renderDashboard(visibleTasks);
+    renderTagFilterBar(visibleTasks);
+    const displayTasks = activeTagFilter ? visibleTasks.filter(t => (t.tags || []).includes(activeTagFilter)) : visibleTasks;
+    renderDashboard(displayTasks);
     renderMySpace(tasks);
     renderTaskSelect(visibleTasks);
     renderAnalytics(visibleTasks);
@@ -2444,6 +2490,7 @@
     renderPlanner(visibleTasks);
     renderAlerts(visibleTasks);
     renderHistory(visibleTasks, currentHistoryFilter);
+    checkUrgentNotifications(visibleTasks);
   }
 
   function renderDashboard(tasks) {
@@ -2495,8 +2542,9 @@
             onclick="openTaskDetail('${t.id}')"
             style="animation-delay:${i * 0.04}s">
             <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${t.description.substring(0, 48)} ${dueBadge}</div>
-            <div class="task-meta" style="margin-top:6px;">${t.source} • <span class="status-badge status-${t.status.replace(/ /g, '-')}">${t.status}</span></div>
+            <div class="task-meta" style="margin-top:6px;">${t.source} • <span class="status-badge status-${t.status.replace(/ /g, '-')}">${t.status}</span>${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}</div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
+            ${(t.tags && t.tags.length) ? `<div class="task-tags-row">${t.tags.map(tag => `<span class="task-tag">#${tag}</span>`).join('')}</div>` : ''}
           </div>`;
       }).join('') : emptyHtml;
 
@@ -2906,6 +2954,100 @@
     await fetchTasks();
   }
 
+  // ===== NOTIFICATIONS NAVIGATEUR =====
+  let notifiedTaskIds = new Set(JSON.parse(sessionStorage.getItem('gesta-notified') || '[]'));
+
+  async function requestNotifPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+  }
+
+  function checkUrgentNotifications(taskList) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = new Date();
+    const in48h = new Date(now.getTime() + 48 * 3600 * 1000);
+    taskList.filter(t => !t.completed && t.quadrant === 'Q1' && t.dueDate).forEach(t => {
+      if (notifiedTaskIds.has(t.id)) return;
+      const due = new Date(t.dueDate);
+      if (due <= in48h) {
+        const label = due < now ? 'EN RETARD' : `Échéance dans ${Math.ceil((due - now) / 3600000)}h`;
+        new Notification(`⚠️ GESTA — ${label}`, {
+          body: t.description.substring(0, 80),
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%23D63384"/><text x="16" y="22" text-anchor="middle" font-size="18" fill="white">G</text></svg>',
+          tag: t.id
+        });
+        notifiedTaskIds.add(t.id);
+      }
+    });
+    sessionStorage.setItem('gesta-notified', JSON.stringify([...notifiedTaskIds]));
+  }
+
+  // ===== TAGS =====
+  let activeTagFilter = null;
+
+  function parseTags(raw) {
+    if (!raw) return [];
+    return raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+
+  function renderTagFilterBar(taskList) {
+    const allTags = [...new Set(taskList.flatMap(t => t.tags || []))].sort();
+    const bar = document.getElementById('tagFilterBar');
+    const chips = document.getElementById('tagFilterChips');
+    if (!allTags.length) { bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+    chips.innerHTML = allTags.map(tag =>
+      `<button class="filter-chip${activeTagFilter === tag ? ' active' : ''}" onclick="filterByTag('${tag}',this)">#${tag}</button>`
+    ).join('');
+    document.getElementById('tagFilterAll').className = 'filter-chip' + (activeTagFilter === null ? ' active' : '');
+  }
+
+  function filterByTag(tag, btn) {
+    activeTagFilter = tag;
+    document.querySelectorAll('#tagFilterBar .filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const p = rolePermissions[currentRole];
+    const visible = tasks.filter(t => p.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH');
+    const filtered = tag ? visible.filter(t => (t.tags || []).includes(tag)) : visible;
+    renderDashboard(filtered);
+  }
+
+  // ===== RÉCURRENCE =====
+  async function generateRecurrence(task) {
+    if (!task.repeat || task.repeat === 'none' || !task.dueDate) return;
+    const baseDate = new Date(task.dueDate);
+    const nextDate = new Date(baseDate);
+    if (task.repeat === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+    else if (task.repeat === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+
+    const nextTask = {
+      description: task.description,
+      quadrant: task.quadrant,
+      source: task.source,
+      confidence: task.confidence,
+      status: 'planifié',
+      completed: false,
+      createdBy: task.createdBy,
+      createdAt: new Date().toISOString(),
+      scheduledDate: task.scheduledDate ? (() => {
+        const sd = new Date(task.scheduledDate);
+        if (task.repeat === 'weekly') sd.setDate(sd.getDate() + 7);
+        else sd.setMonth(sd.getMonth() + 1);
+        return sd.toISOString().split('T')[0];
+      })() : null,
+      dueDate: nextDate.toISOString().split('T')[0],
+      assignedTo: task.assignedTo,
+      pilote: task.pilote,
+      estimatedHours: task.estimatedHours,
+      repeat: task.repeat,
+      tags: task.tags,
+      recurParent: task.id
+    };
+    await saveTask(nextTask);
+  }
+
   // ===== AUTH v3.3 =====
   let currentUser = null; // { email, uid, idToken, role, fullName, isDemo }
   const FIREBASE_AUTH_URL = 'https://identitytoolkit.googleapis.com/v1/accounts';
@@ -2956,6 +3098,7 @@
       }));
 
       await logAccess('login', { email: currentUser.email, role: currentUser.role });
+      await requestNotifPermission();
       applyUserSession();
     } catch (e) {
       errMsg.textContent = e.message;
@@ -3339,12 +3482,14 @@
   function exportCSV() {
     const p = rolePermissions[currentRole];
     const visible = tasks.filter(t => p.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH');
-    const headers = ['Description','Quadrant','Source','Statut','Pilote','Assignés','Date début','Échéance','Heures','Créée le','Complétée'];
+    const headers = ['Description','Quadrant','Source','Statut','Pilote','Assignés','Tags','Récurrence','Date début','Échéance','Heures','Créée le','Complétée'];
     const rows = visible.map(t => [
       `"${t.description.replace(/"/g,'""')}"`,
       t.quadrant, t.source, t.status,
       t.pilote || '',
       Array.isArray(t.assignedTo) ? t.assignedTo.join(' | ') : (t.assignedTo || ''),
+      (t.tags || []).join(' | '),
+      t.repeat || 'none',
       t.scheduledDate || '', t.dueDate || '',
       t.estimatedHours || '',
       t.createdAt ? new Date(t.createdAt).toLocaleDateString('fr-FR') : '',
