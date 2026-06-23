@@ -1579,6 +1579,41 @@
           <button class="btn btn-danger" style="width:100%;justify-content:center;margin-top:16px;" onclick="deleteTask()">
             <i class="fas fa-trash"></i> Supprimer
           </button>
+
+          <!-- TRANSFERT -->
+          <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+            <button class="btn btn-secondary" style="width:100%;justify-content:center;" onclick="toggleTransferPanel()">
+              <i class="fas fa-exchange-alt"></i> Transférer la tâche
+            </button>
+            <div id="transferPanel" style="display:none;margin-top:12px;display:none;flex-direction:column;gap:10px;">
+              <div class="input-group" style="margin:0;">
+                <label>Nouveau pilote</label>
+                <select id="transferPilote">
+                  <option value="">-- Aucun --</option>
+                  <option value="Director">Directeur</option>
+                  <option value="Coordinateur RH">Coordinateur RH</option>
+                  <option value="Coordinateur Ateliers">Coordinateur Ateliers</option>
+                  <option value="Coordinateur Finance">Coordinateur Finance</option>
+                  <option value="Chef Atelier">Chef Atelier</option>
+                  <option value="Psychologue">Psychologue</option>
+                </select>
+              </div>
+              <div class="input-group" style="margin:0;">
+                <label>Nouveaux assignés</label>
+                <div style="display:flex;flex-direction:column;gap:4px;" id="transferAssignees">
+                  <label style="font-weight:400;display:flex;align-items:center;gap:6px;"><input type="checkbox" value="Director"> Directeur</label>
+                  <label style="font-weight:400;display:flex;align-items:center;gap:6px;"><input type="checkbox" value="Coordinateur RH"> Coord. RH</label>
+                  <label style="font-weight:400;display:flex;align-items:center;gap:6px;"><input type="checkbox" value="Coordinateur Ateliers"> Coord. Ateliers</label>
+                  <label style="font-weight:400;display:flex;align-items:center;gap:6px;"><input type="checkbox" value="Coordinateur Finance"> Coord. Finance</label>
+                  <label style="font-weight:400;display:flex;align-items:center;gap:6px;"><input type="checkbox" value="Chef Atelier"> Chef Atelier</label>
+                  <label style="font-weight:400;display:flex;align-items:center;gap:6px;"><input type="checkbox" value="Psychologue"> Psychologue</label>
+                </div>
+              </div>
+              <button class="btn btn-primary" style="justify-content:center;" onclick="transferTask()">
+                <i class="fas fa-check"></i> Confirmer le transfert
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="card">
@@ -2393,7 +2428,45 @@
     });
 
     document.getElementById('taskDetailContainer').style.display = 'block';
+    document.getElementById('transferPanel').style.display = 'none';
+
+    // Pré-remplir le panneau de transfert avec les valeurs actuelles
+    document.getElementById('transferPilote').value = task.pilote || '';
+    const currentAssignees = Array.isArray(task.assignedTo) ? task.assignedTo : (task.assignedTo ? [task.assignedTo] : []);
+    document.querySelectorAll('#transferAssignees input[type=checkbox]').forEach(cb => {
+      cb.checked = currentAssignees.includes(cb.value);
+    });
+
     loadComments(id);
+  }
+
+  // ===== TRANSFERT =====
+  function toggleTransferPanel() {
+    const panel = document.getElementById('transferPanel');
+    panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+  }
+
+  async function transferTask() {
+    if (!currentTaskId) return;
+    const permissions = rolePermissions[currentRole];
+    if (!permissions.canEdit) { showMessage('Permission insuffisante', 'error'); return; }
+
+    const newPilote = document.getElementById('transferPilote').value || null;
+    const newAssignees = [...document.querySelectorAll('#transferAssignees input[type=checkbox]:checked')].map(cb => cb.value);
+
+    if (!newPilote && newAssignees.length === 0) { showMessage('Sélectionnez au moins un pilote ou un assigné', 'error'); return; }
+
+    await updateTask(currentTaskId, {
+      pilote: newPilote,
+      assignedTo: newAssignees.length > 0 ? newAssignees : null,
+      transferredAt: new Date().toISOString(),
+      transferredBy: currentRole
+    });
+
+    document.getElementById('transferPanel').style.display = 'none';
+    showMessage(`Tâche transférée${newPilote ? ' → ' + newPilote : ''}`, 'success');
+    await fetchTasks();
+    selectTask();
   }
 
   // ===== UPDATE STATUS =====
