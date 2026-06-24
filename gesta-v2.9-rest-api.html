@@ -1931,6 +1931,23 @@
         <div style="color:var(--gray-400);font-size:12px;">Chargement...</div>
       </div>
     </div>
+
+    <!-- Maintenance base de données -->
+    <div class="card" style="margin-top:24px;border:2px solid var(--warning,#f59e0b);">
+      <div class="card-title" style="color:var(--warning,#f59e0b);"><i class="fas fa-database"></i> Maintenance base de données</div>
+      <div id="dedupeStatus" style="font-size:13px;color:var(--gray-500);margin-bottom:14px;">
+        Cliquez sur "Analyser" pour détecter les tâches dupliquées dans Firebase.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="analyzedupes()" id="dedupeAnalyzeBtn">
+          <i class="fas fa-search"></i> Analyser les doublons
+        </button>
+        <button class="btn" id="dedupeDeleteBtn" style="display:none;background:var(--danger);color:#fff;" onclick="deleteDupes()">
+          <i class="fas fa-trash-alt"></i> Supprimer les doublons
+        </button>
+      </div>
+      <div id="dedupeList" style="margin-top:14px;max-height:300px;overflow-y:auto;"></div>
+    </div>
   </div>
 
   <!-- PLANIFICATEUR INTELLIGENT -->
@@ -3765,6 +3782,119 @@
     } catch (e) {
       container.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:12px;">Erreur chargement logs.</div>';
     }
+  }
+
+  // ===== DÉDOUBLONNAGE =====
+  let dupesToDelete = []; // Firebase keys to delete
+
+  async function analyzedupes() {
+    if (!currentUser || currentUser.role !== 'Coordinateur RH') { showMessage('Accès refusé', 'error'); return; }
+    const btn = document.getElementById('dedupeAnalyzeBtn');
+    const statusEl = document.getElementById('dedupeStatus');
+    const listEl = document.getElementById('dedupeList');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse...';
+    statusEl.textContent = 'Chargement de toutes les tâches depuis Firebase...';
+    listEl.innerHTML = '';
+    dupesToDelete = [];
+
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data) { statusEl.textContent = 'Base de données vide.'; btn.disabled = false; btn.innerHTML = '<i class="fas fa-search"></i> Analyser les doublons'; return; }
+
+      const allTasks = Object.entries(data).map(([k, v]) => ({ _key: k, ...v }));
+      const total = allTasks.length;
+
+      // Group by fingerprint: description + source + createdBy + quadrant
+      const groups = {};
+      for (const t of allTasks) {
+        const fp = [
+          (t.description || '').trim().toLowerCase().substring(0, 80),
+          (t.source || ''),
+          (t.createdBy || ''),
+          (t.quadrant || '')
+        ].join('||');
+        if (!groups[fp]) groups[fp] = [];
+        groups[fp].push(t);
+      }
+
+      // Keep the OLDEST (lowest createdAt), mark others for deletion
+      let dupeGroups = [];
+      for (const [fp, group] of Object.entries(groups)) {
+        if (group.length < 2) continue;
+        group.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+        const keep = group[0];
+        const remove = group.slice(1);
+        dupeGroups.push({ keep, remove, count: group.length });
+        dupesToDelete.push(...remove.map(t => t._key));
+      }
+
+      if (dupeGroups.length === 0) {
+        statusEl.innerHTML = `<span style="color:var(--success,#10b981);font-weight:700;"><i class="fas fa-check-circle"></i> Aucun doublon détecté — ${total} tâches analysées.</span>`;
+        document.getElementById('dedupeDeleteBtn').style.display = 'none';
+      } else {
+        const nbDupe = dupesToDelete.length;
+        statusEl.innerHTML = `<span style="color:var(--danger);font-weight:700;"><i class="fas fa-exclamation-triangle"></i> ${nbDupe} doublon(s) trouvé(s) sur ${total} tâches. ${dupeGroups.length} groupe(s) affecté(s).</span>`;
+        document.getElementById('dedupeDeleteBtn').style.display = 'flex';
+
+        listEl.innerHTML = dupeGroups.slice(0, 20).map(g => `
+          <div style="border:1px solid var(--gray-200);border-radius:8px;padding:10px;margin-bottom:8px;font-size:12px;">
+            <div style="font-weight:700;color:var(--gray-700);margin-bottom:4px;">
+              <i class="fas fa-copy" style="color:var(--danger);"></i>
+              ${g.count}× "${(g.keep.description||'(sans titre)').substring(0,60)}"
+            </div>
+            <div style="color:var(--gray-500);">
+              Conserver : <code style="background:var(--gray-100);padding:1px 4px;border-radius:3px;">${g.keep._key}</code> (créé le ${g.keep.createdAt ? new Date(g.keep.createdAt).toLocaleDateString('fr') : '?'})
+            </div>
+            <div style="color:var(--danger);margin-top:2px;">Supprimer : ${g.remove.length} copie(s)</div>
+          </div>
+        `).join('') + (dupeGroups.length > 20 ? `<div style="font-size:11px;color:var(--gray-400);padding:8px;">... et ${dupeGroups.length - 20} autres groupes</div>` : '');
+      }
+    } catch(e) {
+      statusEl.innerHTML = `<span style="color:var(--danger);">Erreur : ${e.message}</span>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-search"></i> Analyser les doublons';
+  }
+
+  async function deleteDupes() {
+    if (!dupesToDelete.length) return;
+    const btn = document.getElementById('dedupeDeleteBtn');
+    const statusEl = document.getElementById('dedupeStatus');
+    if (!confirm(`Supprimer ${dupesToDelete.length} doublon(s) ? Cette action est irréversible.`)) return;
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Suppression en cours...`;
+
+    let deleted = 0;
+    let errors = 0;
+    const batchSize = 20;
+
+    for (let i = 0; i < dupesToDelete.length; i += batchSize) {
+      const batch = dupesToDelete.slice(i, i + batchSize);
+      await Promise.allSettled(batch.map(async key => {
+        try {
+          const res = await fetch(`${FIREBASE_DB_URL}/tasks/${key}.json?auth=${firebaseAuth()}`, { method: 'DELETE' });
+          if (res.ok) deleted++; else errors++;
+        } catch { errors++; }
+      }));
+      statusEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Suppression : ${Math.min(i + batchSize, dupesToDelete.length)} / ${dupesToDelete.length}...`;
+      // Small pause to avoid rate limiting
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    dupesToDelete = [];
+    document.getElementById('dedupeDeleteBtn').style.display = 'none';
+    document.getElementById('dedupeList').innerHTML = '';
+    statusEl.innerHTML = `<span style="color:var(--success,#10b981);font-weight:700;"><i class="fas fa-check-circle"></i> Terminé — ${deleted} doublon(s) supprimé(s)${errors ? `, ${errors} erreur(s)` : ''}.</span>`;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-trash-alt"></i> Supprimer les doublons';
+
+    await fetchTasks();
+    showMessage(`${deleted} doublon(s) supprimé(s)`, 'success');
   }
 
   async function loadAdminUsers() {
