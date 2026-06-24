@@ -2919,10 +2919,10 @@
   }
 
   function renderDashboard(tasks) {
-    const q1 = tasks.filter(t => !t.completed && t.quadrant === 'Q1');
-    const q2 = tasks.filter(t => !t.completed && t.quadrant === 'Q2');
-    const q3 = tasks.filter(t => !t.completed && t.quadrant === 'Q3');
-    const q4 = tasks.filter(t => !t.completed && t.quadrant === 'Q4');
+    const q1 = tasks.filter(t => !t.completed && t.quadrant === 'Q1' && t.description);
+    const q2 = tasks.filter(t => !t.completed && t.quadrant === 'Q2' && t.description);
+    const q3 = tasks.filter(t => !t.completed && t.quadrant === 'Q3' && t.description);
+    const q4 = tasks.filter(t => !t.completed && t.quadrant === 'Q4' && t.description);
 
     document.getElementById('q1-count').textContent = q1.length;
     document.getElementById('q2-count').textContent = q2.length;
@@ -2970,7 +2970,7 @@
             style="animation-delay:${i * 0.04}s;${isSelected ? 'border-color:var(--danger);background:rgba(214,51,52,0.06);' : ''}cursor:${bulkMode ? 'pointer' : 'pointer'};">
             <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               ${bulkMode ? `<input type="checkbox" ${isSelected ? 'checked' : ''} onclick="toggleTaskSelection('${t.id}',event)" style="width:15px;height:15px;accent-color:var(--danger);flex-shrink:0;">` : ''}
-              ${t.description.substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}
+              ${(t.description||'(sans titre)').substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}
             </div>
             <div class="task-meta" style="margin-top:6px;">${t.source} • <span class="status-badge status-${t.status.replace(/ /g, '-')}">${t.status}</span>${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}</div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
@@ -2994,7 +2994,7 @@
 
   function renderTaskSelect(tasks) {
     const select = document.getElementById('taskSelect');
-    const html = tasks.filter(t => !t.completed).map(t => `<option value="${t.id}">${t.description.substring(0, 40)}</option>`).join('');
+    const html = tasks.filter(t => !t.completed && t.description).map(t => `<option value="${t.id}">${t.description.substring(0, 40)}</option>`).join('');
     select.innerHTML = '<option value="">-- Sélectionner --</option>' + html;
   }
 
@@ -3404,7 +3404,7 @@
       if (due <= in48h) {
         const label = due < now ? 'EN RETARD' : `Échéance dans ${Math.ceil((due - now) / 3600000)}h`;
         new Notification(`⚠️ GESTA — ${label}`, {
-          body: t.description.substring(0, 80),
+          body: (t.description||'(sans titre)').substring(0, 80),
           icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%23D63384"/><text x="16" y="22" text-anchor="middle" font-size="18" fill="white">G</text></svg>',
           tag: t.id
         });
@@ -3803,7 +3803,7 @@
         return `<div class="search-result-item" onclick="selectSearchResult('${t.id}')">
           <span style="width:8px;height:8px;border-radius:50%;background:${quadColors[t.quadrant]};flex-shrink:0;"></span>
           <div>
-            <div style="font-weight:600;">${t.description.substring(0,50)}</div>
+            <div style="font-weight:600;">${(t.description||'(sans titre)').substring(0,50)}</div>
             <div style="font-size:11px;color:var(--gray-400);">${t.source} • ${t.quadrant} • ${t.status}</div>
           </div>
         </div>`;
@@ -3842,13 +3842,13 @@
         const due = new Date(t.dueDate); due.setHours(0,0,0,0);
         const daysLeft = Math.ceil((due - today) / 86400000);
         if (daysLeft < 0 && !dismissedAlerts.has(t.id + '_overdue')) {
-          alerts.push({ key: t.id + '_overdue', cls: 'alert-overdue', icon: 'exclamation-circle', text: `Tâche en retard de ${Math.abs(daysLeft)}j : "${t.description.substring(0,40)}"` });
+          alerts.push({ key: t.id + '_overdue', cls: 'alert-overdue', icon: 'exclamation-circle', text: `Tâche en retard de ${Math.abs(daysLeft)}j : "${(t.description||'(sans titre)').substring(0,40)}"` });
         } else if (daysLeft <= 2 && daysLeft >= 0 && !dismissedAlerts.has(t.id + '_soon')) {
-          alerts.push({ key: t.id + '_soon', cls: 'alert-due-soon', icon: 'clock', text: `Échéance dans ${daysLeft === 0 ? "aujourd'hui" : daysLeft + ' jour(s)'} : "${t.description.substring(0,40)}"` });
+          alerts.push({ key: t.id + '_soon', cls: 'alert-due-soon', icon: 'clock', text: `Échéance dans ${daysLeft === 0 ? "aujourd'hui" : daysLeft + ' jour(s)'} : "${(t.description||'(sans titre)').substring(0,40)}"` });
         }
       }
       if (t.status === 'bloqué' && !dismissedAlerts.has(t.id + '_blocked')) {
-        alerts.push({ key: t.id + '_blocked', cls: 'alert-blocked', icon: 'ban', text: `Tâche bloquée : "${t.description.substring(0,40)}"` });
+        alerts.push({ key: t.id + '_blocked', cls: 'alert-blocked', icon: 'ban', text: `Tâche bloquée : "${(t.description||'(sans titre)').substring(0,40)}"` });
       }
     });
 
@@ -4036,7 +4036,7 @@
         : `<div class="calendar-day-num">${cellDay}</div>`;
 
       const chipsHtml = dayTasks.slice(0, 3).map(t =>
-        `<div class="cal-task-chip chip-${t.quadrant.toLowerCase()}" title="${t.description}" onclick="showTaskTooltip(event,'${t.id}')">${t.description.substring(0, 18)}</div>`
+        `<div class="cal-task-chip chip-${t.quadrant.toLowerCase()}" title="${t.description||''}" onclick="showTaskTooltip(event,'${t.id}')">${(t.description||'(sans titre)').substring(0, 18)}</div>`
       ).join('');
       const moreHtml = dayTasks.length > 3 ? `<div class="cal-task-chip" style="background:var(--gray-100);color:var(--gray-600);">+${dayTasks.length - 3} autres</div>` : '';
       const overloadHtml = overload ? `<div class="cal-overload">⚡ ${totalHours}h</div>` : '';
@@ -4080,7 +4080,7 @@
       html += `<div style="background:white;border-radius:8px;border:1px solid ${isToday ? 'var(--primary)' : 'var(--gray-200)'};padding:12px;min-height:160px;">
         <div style="font-size:11px;font-weight:700;color:${isToday ? 'var(--primary)' : 'var(--gray-600)'};margin-bottom:8px;">${days[i]} ${day.getDate()}</div>
         ${overload ? `<div style="font-size:9px;color:var(--danger);font-weight:700;margin-bottom:6px;">⚡ ${totalHours}h / 8h max</div>` : ''}
-        ${dayTasks.map(t => `<div class="cal-task-chip chip-${t.quadrant.toLowerCase()}" style="margin-bottom:3px;" title="${t.description}" onclick="showTaskTooltip(event,'${t.id}')">${t.description.substring(0, 20)}</div>`).join('')}
+        ${dayTasks.map(t => `<div class="cal-task-chip chip-${t.quadrant.toLowerCase()}" style="margin-bottom:3px;" title="${t.description||''}" onclick="showTaskTooltip(event,'${t.id}')">${(t.description||'(sans titre)').substring(0, 20)}</div>`).join('')}
         ${dayTasks.length === 0 ? '<div style="font-size:10px;color:var(--gray-300);text-align:center;margin-top:20px;">Libre</div>' : ''}
       </div>`;
     }
@@ -4147,7 +4147,7 @@
 
         rowsHtml += `<div class="gantt-row">
           <div class="gantt-label">
-            <span>${t.description.substring(0, 26)}</span>
+            <span>${(t.description||'(sans titre)').substring(0, 26)}</span>
             <span class="gantt-label-sub">${t.assignedTo || t.source}${t.estimatedHours ? ' • ' + t.estimatedHours + 'h' : ''}</span>
           </div>
           <div class="gantt-timeline" style="position:relative;flex:1;min-width:600px;">
@@ -4156,7 +4156,7 @@
               ${visible ? `<div class="gantt-bar bar-${t.quadrant.toLowerCase()}"
                 style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%;"
                 onclick="showTaskTooltip(event,'${t.id}')"
-                title="${t.description}">${t.description.substring(0, 22)}</div>` : ''}
+                title="${t.description||''}">${(t.description||'(sans titre)').substring(0, 22)}</div>` : ''}
             </div>
           </div>
         </div>`;
