@@ -2138,7 +2138,14 @@
 
   // ===== QUEUE OFFLINE POUR SYNC DIFFÉRÉE =====
   const offlineQueue = {
-    operations: JSON.parse(localStorage.getItem('gesta-offline-queue')) || [],
+    operations: (() => {
+      try {
+        const q = JSON.parse(localStorage.getItem('gesta-offline-queue')) || [];
+        // Safety: discard queue if it has grown unreasonably large (sign of a previous loop bug)
+        if (q.length > 50) { localStorage.removeItem('gesta-offline-queue'); return []; }
+        return q;
+      } catch(e) { return []; }
+    })(),
     
     add(operation) {
       this.operations.push({
@@ -2154,13 +2161,18 @@
     
     async processQueue() {
       if (this.operations.length === 0) return;
-      
-      console.log(`📤 Synchronisation ${this.operations.length} opération(s) offline...`);
-      
-      for (const op of this.operations) {
+
+      // Snapshot the queue and clear immediately to prevent re-processing
+      const pending = [...this.operations];
+      this.operations = [];
+      this.save();
+
+      console.log(`📤 Synchronisation ${pending.length} opération(s) offline...`);
+
+      for (const op of pending) {
         try {
           if (op.type === 'add') {
-            await saveTask(op.task);
+            await saveTaskDirect(op.task);
           } else if (op.type === 'update') {
             await updateTask(op.taskId, op.updates);
           } else if (op.type === 'delete') {
@@ -2168,12 +2180,13 @@
           }
         } catch (error) {
           console.error('Erreur sync queue:', error);
+          // Re-add failed op but do NOT loop — will retry next sync cycle
+          this.operations.push(op);
+          this.save();
           break;
         }
       }
-      
-      this.operations = [];
-      this.save();
+
       await fetchTasks();
     }
   };
@@ -2226,6 +2239,22 @@
   }
 
   // ===== SAVE TASK =====
+  // saveTaskDirect: POST to Firebase only, no queue fallback (used by processQueue to avoid loops)
+  async function saveTaskDirect(task) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify(task)
+    });
+    clearTimeout(timeout);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    return data.name;
+  }
+
   async function saveTask(task) {
     try {
       const controller = new AbortController();
