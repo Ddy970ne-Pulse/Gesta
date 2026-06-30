@@ -2965,10 +2965,12 @@
   }
 
   function renderDashboard(tasks) {
-    const q1 = tasks.filter(t => !t.completed && t.quadrant === 'Q1' && t.description);
-    const q2 = tasks.filter(t => !t.completed && t.quadrant === 'Q2' && t.description);
-    const q3 = tasks.filter(t => !t.completed && t.quadrant === 'Q3' && t.description);
-    const q4 = tasks.filter(t => !t.completed && t.quadrant === 'Q4' && t.description);
+    const validQuadrants = ['Q1','Q2','Q3','Q4'];
+    const q1 = tasks.filter(t => !t.completed && t.quadrant === 'Q1');
+    const q2 = tasks.filter(t => !t.completed && t.quadrant === 'Q2');
+    const q3 = tasks.filter(t => !t.completed && t.quadrant === 'Q3');
+    // Q4 also catches tasks with no/invalid quadrant so nothing is lost
+    const q4 = tasks.filter(t => !t.completed && (t.quadrant === 'Q4' || !validQuadrants.includes(t.quadrant)));
 
     document.getElementById('q1-count').textContent = q1.length;
     document.getElementById('q2-count').textContent = q2.length;
@@ -4195,7 +4197,7 @@
         : `<div class="calendar-day-num">${cellDay}</div>`;
 
       const chipsHtml = dayTasks.slice(0, 3).map(t =>
-        `<div class="cal-task-chip chip-${t.quadrant.toLowerCase()}" title="${t.description||''}" onclick="showTaskTooltip(event,'${t.id}')">${(t.description||'(sans titre)').substring(0, 18)}</div>`
+        `<div class="cal-task-chip chip-${(t.quadrant||'q4').toLowerCase()}" title="${t.description||''}" onclick="showTaskTooltip(event,'${t.id}')">${(t.description||'(sans titre)').substring(0, 18)}</div>`
       ).join('');
       const moreHtml = dayTasks.length > 3 ? `<div class="cal-task-chip" style="background:var(--gray-100);color:var(--gray-600);">+${dayTasks.length - 3} autres</div>` : '';
       const overloadHtml = overload ? `<div class="cal-overload">⚡ ${totalHours}h</div>` : '';
@@ -4239,7 +4241,7 @@
       html += `<div style="background:white;border-radius:8px;border:1px solid ${isToday ? 'var(--primary)' : 'var(--gray-200)'};padding:12px;min-height:160px;">
         <div style="font-size:11px;font-weight:700;color:${isToday ? 'var(--primary)' : 'var(--gray-600)'};margin-bottom:8px;">${days[i]} ${day.getDate()}</div>
         ${overload ? `<div style="font-size:9px;color:var(--danger);font-weight:700;margin-bottom:6px;">⚡ ${totalHours}h / 8h max</div>` : ''}
-        ${dayTasks.map(t => `<div class="cal-task-chip chip-${t.quadrant.toLowerCase()}" style="margin-bottom:3px;" title="${t.description||''}" onclick="showTaskTooltip(event,'${t.id}')">${(t.description||'(sans titre)').substring(0, 20)}</div>`).join('')}
+        ${dayTasks.map(t => `<div class="cal-task-chip chip-${(t.quadrant||'q4').toLowerCase()}" style="margin-bottom:3px;" title="${t.description||''}" onclick="showTaskTooltip(event,'${t.id}')">${(t.description||'(sans titre)').substring(0, 20)}</div>`).join('')}
         ${dayTasks.length === 0 ? '<div style="font-size:10px;color:var(--gray-300);text-align:center;margin-top:20px;">Libre</div>' : ''}
       </div>`;
     }
@@ -4312,7 +4314,7 @@
           <div class="gantt-timeline" style="position:relative;flex:1;min-width:600px;">
             <div class="gantt-bar-area" style="position:relative;height:44px;display:flex;align-items:center;">
               ${todayPct >= 0 ? `<div class="gantt-today-line" style="left:${todayPct}%;"></div>` : ''}
-              ${visible ? `<div class="gantt-bar bar-${t.quadrant.toLowerCase()}"
+              ${visible ? `<div class="gantt-bar bar-${(t.quadrant||'q4').toLowerCase()}"
                 style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%;"
                 onclick="showTaskTooltip(event,'${t.id}')"
                 title="${t.description||''}">${(t.description||'(sans titre)').substring(0, 22)}</div>` : ''}
