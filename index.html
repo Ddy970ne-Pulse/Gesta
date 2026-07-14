@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GESTA">
   <meta name="description" content="Planificateur intelligent Eisenhower pour AAEA-CAVA">
-  <title>GESTA v3.4 - Planificateur Intelligent</title>
+  <title>GESTA v4.0 - Planificateur Intelligent</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231A7A6E'/><text x='16' y='23' text-anchor='middle' font-size='20' font-weight='bold' fill='white'>G</text></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%231A7A6E'/><text x='90' y='130' text-anchor='middle' font-size='110' font-weight='bold' fill='white'>G</text></svg>">
   <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GESTA%20-%20Planificateur%20Intelligent%22,%22short_name%22:%22GESTA%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%231A7A6E%22,%22theme_color%22:%22%231A7A6E%22,%22description%22:%22Planificateur%20Eisenhower%20pour%20AAEA-CAVA%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%231A7A6E'/><text x='96' y='140' text-anchor='middle' font-size='120' font-weight='bold' fill='white'>G</text></svg>%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
@@ -1153,6 +1153,89 @@
     .due-soon { background: #FFF3E0; color: var(--warning); }
     .due-ok { background: #DCFCE7; color: var(--success); }
 
+    /* ===== NOTIFICATIONS IN-APP ===== */
+    .notif-bell-wrap {
+      position: relative;
+    }
+    #notifBellBtn {
+      position: relative;
+    }
+    .notif-badge {
+      position: absolute;
+      top: 2px; right: 2px;
+      min-width: 18px; height: 18px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 10px; font-weight: 700;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px;
+      pointer-events: none;
+      line-height: 1;
+    }
+    .notif-panel {
+      position: absolute;
+      top: calc(100% + 8px); right: 0;
+      width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 8px 32px rgba(0,0,0,.18);
+      z-index: 9999;
+      overflow: hidden;
+    }
+    .notif-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .notif-panel-title {
+      font-weight: 700; font-size: 13px; color: var(--text);
+    }
+    .notif-clear-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-2); font-size: 14px;
+      padding: 4px 6px; border-radius: 6px;
+      transition: background .15s;
+    }
+    .notif-clear-btn:hover { background: var(--surface2); }
+    .notif-panel-body {
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    .notif-empty {
+      text-align: center; color: var(--text-3);
+      font-size: 13px; padding: 24px 16px;
+    }
+    .notif-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border2);
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item:hover { background: var(--surface2); }
+    .notif-item.unread { background: var(--brand-glow); }
+    .notif-item.unread:hover { background: var(--brand-dim); }
+    .notif-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; margin-top: 1px;
+    }
+    .notif-icon.danger  { background: #fee2e2; color: var(--danger); }
+    .notif-icon.warning { background: #fef3c7; color: var(--warning); }
+    .notif-icon.success { background: #dcfce7; color: var(--success); }
+    .notif-icon.info    { background: var(--brand-dim); color: var(--brand); }
+    body.dark-mode .notif-icon.danger  { background: #3b0f0f; }
+    body.dark-mode .notif-icon.warning { background: #2d1a00; }
+    body.dark-mode .notif-icon.success { background: #0a2e14; }
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-title { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .notif-desc  { font-size: 11px; color: var(--text-2); margin-top: 2px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .notif-time  { font-size: 10px; color: var(--text-3); margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .notif-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); flex-shrink: 0; margin-top: 6px; }
+
     /* ===== PRINT ===== */
     @media print {
       .role-selector, .tabs, .header-right, .input-section, .planner-controls, .ai-planner-panel,
@@ -1501,7 +1584,7 @@
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">G</div>
       <span class="sidebar-logo-text">GESTA</span>
-      <span class="sidebar-logo-ver">v4.0</span>
+      <span class="sidebar-logo-ver" id="appVersionBadge">v4.0</span>
     </div>
 
     <div class="sidebar-section-label">Navigation</div>
@@ -1574,6 +1657,22 @@
         <div class="sync-indicator">
           <div class="sync-dot"></div>
           <span id="syncStatus">Connecté</span>
+        </div>
+        <!-- Cloche notifications in-app -->
+        <div class="notif-bell-wrap" id="notifBellWrap">
+          <button class="btn btn-ghost btn-icon" onclick="toggleNotifPanel()" id="notifBellBtn" title="Notifications" aria-label="Notifications">
+            <i class="fas fa-bell"></i>
+            <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+          </button>
+          <div class="notif-panel" id="notifPanel" style="display:none;" role="dialog" aria-label="Centre de notifications">
+            <div class="notif-panel-header">
+              <span class="notif-panel-title">Notifications</span>
+              <button class="notif-clear-btn" onclick="clearAllNotifs()" title="Tout marquer comme lu"><i class="fas fa-check-double"></i></button>
+            </div>
+            <div class="notif-panel-body" id="notifList">
+              <p class="notif-empty">Aucune notification</p>
+            </div>
+          </div>
         </div>
         <button class="btn btn-ghost btn-icon" onclick="toggleBulkSelect()" id="bulkSelectBtn" title="Sélection multiple"><i class="fas fa-check-square"></i></button>
         <button class="btn btn-ghost btn-icon" onclick="exportCSV()" title="Export CSV"><i class="fas fa-file-csv"></i></button>
@@ -2238,6 +2337,9 @@
 </div><!-- end .app-shell -->
 
 <script>
+  // ===== VERSION =====
+  const APP_VERSION = '4.0';
+
   // ===== CONFIG FIREBASE =====
   const FIREBASE_DB_URL = 'https://gesta-7ffed-default-rtdb.europe-west1.firebasedatabase.app';
   const FIREBASE_API_KEY = 'AIzaSyAJND_hncATWiAosiHgU3lx7FRC66L5424';
@@ -2304,6 +2406,8 @@
 
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appContainer').style.display = 'flex';
+    document.getElementById('appVersionBadge').textContent = 'v' + APP_VERSION;
+    document.title = `GESTA v${APP_VERSION} - Planificateur Intelligent`;
 
     // Sidebar: show demo info
     document.getElementById('roleBadgeDemo').textContent = '(Démo)';
@@ -3806,34 +3910,177 @@
     await fetchTasks();
   }
 
-  // ===== NOTIFICATIONS NAVIGATEUR =====
-  let notifiedTaskIds = new Set(JSON.parse(sessionStorage.getItem('gesta-notified') || '[]'));
+  // ===== NOTIFICATIONS IN-APP =====
+  // Chaque notif : { id, type:'danger'|'warning'|'success'|'info', icon, title, desc, time, taskId, read }
+  let inAppNotifs = [];
+  let notifReadIds = new Set(JSON.parse(sessionStorage.getItem('gesta-notif-read') || '[]'));
+  let notifSeenTaskIds = new Set(JSON.parse(sessionStorage.getItem('gesta-notif-seen') || '[]'));
+
+  function _notifId(prefix, taskId) { return `${prefix}-${taskId}`; }
+
+  function buildInAppNotifs(taskList) {
+    const now = new Date();
+    const in24h = new Date(now.getTime() + 24 * 3600 * 1000);
+    const in48h = new Date(now.getTime() + 48 * 3600 * 1000);
+    const fresh = [];
+
+    taskList.filter(t => !t.completed && t.dueDate).forEach(t => {
+      const due = new Date(t.dueDate);
+      const id_overdue  = _notifId('overdue', t.id);
+      const id_soon24   = _notifId('soon24',  t.id);
+      const id_soon48   = _notifId('soon48',  t.id);
+      const title = (t.description || '(sans titre)').substring(0, 60);
+
+      if (due < now) {
+        fresh.push({ id: id_overdue, type: 'danger', icon: 'fa-exclamation-circle',
+          title: `En retard — ${title}`,
+          desc: `Échéance dépassée le ${due.toLocaleDateString('fr-FR')}`,
+          time: due.toISOString(), taskId: t.id });
+      } else if (due <= in24h) {
+        fresh.push({ id: id_soon24, type: 'warning', icon: 'fa-clock',
+          title: `Urgent — ${title}`,
+          desc: `Échéance aujourd'hui ou demain`,
+          time: due.toISOString(), taskId: t.id });
+      } else if (due <= in48h && t.quadrant === 'Q1') {
+        fresh.push({ id: id_soon48, type: 'warning', icon: 'fa-clock',
+          title: `À traiter bientôt — ${title}`,
+          desc: `Échéance dans moins de 48h`,
+          time: due.toISOString(), taskId: t.id });
+      }
+    });
+
+    // Sous-tâches récemment complétées (dans les 24 dernières heures)
+    taskList.forEach(t => {
+      const checklist = Array.isArray(t.checklist) ? t.checklist : [];
+      checklist.forEach((item, idx) => {
+        if (!item.completedAt) return;
+        const completedAt = new Date(item.completedAt);
+        if (now - completedAt > 24 * 3600 * 1000) return;
+        const nid = _notifId('subtask', `${t.id}-${idx}`);
+        const taskTitle = (t.description || '(sans titre)').substring(0, 30);
+        fresh.push({ id: nid, type: 'success', icon: 'fa-check-circle',
+          title: `Sous-tâche complétée`,
+          desc: `${item.text} — ${taskTitle}`,
+          time: item.completedAt, taskId: t.id });
+      });
+    });
+
+    // Tri : non lus d'abord, puis par date décroissante
+    fresh.sort((a, b) => {
+      const ar = notifReadIds.has(a.id) ? 1 : 0;
+      const br = notifReadIds.has(b.id) ? 1 : 0;
+      if (ar !== br) return ar - br;
+      return new Date(b.time) - new Date(a.time);
+    });
+    inAppNotifs = fresh;
+  }
+
+  function renderNotifPanel() {
+    const list = document.getElementById('notifList');
+    const badge = document.getElementById('notifBadge');
+    if (!list) return;
+
+    const unread = inAppNotifs.filter(n => !notifReadIds.has(n.id));
+    const count = unread.length;
+
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (!inAppNotifs.length) {
+      list.innerHTML = '<p class="notif-empty">Aucune notification</p>';
+      return;
+    }
+
+    function relTime(isoStr) {
+      const diff = Date.now() - new Date(isoStr).getTime();
+      if (diff < 60000) return 'à l\'instant';
+      if (diff < 3600000) return `il y a ${Math.floor(diff/60000)} min`;
+      if (diff < 86400000) return `il y a ${Math.floor(diff/3600000)}h`;
+      return new Date(isoStr).toLocaleDateString('fr-FR');
+    }
+
+    list.innerHTML = inAppNotifs.map(n => {
+      const read = notifReadIds.has(n.id);
+      return `<div class="notif-item${read ? '' : ' unread'}" onclick="handleNotifClick('${n.id}','${n.taskId||''}')">
+        <div class="notif-icon ${n.type}"><i class="fas ${n.icon}"></i></div>
+        <div class="notif-body">
+          <div class="notif-title">${n.title}</div>
+          <div class="notif-desc">${n.desc}</div>
+          <div class="notif-time">${relTime(n.time)}</div>
+        </div>
+        ${read ? '' : '<div class="notif-dot"></div>'}
+      </div>`;
+    }).join('');
+  }
+
+  function toggleNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+      renderNotifPanel();
+    }
+  }
+
+  function handleNotifClick(notifId, taskId) {
+    notifReadIds.add(notifId);
+    sessionStorage.setItem('gesta-notif-read', JSON.stringify([...notifReadIds]));
+    document.getElementById('notifPanel').style.display = 'none';
+    if (taskId) {
+      openTaskDetail(taskId);
+    }
+    renderNotifPanel();
+  }
+
+  function clearAllNotifs() {
+    inAppNotifs.forEach(n => notifReadIds.add(n.id));
+    sessionStorage.setItem('gesta-notif-read', JSON.stringify([...notifReadIds]));
+    renderNotifPanel();
+    document.getElementById('notifPanel').style.display = 'none';
+  }
+
+  // Ferme le panneau si clic ailleurs
+  document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('notifBellWrap');
+    if (wrap && !wrap.contains(e.target)) {
+      const panel = document.getElementById('notifPanel');
+      if (panel) panel.style.display = 'none';
+    }
+  });
+
+  function checkUrgentNotifications(taskList) {
+    buildInAppNotifs(taskList);
+    renderNotifPanel();
+
+    // Notification navigateur (bonus si permission accordée)
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = new Date();
+    const in48h = new Date(now.getTime() + 48 * 3600 * 1000);
+    taskList.filter(t => !t.completed && t.quadrant === 'Q1' && t.dueDate).forEach(t => {
+      if (notifSeenTaskIds.has(t.id)) return;
+      const due = new Date(t.dueDate);
+      if (due <= in48h) {
+        const label = due < now ? 'EN RETARD' : `Échéance dans ${Math.ceil((due - now) / 3600000)}h`;
+        new Notification(`⚠️ GESTA — ${label}`, {
+          body: (t.description||'(sans titre)').substring(0, 80),
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%231A7A6E"/><text x="16" y="22" text-anchor="middle" font-size="18" fill="white">G</text></svg>',
+          tag: t.id
+        });
+        notifSeenTaskIds.add(t.id);
+      }
+    });
+    sessionStorage.setItem('gesta-notif-seen', JSON.stringify([...notifSeenTaskIds]));
+  }
 
   async function requestNotifPermission() {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'default') {
       await Notification.requestPermission();
     }
-  }
-
-  function checkUrgentNotifications(taskList) {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    const now = new Date();
-    const in48h = new Date(now.getTime() + 48 * 3600 * 1000);
-    taskList.filter(t => !t.completed && t.quadrant === 'Q1' && t.dueDate).forEach(t => {
-      if (notifiedTaskIds.has(t.id)) return;
-      const due = new Date(t.dueDate);
-      if (due <= in48h) {
-        const label = due < now ? 'EN RETARD' : `Échéance dans ${Math.ceil((due - now) / 3600000)}h`;
-        new Notification(`⚠️ GESTA — ${label}`, {
-          body: (t.description||'(sans titre)').substring(0, 80),
-          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%23D63384"/><text x="16" y="22" text-anchor="middle" font-size="18" fill="white">G</text></svg>',
-          tag: t.id
-        });
-        notifiedTaskIds.add(t.id);
-      }
-    });
-    sessionStorage.setItem('gesta-notified', JSON.stringify([...notifiedTaskIds]));
   }
 
   // ===== TAGS =====
@@ -4050,6 +4297,8 @@
     currentRole = currentUser.role;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appContainer').style.display = 'flex';
+    document.getElementById('appVersionBadge').textContent = 'v' + APP_VERSION;
+    document.title = `GESTA v${APP_VERSION} - Planificateur Intelligent`;
 
     // Sidebar user info
     document.getElementById('roleBadgeDemo').textContent = '';
