@@ -1153,6 +1153,115 @@
     .due-soon { background: #FFF3E0; color: var(--warning); }
     .due-ok { background: #DCFCE7; color: var(--success); }
 
+    /* ===== COACH IA ===== */
+    .coach-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .coach-layout { grid-template-columns: 1fr; }
+      .coach-sidebar { order: 2; }
+      .coach-main   { order: 1; }
+    }
+    .coach-main { display: flex; flex-direction: column; }
+    .coach-model-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      background: var(--brand-dim); color: var(--brand);
+      border-radius: 10px; letter-spacing: .03em;
+    }
+    .coach-api-warn {
+      font-size: 12px; color: var(--warning);
+      background: #fef3c7; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    body.dark-mode .coach-api-warn { background: #2d1a00; }
+    .coach-api-warn a { color: var(--warning); font-weight: 700; }
+    .coach-thread {
+      flex: 1; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 14px;
+      padding: 4px 0 12px;
+      min-height: 260px; max-height: 480px;
+    }
+    .coach-msg {
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .coach-msg.user { flex-direction: row-reverse; }
+    .coach-avatar {
+      width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      background: var(--brand-dim); color: var(--brand);
+    }
+    .coach-msg.user .coach-avatar {
+      background: var(--brand); color: #fff;
+    }
+    .coach-bubble {
+      max-width: 82%; font-size: 13px; line-height: 1.6;
+      padding: 10px 14px; border-radius: 12px;
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border2);
+    }
+    .coach-msg.user .coach-bubble {
+      background: var(--brand); color: #fff;
+      border-color: var(--brand-dark);
+    }
+    .coach-bubble h3, .coach-bubble h4 { color: var(--brand); margin: 10px 0 4px; font-size: 13px; }
+    .coach-msg.user .coach-bubble h3,
+    .coach-msg.user .coach-bubble h4 { color: #fff; }
+    .coach-bubble strong { font-weight: 700; }
+    .coach-bubble table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 8px 0; }
+    .coach-bubble th { background: rgba(0,0,0,.08); padding: 4px 8px; text-align: left; }
+    .coach-bubble td { padding: 4px 8px; border-bottom: 1px solid rgba(0,0,0,.07); }
+    .coach-bubble ul, .coach-bubble ol { padding-left: 18px; margin: 6px 0; }
+    .coach-bubble li { margin-bottom: 3px; }
+    .coach-bubble code { background: rgba(0,0,0,.08); padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+    .coach-typing {
+      display: flex; gap: 5px; align-items: center; padding: 12px 14px;
+    }
+    .coach-typing span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--text-3); animation: coach-bounce .9s infinite;
+    }
+    .coach-typing span:nth-child(2) { animation-delay: .15s; }
+    .coach-typing span:nth-child(3) { animation-delay: .30s; }
+    @keyframes coach-bounce {
+      0%,60%,100% { transform: translateY(0); }
+      30%          { transform: translateY(-6px); }
+    }
+    .coach-input-row {
+      display: flex; gap: 8px; align-items: flex-end; margin-top: 12px;
+    }
+    .coach-input {
+      flex: 1; font-size: 13px; font-family: inherit;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 9px 12px; resize: none; background: var(--surface2);
+      color: var(--text); line-height: 1.5; overflow: hidden;
+      transition: border-color .15s;
+    }
+    .coach-input:focus { outline: none; border-color: var(--brand); }
+    .coach-send-btn { flex-shrink: 0; height: 38px; }
+    .coach-suggestions { display: flex; flex-direction: column; gap: 6px; }
+    .coach-suggestion-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 10px; font-size: 11px;
+      color: var(--text-2); cursor: pointer; text-align: left;
+      font-family: inherit; line-height: 1.4;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .coach-suggestion-btn:hover { background: var(--brand-dim); border-color: var(--brand); color: var(--brand); }
+    .coach-ctx-stat {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 8px; font-size: 10px; color: var(--text-2);
+      display: flex; flex-direction: column; gap: 1px;
+    }
+    .coach-ctx-stat span { font-size: 18px; font-weight: 800; color: var(--text); line-height: 1; font-variant-numeric: tabular-nums; }
+    .coach-ctx-stat.danger span { color: var(--danger); }
+    .coach-ctx-stat.danger { border-color: #fca5a5; background: #fff1f2; }
+    body.dark-mode .coach-ctx-stat.danger { background: #1a0707; border-color: #7f1d1d; }
+
     /* ===== CHECKLIST SORT & DRAG ===== */
     .cl-sort-btn {
       background: var(--surface2); border: 1px solid var(--border);
@@ -2269,9 +2378,63 @@
 
   <!-- COACH -->
   <div id="coach-tab" class="tab-content">
-    <div class="card">
-      <div class="card-title"><i class="fas fa-brain"></i> Recommandations</div>
-      <div id="coachMessages" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    <div class="coach-layout">
+
+      <!-- Panneau gauche : contexte + suggestions -->
+      <div class="coach-sidebar">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title" style="font-size:12px;"><i class="fas fa-info-circle" style="color:var(--brand);"></i> Contexte chargé</div>
+          <div id="coachContext" style="font-size:11px;color:var(--text-2);line-height:1.6;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="font-size:12px;"><i class="fas fa-lightbulb" style="color:var(--warning);"></i> Questions suggérées</div>
+          <div class="coach-suggestions" id="coachSuggestions"></div>
+        </div>
+      </div>
+
+      <!-- Zone chat principale -->
+      <div class="coach-main">
+        <div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span><i class="fas fa-brain" style="color:var(--brand);"></i> Coach IA — AAEA-CAVA</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span id="coachModelBadge" class="coach-model-badge">llama-3.3-70b</span>
+              <button class="btn btn-ghost btn-small" onclick="clearCoachHistory()" title="Réinitialiser la conversation"><i class="fas fa-redo-alt"></i></button>
+            </div>
+          </div>
+
+          <!-- Clé API (si pas déjà saisie dans le Planificateur) -->
+          <div id="coachApiWarn" class="coach-api-warn" style="display:none;">
+            <i class="fas fa-key"></i>
+            Clé API Groq requise —
+            <a href="https://console.groq.com/keys" target="_blank">Obtenir gratuitement</a>
+            puis la saisir dans <strong>Planificateur → Configuration IA</strong>.
+          </div>
+
+          <!-- Fil de messages -->
+          <div class="coach-thread" id="coachThread">
+            <div class="coach-msg assistant">
+              <div class="coach-avatar"><i class="fas fa-brain"></i></div>
+              <div class="coach-bubble">
+                Bonjour ! Je suis votre coach IA. Je connais l'ensemble de vos tâches actives et peux vous aider à prioriser, identifier les risques et planifier votre semaine. Que voulez-vous analyser ?
+              </div>
+            </div>
+          </div>
+
+          <!-- Saisie -->
+          <div class="coach-input-row">
+            <textarea id="coachInput" class="coach-input" rows="1"
+              placeholder="Posez une question sur vos tâches, votre charge, vos priorités…"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoachMessage();}"
+              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+            <button class="btn btn-primary coach-send-btn" onclick="sendCoachMessage()" id="coachSendBtn">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:6px;">Entrée pour envoyer · Maj+Entrée pour sauter une ligne</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -3861,17 +4024,172 @@
     }
   }
 
-  function renderCoach(tasks) {
-    const blocked = tasks.filter(t => !t.completed && t.status === 'bloqué').length;
-    const active = tasks.filter(t => !t.completed).length;
+  // ===== COACH IA =====
+  let coachHistory = []; // { role: 'user'|'assistant', content }
+  let coachTaskSnapshot = [];
 
-    const messages = [];
-    if (blocked > 0) messages.push(`<div style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 18px; border-radius: 8px; margin-bottom: 12px;"><i class="fas fa-exclamation-circle"></i> ${blocked} tâche(s) bloquée(s)</div>`);
-    if (active > 5) messages.push(`<div style="background: linear-gradient(135deg, var(--secondary) 0%, #FFA500 100%); color: #333; padding: 18px; border-radius: 8px; margin-bottom: 12px;"><i class="fas fa-lightbulb"></i> ${active} tâches actives. Focusez les priorités!</div>`);
-    if (messages.length === 0) messages.push(`<div style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: white; padding: 18px; border-radius: 8px;"><i class="fas fa-thumbs-up"></i> Productivité saine</div>`);
+  const COACH_SUGGESTIONS = [
+    'Quelles tâches sont à risque cette semaine ?',
+    'Comment répartir la charge entre les coordinateurs ?',
+    'Quelles tâches Q1 n\'ont pas encore d\'échéance définie ?',
+    'Donne-moi un résumé exécutif de l\'avancement global.',
+    'Quelles tâches sont bloquées et pourquoi ?',
+    'Propose un ordre de traitement pour les 3 prochains jours.',
+  ];
 
-    const container = document.getElementById('coachMessages');
-    if (container) container.innerHTML = messages.join('');
+  function renderCoach(visibleTasks) {
+    coachTaskSnapshot = visibleTasks;
+
+    // Contexte résumé
+    const ctx = document.getElementById('coachContext');
+    if (ctx) {
+      const active = visibleTasks.filter(t => !t.completed);
+      const q1 = active.filter(t => t.quadrant === 'Q1').length;
+      const blocked = active.filter(t => t.status === 'bloqué').length;
+      const overdue = active.filter(t => t.dueDate && new Date(t.dueDate) < new Date()).length;
+      ctx.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div class="coach-ctx-stat"><span>${active.length}</span>tâches actives</div>
+          <div class="coach-ctx-stat danger"><span>${q1}</span>urgentes Q1</div>
+          <div class="coach-ctx-stat${blocked ? ' danger' : ''}"><span>${blocked}</span>bloquées</div>
+          <div class="coach-ctx-stat${overdue ? ' danger' : ''}"><span>${overdue}</span>en retard</div>
+        </div>
+        <div style="font-size:10px;color:var(--text-3);">Données au ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`;
+    }
+
+    // Suggestions
+    const sugg = document.getElementById('coachSuggestions');
+    if (sugg) {
+      sugg.innerHTML = COACH_SUGGESTIONS.map(q =>
+        `<button class="coach-suggestion-btn" onclick="sendCoachMessage(${JSON.stringify(q)})">${q}</button>`
+      ).join('');
+    }
+
+    // Vérifier clé API
+    const apiKey = localStorage.getItem('gesta-groq-key') || document.getElementById('claudeApiKey')?.value?.trim();
+    const warn = document.getElementById('coachApiWarn');
+    if (warn) warn.style.display = apiKey ? 'none' : 'flex';
+  }
+
+  function _coachBuildSystemPrompt() {
+    const today = new Date().toISOString().slice(0, 10);
+    const active = coachTaskSnapshot.filter(t => !t.completed);
+    const taskList = active.map(t => {
+      const checklist = Array.isArray(t.checklist) ? t.checklist : Object.values(t.checklist || {});
+      const { done, total } = checklistStats(checklist);
+      return `[${t.quadrant}] "${t.description}" | Source: ${t.source} | Statut: ${t.status} | Échéance: ${t.dueDate || 'non définie'} | Pilote: ${t.pilote || 'non assigné'} | Heures: ${t.estimatedHours || '?'} | Sous-tâches: ${done}/${total}`;
+    }).join('\n');
+
+    return `Tu es le coach IA de l'AAEA-CAVA, une association d'aide à l'emploi en Guadeloupe. Tu assistes l'équipe dans la gestion de leurs tâches via la matrice Eisenhower (Q1 urgent+important, Q2 important, Q3 urgent, Q4 déléguer).
+
+Aujourd'hui : ${today}
+Utilisateur connecté : ${currentUser?.fullName || currentRole} (${currentRole})
+
+Tâches actives visibles (${active.length}) :
+${taskList || '(aucune)'}
+
+Consignes :
+- Réponds toujours en français, de façon concise et actionnable
+- Appuie-toi sur les données réelles ci-dessus
+- Pour les tableaux, utilise le format Markdown
+- Quand tu identifies un risque, propose immédiatement une action concrète
+- Limite tes réponses à l'essentiel — pas de remplissage`;
+  }
+
+  function _coachFormatMarkdown(text) {
+    return text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g,'<em>$1</em>')
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/^### (.+)$/gm,'<h4>$1</h4>')
+      .replace(/^## (.+)$/gm,'<h3>$1</h3>')
+      .replace(/^- (.+)$/gm,'<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
+      .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+      .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+  }
+
+  function _coachAppendMsg(role, html, isTyping = false) {
+    const thread = document.getElementById('coachThread');
+    if (!thread) return;
+    const div = document.createElement('div');
+    div.className = `coach-msg ${role}`;
+    div.innerHTML = `
+      <div class="coach-avatar"><i class="fas fa-${role === 'user' ? 'user' : 'brain'}"></i></div>
+      <div class="coach-bubble">${isTyping ? '<div class="coach-typing"><span></span><span></span><span></span></div>' : html}</div>`;
+    if (isTyping) div.id = 'coachTyping';
+    thread.appendChild(div);
+    thread.scrollTop = thread.scrollHeight;
+    return div;
+  }
+
+  async function sendCoachMessage(prefill) {
+    const input = document.getElementById('coachInput');
+    const text = prefill || input?.value?.trim();
+    if (!text) return;
+
+    const apiKey = localStorage.getItem('gesta-groq-key') || document.getElementById('claudeApiKey')?.value?.trim();
+    if (!apiKey) {
+      showMessage('Clé API Groq requise — saisissez-la dans Planificateur → Configuration IA', 'error');
+      return;
+    }
+
+    if (input && !prefill) { input.value = ''; input.style.height = 'auto'; }
+
+    _coachAppendMsg('user', text.replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+    coachHistory.push({ role: 'user', content: text });
+
+    const typingEl = _coachAppendMsg('assistant', '', true);
+    document.getElementById('coachSendBtn').disabled = true;
+
+    try {
+      const messages = [
+        { role: 'system', content: _coachBuildSystemPrompt() },
+        ...coachHistory.slice(-10) // garde les 10 derniers échanges
+      ];
+
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 1024,
+          temperature: 0.4,
+          messages
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content || '(pas de réponse)';
+      coachHistory.push({ role: 'assistant', content: reply });
+
+      typingEl?.remove();
+      _coachAppendMsg('assistant', _coachFormatMarkdown(reply));
+
+    } catch (err) {
+      typingEl?.remove();
+      const isCors = err.message === 'Failed to fetch' || err.name === 'TypeError';
+      _coachAppendMsg('assistant', `<span style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> ${isCors ? 'Erreur réseau — vérifiez votre connexion et que la clé Groq est valide.' : err.message}</span>`);
+    } finally {
+      document.getElementById('coachSendBtn').disabled = false;
+      document.getElementById('coachThread')?.scrollTo({ top: 99999, behavior: 'smooth' });
+    }
+  }
+
+  function clearCoachHistory() {
+    coachHistory = [];
+    const thread = document.getElementById('coachThread');
+    if (!thread) return;
+    thread.innerHTML = `<div class="coach-msg assistant">
+      <div class="coach-avatar"><i class="fas fa-brain"></i></div>
+      <div class="coach-bubble">Conversation réinitialisée. Comment puis-je vous aider ?</div>
+    </div>`;
   }
 
   // ===== INIT FIREBASE ROBUSTE =====
