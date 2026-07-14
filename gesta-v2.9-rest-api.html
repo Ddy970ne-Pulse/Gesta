@@ -2406,10 +2406,11 @@
       
       if (data) {
         Object.keys(data).forEach(key => {
-          tasks.push({
-            id: key,
-            ...data[key]
-          });
+          const t = { id: key, ...data[key] };
+          if (t.checklist && !Array.isArray(t.checklist)) {
+            t.checklist = Object.values(t.checklist);
+          }
+          tasks.push(t);
         });
       }
       
@@ -2540,7 +2541,10 @@
   function loadLocalTasks() {
     const local = localStorage.getItem('gesta-tasks-local');
     if (local) {
-      tasks = JSON.parse(local);
+      tasks = JSON.parse(local).map(t => {
+        if (t.checklist && !Array.isArray(t.checklist)) t.checklist = Object.values(t.checklist);
+        return t;
+      });
       renderAll();
     }
   }
