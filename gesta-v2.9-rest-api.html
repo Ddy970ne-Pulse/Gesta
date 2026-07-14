@@ -2982,6 +2982,7 @@
             <i class="fas fa-sort-numeric-up" style="color:${full ? 'var(--success)' : 'var(--brand)'};font-size:13px;flex-shrink:0;"></i>
             <span style="flex:1;font-size:13px;font-weight:600;${full ? 'color:var(--success);' : ''}">${item.text}</span>
             <span style="font-size:12px;font-weight:700;color:${full ? 'var(--success)' : 'var(--text-2)'};">${cur}/${tgt}</span>
+            ${full && item.completedAt ? `<span style="font-size:10px;color:var(--success);white-space:nowrap;" title="Complété le ${new Date(item.completedAt).toLocaleString('fr-FR')}"><i class="fas fa-check-circle"></i> ${new Date(item.completedAt).toLocaleDateString('fr-FR')} ${new Date(item.completedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>` : ''}
             <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;" title="Supprimer"><i class="fas fa-times"></i></button>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
@@ -3001,7 +3002,7 @@
         <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);border:1px solid ${item.checked ? 'var(--success)' : 'var(--border)'};border-radius:var(--radius);${item.checked ? 'background:rgba(16,185,129,.04);' : ''}transition:all .15s;">
           <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecklistItem(${idx})" style="width:16px;height:16px;cursor:pointer;accent-color:var(--success);flex-shrink:0;">
           <span style="flex:1;font-size:13px;${item.checked ? 'text-decoration:line-through;color:var(--text-3);' : 'color:var(--text);'}">${item.text}</span>
-          ${item.checkedAt ? `<span style="font-size:10px;color:var(--text-3);white-space:nowrap;">${new Date(item.checkedAt).toLocaleDateString('fr-FR')}</span>` : ''}
+          ${item.checkedAt ? `<span style="font-size:10px;color:var(--text-3);white-space:nowrap;" title="Complété le ${new Date(item.checkedAt).toLocaleString('fr-FR')}"><i class="fas fa-check-circle" style="color:var(--success);margin-right:3px;"></i>${new Date(item.checkedAt).toLocaleDateString('fr-FR')} ${new Date(item.checkedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>` : ''}
           <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;font-size:11px;" title="Supprimer"><i class="fas fa-times"></i></button>
         </div>`;
       }
@@ -3072,7 +3073,11 @@
     const checklist = (task?.checklist || []).map((item, i) => {
       if (i !== idx || item.type !== 'counter') return item;
       const next = Math.max(0, Math.min((item.current || 0) + delta, item.target || 99));
-      return { ...item, current: next, updatedAt: new Date().toISOString() };
+      const now = new Date().toISOString();
+      const wasComplete = (item.current || 0) >= (item.target || 0);
+      const isNowComplete = next >= (item.target || 0);
+      return { ...item, current: next, updatedAt: now,
+        completedAt: isNowComplete && !wasComplete ? now : (isNowComplete ? item.completedAt : null) };
     });
     await updateTask(currentTaskId, { checklist });
     const tidx = tasks.findIndex(t => t.id === currentTaskId);
@@ -3086,7 +3091,11 @@
     const checklist = (task?.checklist || []).map((item, i) => {
       if (i !== idx || item.type !== 'counter') return item;
       const next = Math.max(0, Math.min(parseInt(value) || 0, item.target || 99));
-      return { ...item, current: next, updatedAt: new Date().toISOString() };
+      const now = new Date().toISOString();
+      const wasComplete = (item.current || 0) >= (item.target || 0);
+      const isNowComplete = next >= (item.target || 0);
+      return { ...item, current: next, updatedAt: now,
+        completedAt: isNowComplete && !wasComplete ? now : (isNowComplete ? item.completedAt : null) };
     });
     await updateTask(currentTaskId, { checklist });
     const tidx = tasks.findIndex(t => t.id === currentTaskId);
