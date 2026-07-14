@@ -3052,12 +3052,14 @@
     if (!currentTaskId) return;
     const label = prompt('Nom du compteur (ex: Attestations récupérées) :');
     if (!label) return;
-    const targetStr = prompt('Objectif total (ex: 30) :');
+    const targetStr = prompt('Objectif total attendu (ex: 30) :');
     const target = parseInt(targetStr);
     if (!target || isNaN(target) || target <= 0) { showMessage('Objectif invalide', 'error'); return; }
+    const currentStr = prompt(`Nombre déjà reçu / traité à ce jour (laisser vide ou 0 si on part de zéro) :`);
+    const current = Math.max(0, Math.min(parseInt(currentStr) || 0, target));
     const task = tasks.find(t => t.id === currentTaskId);
     const checklist = Array.isArray(task?.checklist) ? [...task.checklist] : [];
-    checklist.push({ type: 'counter', text: label, target, current: 0, createdAt: new Date().toISOString() });
+    checklist.push({ type: 'counter', text: label, target, current, createdAt: new Date().toISOString() });
     await updateTask(currentTaskId, { checklist });
     const tidx = tasks.findIndex(t => t.id === currentTaskId);
     if (tidx !== -1) tasks[tidx].checklist = checklist;
