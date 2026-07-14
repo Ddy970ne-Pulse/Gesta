@@ -1462,60 +1462,101 @@
   </div>
 </div>
 
-<div class="container" id="appContainer" style="display: none;">
-  <!-- ALERTES BANNER -->
-  <div id="alertsBanner" class="alerts-banner" style="display:none;"></div>
+<div class="app-shell" id="appContainer" style="display: none;">
 
-  <div class="header">
-    <div class="header-left">
-      <div style="width: 8px; height: 32px; background: var(--primary); border-radius: 2px;"></div>
-      <h1>GESTA</h1>
+  <!-- ===== SIDEBAR ===== -->
+  <nav class="sidebar" id="appSidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">G</div>
+      <span class="sidebar-logo-text">GESTA</span>
+      <span class="sidebar-logo-ver">v4.0</span>
     </div>
-    <div class="header-right" style="flex-wrap:wrap; gap:12px;">
-      <div class="search-bar" style="position:relative;">
-        <i class="fas fa-search"></i>
-        <input type="text" id="globalSearch" placeholder="Rechercher..." oninput="handleSearch(this.value)" onblur="setTimeout(()=>closeSearch(),200)">
-        <div id="searchResults" class="search-results" style="display:none;"></div>
+
+    <div class="sidebar-section-label">Navigation</div>
+
+    <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <i class="fas fa-th-large"></i>
+      <span>Tableau de bord</span>
+      <span class="nav-badge" id="tabBadgeQ1" style="display:none;"></span>
+    </button>
+    <button class="nav-item" data-tab="myspace" onclick="switchTab('myspace')">
+      <i class="fas fa-user-circle"></i>
+      <span>Mon Espace</span>
+    </button>
+    <button class="nav-item" data-tab="task-detail" onclick="switchTab('task-detail')">
+      <i class="fas fa-file-alt"></i>
+      <span>Détail tâche</span>
+    </button>
+    <button class="nav-item" data-tab="planner" onclick="switchTab('planner')">
+      <i class="fas fa-calendar-alt"></i>
+      <span>Planificateur</span>
+    </button>
+
+    <div class="sidebar-section-label" style="margin-top:8px;">Analyse</div>
+
+    <button class="nav-item" data-tab="analytics" onclick="switchTab('analytics')">
+      <i class="fas fa-chart-line"></i>
+      <span>Analytics</span>
+    </button>
+    <button class="nav-item" data-tab="historique" onclick="switchTab('historique')">
+      <i class="fas fa-history"></i>
+      <span>Historique</span>
+    </button>
+    <button class="nav-item" data-tab="coach" onclick="switchTab('coach')">
+      <i class="fas fa-brain"></i>
+      <span>Coach IA</span>
+    </button>
+    <button class="nav-item" data-tab="admin" id="adminTabBtn" style="display:none;" onclick="switchTab('admin')">
+      <i class="fas fa-shield-alt"></i>
+      <span>Administration</span>
+    </button>
+
+    <!-- Sidebar footer: user info -->
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar" id="userAvatar">?</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="userFullName">—</div>
+        <div class="sidebar-user-role" id="roleBadge">—</div>
       </div>
-      <div style="font-size: 10px; color: var(--gray-400); font-weight: 600;">v3.3.0</div>
-      <div class="sync-indicator">
-        <div class="sync-dot"></div>
-        <span id="syncStatus">Connecté</span>
+      <div class="sidebar-actions">
+        <button class="sidebar-icon-btn" onclick="toggleDarkMode()" id="darkToggle" title="Mode sombre/clair"><i class="fas fa-moon"></i></button>
+        <button class="sidebar-icon-btn" onclick="logoutUser()" id="logoutBtn" style="display:none;" title="Déconnexion"><i class="fas fa-sign-out-alt"></i></button>
+        <button class="sidebar-icon-btn" onclick="changeRole()" id="changeRoleBtn" title="Changer de rôle"><i class="fas fa-exchange-alt"></i></button>
       </div>
-      <div class="user-badge" id="userBadge" style="display:none;">
-        <div class="user-avatar" id="userAvatar">?</div>
-        <div class="user-info">
-          <span class="user-name" id="userFullName">-</span>
-          <span class="user-role" id="roleBadge">-</span>
+    </div>
+  </nav>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="main-content">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <span class="topbar-title" id="topbarTitle">Tableau de bord</span>
+      <span class="topbar-sub" id="roleBadgeDemo"></span>
+      <div class="topbar-actions">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" id="globalSearch" placeholder="Rechercher..." oninput="handleSearch(this.value)" onblur="setTimeout(()=>closeSearch(),200)">
+          <div id="searchResults" class="search-results" style="display:none;"></div>
         </div>
+        <div class="sync-indicator">
+          <div class="sync-dot"></div>
+          <span id="syncStatus">Connecté</span>
+        </div>
+        <button class="btn btn-ghost btn-icon" onclick="toggleBulkSelect()" id="bulkSelectBtn" title="Sélection multiple"><i class="fas fa-check-square"></i></button>
+        <button class="btn btn-ghost btn-icon" onclick="exportCSV()" title="Export CSV"><i class="fas fa-file-csv"></i></button>
+        <button class="btn btn-ghost btn-icon" onclick="exportICAL()" title="Export iCal"><i class="fas fa-calendar-check"></i></button>
+        <button class="btn btn-ghost btn-icon" onclick="window.print()" title="Imprimer"><i class="fas fa-print"></i></button>
+        <button class="btn btn-ghost btn-icon" onclick="showKeyboardHelp()" title="Raccourcis (?)"><i class="fas fa-keyboard"></i></button>
+        <button class="btn btn-primary btn-small" id="pwaInstallBtn" style="display:none;" onclick="pwaInstall()"><i class="fas fa-download"></i> Installer</button>
       </div>
-      <div class="role-badge" id="roleBadgeDemo" style="display:none;">-</div>
-      <button class="dark-toggle" onclick="toggleDarkMode()" id="darkToggle" title="Mode sombre">
-        <i class="fas fa-moon"></i>
-      </button>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-secondary btn-small" onclick="exportCSV()" title="Exporter CSV"><i class="fas fa-file-csv"></i></button>
-        <button class="btn btn-secondary btn-small" onclick="exportICAL()" title="Export iCal"><i class="fas fa-calendar-check"></i></button>
-        <button class="btn btn-secondary btn-small" onclick="window.print()" title="Imprimer / PDF"><i class="fas fa-print"></i></button>
-        <button class="btn btn-secondary btn-small" onclick="showKeyboardHelp()" title="Raccourcis clavier (?)"><i class="fas fa-keyboard"></i></button>
-        <button class="btn btn-secondary btn-small" id="pwaInstallBtn" style="display:none;" onclick="pwaInstall()" title="Installer l'application"><i class="fas fa-download"></i> Installer</button>
-      </div>
-      <button class="btn btn-secondary btn-small" onclick="logoutUser()" id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i></button>
-      <button class="btn btn-secondary btn-small" onclick="changeRole()" id="changeRoleBtn">Changer</button>
     </div>
-  </div>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fas fa-chart-bar"></i> Dashboard <span id="tabBadgeQ1" style="display:none;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;"></span></button>
-    <button class="tab-btn" id="bulkSelectBtn" onclick="toggleBulkSelect()" title="Sélection multiple" style="margin-left:auto;"><i class="fas fa-check-square"></i> Sélectionner</button>
-    <button class="tab-btn" onclick="switchTab('myspace')"><i class="fas fa-user-circle"></i> Mon Espace</button>
-    <button class="tab-btn" onclick="switchTab('task-detail')"><i class="fas fa-file-alt"></i> Détail</button>
-    <button class="tab-btn" onclick="switchTab('analytics')"><i class="fas fa-chart-line"></i> Analytics</button>
-    <button class="tab-btn" onclick="switchTab('historique')"><i class="fas fa-history"></i> Historique</button>
-    <button class="tab-btn" onclick="switchTab('coach')"><i class="fas fa-brain"></i> Coach</button>
-    <button class="tab-btn" onclick="switchTab('planner')"><i class="fas fa-calendar-alt"></i> Planificateur ✨</button>
-    <button class="tab-btn" id="adminTabBtn" style="display:none;" onclick="switchTab('admin')"><i class="fas fa-shield-alt"></i> Admin</button>
-  </div>
+    <!-- Alertes banner -->
+    <div id="alertsBanner" class="alerts-banner" style="display:none;"></div>
+
+    <!-- Page body -->
+    <div class="page-body">
 
   <!-- DASHBOARD -->
   <div id="dashboard-tab" class="tab-content active">
@@ -2131,9 +2172,11 @@
     </div>
 
     <!-- Tooltip tâche -->
-    <div id="taskTooltip" style="display:none; position:fixed; background:white; border:1px solid var(--gray-200); border-radius:8px; padding:12px; box-shadow:0 8px 20px rgba(0,0,0,0.15); z-index:9999; max-width:260px; font-size:12px; pointer-events:none;"></div>
-  </div>
-</div>
+    <div id="taskTooltip" style="display:none; position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow-lg); z-index:9999; max-width:260px; font-size:12px; pointer-events:none;"></div>
+
+    </div><!-- end .page-body -->
+  </div><!-- end .main-content -->
+</div><!-- end .app-shell -->
 
 <script>
   // ===== CONFIG FIREBASE =====
@@ -2201,12 +2244,13 @@
     currentUser = { role, fullName: role, uid: 'demo', idToken: null, isDemo: true };
 
     document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'block';
+    document.getElementById('appContainer').style.display = 'flex';
 
-    // Header: show demo badge
-    document.getElementById('userBadge').style.display = 'none';
-    document.getElementById('roleBadgeDemo').style.display = 'flex';
-    document.getElementById('roleBadgeDemo').textContent = role;
+    // Sidebar: show demo info
+    document.getElementById('roleBadgeDemo').textContent = '(Démo)';
+    document.getElementById('userAvatar').textContent = role[0].toUpperCase();
+    document.getElementById('userFullName').textContent = role;
+    document.getElementById('roleBadge').textContent = 'Mode démo';
     document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('changeRoleBtn').style.display = 'flex';
 
@@ -2231,11 +2275,26 @@
   }
 
   // ===== TAB SWITCHING =====
+  const TAB_TITLES = {
+    'dashboard': 'Tableau de bord',
+    'myspace': 'Mon Espace',
+    'task-detail': 'Détail tâche',
+    'analytics': 'Analytics',
+    'historique': 'Historique',
+    'coach': 'Coach IA',
+    'planner': 'Planificateur',
+    'admin': 'Administration'
+  };
+
   function switchTab(name) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(name + '-tab').classList.add('active');
-    event.target.closest('.tab-btn').classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    const tabEl = document.getElementById(name + '-tab');
+    if (tabEl) tabEl.classList.add('active');
+    const navEl = document.querySelector(`.nav-item[data-tab="${name}"]`);
+    if (navEl) navEl.classList.add('active');
+    const titleEl = document.getElementById('topbarTitle');
+    if (titleEl) titleEl.textContent = TAB_TITLES[name] || name;
     if (name === 'admin' && currentUser && !currentUser.isDemo) {
       loadAccessLogs();
       loadAdminUsers();
@@ -2706,10 +2765,7 @@
   function openTaskDetail(id) {
     document.getElementById('taskSelect').value = id;
     selectTask();
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('task-detail-tab').classList.add('active');
-    document.querySelectorAll('.tab-btn').forEach(b => { if (b.textContent.includes('Détail')) b.classList.add('active'); });
+    switchTab('task-detail');
   }
 
   function selectTask() {
@@ -3756,11 +3812,10 @@
   function applyUserSession() {
     currentRole = currentUser.role;
     document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'block';
+    document.getElementById('appContainer').style.display = 'flex';
 
-    // Header badges
-    document.getElementById('userBadge').style.display = 'flex';
-    document.getElementById('roleBadgeDemo').style.display = 'none';
+    // Sidebar user info
+    document.getElementById('roleBadgeDemo').textContent = '';
     document.getElementById('changeRoleBtn').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'flex';
     document.getElementById('userFullName').textContent = currentUser.fullName;
@@ -3793,7 +3848,6 @@
     document.getElementById('loginEmail').value = '';
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginError').style.display = 'none';
-    document.getElementById('userBadge').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('changeRoleBtn').style.display = 'flex';
   }
@@ -4120,13 +4174,7 @@
     document.getElementById('searchResults').style.display = 'none';
     document.getElementById('taskSelect').value = id;
     selectTask();
-    // Switch to detail tab manually
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('task-detail-tab').classList.add('active');
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      if (b.textContent.includes('Détail')) b.classList.add('active');
-    });
+    switchTab('task-detail');
   }
 
   function closeSearch() {
@@ -4784,8 +4832,7 @@ Règles :
   }
 
   function switchTabByName(name) {
-    const btn = document.querySelector(`.tab-btn[onclick*="'${name}'"]`);
-    if (btn) btn.click();
+    switchTab(name);
   }
 
   function showKeyboardHelp() {
