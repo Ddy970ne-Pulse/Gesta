@@ -1153,6 +1153,50 @@
     .due-soon { background: #FFF3E0; color: var(--warning); }
     .due-ok { background: #DCFCE7; color: var(--success); }
 
+    /* ===== CHECKLIST SORT & DRAG ===== */
+    .cl-sort-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 600;
+      color: var(--text-2); cursor: pointer; font-family: inherit;
+      transition: background .12s, color .12s, border-color .12s;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .cl-sort-btn:hover { background: var(--gray-100); color: var(--text); }
+    .cl-sort-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .cl-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); transition: background .12s, border-color .12s, box-shadow .12s;
+      position: relative;
+    }
+    .cl-item.priority-high { border-left: 3px solid var(--danger); }
+    .cl-item.priority-high.checked { border-left: 3px solid var(--success); }
+    .cl-item.checked { border-color: var(--success); background: rgba(16,185,129,.04); }
+    .cl-item.counter-full { border-color: var(--success); background: rgba(16,185,129,.05); }
+    .cl-drag-handle {
+      color: var(--text-3); cursor: grab; font-size: 13px;
+      padding: 2px 3px; flex-shrink: 0; touch-action: none;
+      opacity: .45; transition: opacity .12s;
+    }
+    .cl-drag-handle:hover { opacity: 1; }
+    .cl-drag-handle:active { cursor: grabbing; }
+    .cl-item.dragging { opacity: .4; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+    .cl-item.drag-over { box-shadow: 0 -2px 0 var(--brand); }
+    .cl-priority-btn {
+      background: none; border: none; cursor: pointer; padding: 2px 3px;
+      font-size: 12px; flex-shrink: 0; line-height: 1;
+      color: var(--text-3); transition: color .12s;
+    }
+    .cl-priority-btn.high { color: var(--danger); }
+    .cl-priority-btn:hover { color: var(--danger); }
+    .cl-badge-priority {
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+      background: #fee2e2; color: var(--danger); flex-shrink: 0;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    body.dark-mode .cl-badge-priority { background: #3b0f0f; }
+
     /* ===== NOTIFICATIONS IN-APP ===== */
     .notif-bell-wrap {
       position: relative;
@@ -1986,6 +2030,14 @@
             <button class="btn btn-primary btn-small" onclick="confirmBulkImport()"><i class="fas fa-check"></i> Importer</button>
             <button class="btn btn-ghost btn-small" onclick="toggleBulkImport()"><i class="fas fa-times"></i> Annuler</button>
           </div>
+        </div>
+
+        <!-- Contrôles de tri -->
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+          <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Trier par</span>
+          <button id="clSort-order"    class="cl-sort-btn active" onclick="setChecklistSort('order')"><i class="fas fa-grip-lines"></i> Ajout</button>
+          <button id="clSort-priority" class="cl-sort-btn"        onclick="setChecklistSort('priority')"><i class="fas fa-flag"></i> Priorité</button>
+          <button id="clSort-status"   class="cl-sort-btn"        onclick="setChecklistSort('status')"><i class="fas fa-circle-half-stroke"></i> Statut</button>
         </div>
 
         <div id="checklistItems" style="display:flex;flex-direction:column;gap:6px;min-height:20px;"></div>
@@ -3129,6 +3181,41 @@
     return { done, total, pct: total ? Math.round(done / total * 100) : 0 };
   }
 
+  let checklistSortMode = 'order'; // 'order' | 'priority' | 'status'
+
+  function setChecklistSort(mode) {
+    checklistSortMode = mode;
+    ['order','priority','status'].forEach(m => {
+      document.getElementById('clSort-' + m)?.classList.toggle('active', m === mode);
+    });
+    const task = tasks.find(t => t.id === currentTaskId);
+    if (task?.checklist) renderChecklist(Array.isArray(task.checklist) ? task.checklist : Object.values(task.checklist));
+  }
+
+  function _sortedChecklist(checklist) {
+    // Conserve les indices d'origine pour que toggleChecklistItem etc. pointent bien sur le bon item
+    const indexed = checklist.map((item, idx) => ({ item, idx }));
+    if (checklistSortMode === 'priority') {
+      indexed.sort((a, b) => {
+        const pa = a.item.priority === 'high' ? 0 : 1;
+        const pb = b.item.priority === 'high' ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return a.idx - b.idx;
+      });
+    } else if (checklistSortMode === 'status') {
+      indexed.sort((a, b) => {
+        const doneA = a.item.checked || (a.item.type === 'counter' && (a.item.current||0) >= (a.item.target||1)) ? 1 : 0;
+        const doneB = b.item.checked || (b.item.type === 'counter' && (b.item.current||0) >= (b.item.target||1)) ? 1 : 0;
+        if (doneA !== doneB) return doneA - doneB;
+        const pa = a.item.priority === 'high' ? 0 : 1;
+        const pb = b.item.priority === 'high' ? 0 : 1;
+        return pa - pb;
+      });
+    }
+    // 'order' : ne change rien, garde les indices naturels
+    return indexed;
+  }
+
   function renderChecklist(checklist) {
     const container = document.getElementById('checklistItems');
     const progressEl = document.getElementById('checklistProgress');
@@ -3156,43 +3243,124 @@
     pctEl.textContent = pct + '%';
     pctEl.style.color = pct === 100 ? 'var(--success)' : 'var(--brand)';
 
-    container.innerHTML = checklist.map((item, idx) => {
+    const sorted = _sortedChecklist(checklist);
+
+    container.innerHTML = sorted.map(({ item, idx }) => {
+      const isHigh = item.priority === 'high';
+      const priorityBtn = `<button class="cl-priority-btn${isHigh ? ' high' : ''}" onclick="toggleItemPriority(${idx})" title="${isHigh ? 'Priorité haute — cliquer pour enlever' : 'Marquer comme prioritaire'}"><i class="fas fa-flag"></i></button>`;
+      const dragHandle = `<span class="cl-drag-handle" draggable="true" data-drag-idx="${idx}" title="Glisser pour réordonner"><i class="fas fa-grip-vertical"></i></span>`;
+
       if (item.type === 'counter') {
         const cur = item.current || 0;
         const tgt = item.target || 0;
         const cpct = tgt ? Math.round(cur / tgt * 100) : 0;
         const full = cur >= tgt && tgt > 0;
         return `
-        <div style="padding:10px 12px;background:var(--surface);border:1px solid ${full ? 'var(--success)' : 'var(--border)'};border-radius:var(--radius);${full ? 'background:rgba(16,185,129,.05);' : ''}">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <i class="fas fa-sort-numeric-up" style="color:${full ? 'var(--success)' : 'var(--brand)'};font-size:13px;flex-shrink:0;"></i>
-            <span style="flex:1;font-size:13px;font-weight:600;${full ? 'color:var(--success);' : ''}">${item.text}</span>
-            <span style="font-size:12px;font-weight:700;color:${full ? 'var(--success)' : 'var(--text-2)'};">${cur}/${tgt}</span>
-            ${full && item.completedAt ? `<span style="font-size:10px;color:var(--success);white-space:nowrap;" title="Complété le ${new Date(item.completedAt).toLocaleString('fr-FR')}"><i class="fas fa-check-circle"></i> ${new Date(item.completedAt).toLocaleDateString('fr-FR')} ${new Date(item.completedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>` : ''}
-            <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;" title="Supprimer"><i class="fas fa-times"></i></button>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
-              <div style="height:100%;width:${cpct}%;background:${full ? 'var(--success)' : 'var(--brand)'};border-radius:3px;transition:width .3s;"></div>
+        <div class="cl-item${full ? ' counter-full' : ''}${isHigh && !full ? ' priority-high' : ''}" data-idx="${idx}">
+          ${dragHandle}
+          ${priorityBtn}
+          ${isHigh && !full ? '<span class="cl-badge-priority">Priorité</span>' : ''}
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+              <i class="fas fa-sort-numeric-up" style="color:${full ? 'var(--success)' : 'var(--brand)'};font-size:12px;flex-shrink:0;"></i>
+              <span style="flex:1;font-size:13px;font-weight:600;${full ? 'color:var(--success);' : ''}">${item.text}</span>
+              <span style="font-size:12px;font-weight:700;color:${full ? 'var(--success)' : 'var(--text-2)'};">${cur}/${tgt}</span>
+              ${full && item.completedAt ? `<span style="font-size:10px;color:var(--success);white-space:nowrap;"><i class="fas fa-check-circle"></i> ${new Date(item.completedAt).toLocaleDateString('fr-FR')} ${new Date(item.completedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>` : ''}
             </div>
-            <div style="display:flex;align-items:center;gap:4px;">
-              <button onclick="adjustCounter(${idx},-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text-2);display:flex;align-items:center;justify-content:center;" ${cur<=0?'disabled':''}>−</button>
-              <input type="number" min="0" max="${tgt}" value="${cur}" onchange="setCounter(${idx},this.value)" onclick="this.select()"
-                style="width:52px;height:28px;text-align:center;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;font-weight:700;">
-              <button onclick="adjustCounter(${idx},1)" style="background:var(--brand);border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;" ${cur>=tgt?'disabled':''}>+</button>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+                <div style="height:100%;width:${cpct}%;background:${full ? 'var(--success)' : 'var(--brand)'};border-radius:3px;transition:width .3s;"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;">
+                <button onclick="adjustCounter(${idx},-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text-2);display:flex;align-items:center;justify-content:center;" ${cur<=0?'disabled':''}>−</button>
+                <input type="number" min="0" max="${tgt}" value="${cur}" onchange="setCounter(${idx},this.value)" onclick="this.select()"
+                  style="width:52px;height:28px;text-align:center;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;font-weight:700;">
+                <button onclick="adjustCounter(${idx},1)" style="background:var(--brand);border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;" ${cur>=tgt?'disabled':''}>+</button>
+              </div>
             </div>
           </div>
+          <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;flex-shrink:0;" title="Supprimer"><i class="fas fa-times"></i></button>
         </div>`;
       } else {
         return `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);border:1px solid ${item.checked ? 'var(--success)' : 'var(--border)'};border-radius:var(--radius);${item.checked ? 'background:rgba(16,185,129,.04);' : ''}transition:all .15s;">
+        <div class="cl-item${item.checked ? ' checked' : ''}${isHigh && !item.checked ? ' priority-high' : ''}" data-idx="${idx}">
+          ${dragHandle}
+          ${priorityBtn}
+          ${isHigh && !item.checked ? '<span class="cl-badge-priority">Priorité</span>' : ''}
           <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecklistItem(${idx})" style="width:16px;height:16px;cursor:pointer;accent-color:var(--success);flex-shrink:0;">
           <span style="flex:1;font-size:13px;${item.checked ? 'text-decoration:line-through;color:var(--text-3);' : 'color:var(--text);'}">${item.text}</span>
-          ${item.checkedAt ? `<span style="font-size:10px;color:var(--text-3);white-space:nowrap;" title="Complété le ${new Date(item.checkedAt).toLocaleString('fr-FR')}"><i class="fas fa-check-circle" style="color:var(--success);margin-right:3px;"></i>${new Date(item.checkedAt).toLocaleDateString('fr-FR')} ${new Date(item.checkedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>` : ''}
-          <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;font-size:11px;" title="Supprimer"><i class="fas fa-times"></i></button>
+          ${item.checkedAt ? `<span style="font-size:10px;color:var(--text-3);white-space:nowrap;"><i class="fas fa-check-circle" style="color:var(--success);margin-right:3px;"></i>${new Date(item.checkedAt).toLocaleDateString('fr-FR')} ${new Date(item.checkedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>` : ''}
+          <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;font-size:11px;flex-shrink:0;" title="Supprimer"><i class="fas fa-times"></i></button>
         </div>`;
       }
     }).join('');
+
+    // ── Drag-and-drop ──
+    _initChecklistDrag(checklist);
+  }
+
+  function _initChecklistDrag(checklist) {
+    const container = document.getElementById('checklistItems');
+    let dragSrcIdx = null;
+
+    container.querySelectorAll('.cl-drag-handle').forEach(handle => {
+      const itemEl = handle.closest('.cl-item');
+
+      handle.addEventListener('dragstart', e => {
+        dragSrcIdx = parseInt(handle.dataset.dragIdx);
+        itemEl.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      handle.addEventListener('dragend', () => {
+        itemEl.classList.remove('dragging');
+        container.querySelectorAll('.cl-item').forEach(el => el.classList.remove('drag-over'));
+        dragSrcIdx = null;
+      });
+    });
+
+    container.querySelectorAll('.cl-item').forEach(itemEl => {
+      itemEl.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        container.querySelectorAll('.cl-item').forEach(el => el.classList.remove('drag-over'));
+        if (parseInt(itemEl.dataset.idx) !== dragSrcIdx) itemEl.classList.add('drag-over');
+      });
+
+      itemEl.addEventListener('drop', async e => {
+        e.preventDefault();
+        itemEl.classList.remove('drag-over');
+        const targetIdx = parseInt(itemEl.dataset.idx);
+        if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+
+        const task = tasks.find(t => t.id === currentTaskId);
+        if (!task?.checklist) return;
+        const cl = Array.isArray(task.checklist) ? [...task.checklist] : Object.values(task.checklist);
+        const [moved] = cl.splice(dragSrcIdx, 1);
+        cl.splice(targetIdx, 0, moved);
+
+        // Passer en mode "ordre" pour voir le résultat du drag
+        checklistSortMode = 'order';
+        ['order','priority','status'].forEach(m =>
+          document.getElementById('clSort-' + m)?.classList.toggle('active', m === 'order'));
+
+        await updateTask(currentTaskId, { checklist: cl });
+        const tidx = tasks.findIndex(t => t.id === currentTaskId);
+        if (tidx !== -1) tasks[tidx].checklist = cl;
+        renderChecklist(cl);
+      });
+    });
+  }
+
+  async function toggleItemPriority(idx) {
+    const task = tasks.find(t => t.id === currentTaskId);
+    if (!task?.checklist) return;
+    const cl = Array.isArray(task.checklist) ? [...task.checklist] : Object.values(task.checklist);
+    cl[idx] = { ...cl[idx], priority: cl[idx].priority === 'high' ? 'normal' : 'high' };
+    await updateTask(currentTaskId, { checklist: cl });
+    const tidx = tasks.findIndex(t => t.id === currentTaskId);
+    if (tidx !== -1) tasks[tidx].checklist = cl;
+    renderChecklist(cl);
   }
 
   function toggleBulkImport() {
