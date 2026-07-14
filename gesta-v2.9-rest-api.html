@@ -2,8 +2,16 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GESTA v3.3 - Planificateur Intelligent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#D63384">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GESTA">
+  <meta name="description" content="Planificateur intelligent Eisenhower pour AAEA-CAVA">
+  <title>GESTA v3.4 - Planificateur Intelligent</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23D63384'/><text x='16' y='23' text-anchor='middle' font-size='20' font-weight='bold' fill='white'>G</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23D63384'/><text x='90' y='130' text-anchor='middle' font-size='110' font-weight='bold' fill='white'>G</text></svg>">
+  <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GESTA%20-%20Planificateur%20Intelligent%22,%22short_name%22:%22GESTA%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23D63384%22,%22theme_color%22:%22%23D63384%22,%22description%22:%22Planificateur%20Eisenhower%20pour%20AAEA-CAVA%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%23D63384'/><text x='96' y='140' text-anchor='middle' font-size='120' font-weight='bold' fill='white'>G</text></svg>%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
@@ -12,6 +20,7 @@
     :root {
       --primary: #D63384;
       --primary-dark: #B8217E;
+      --primary-light: #fce7f3;
       --secondary: #FFC107;
       --success: #10b981;
       --danger: #ef4444;
@@ -41,6 +50,7 @@
       --gray-400: #9ca3af;
       --gray-600: #d1d5db;
       --gray-700: #f3f4f6;
+      --primary-light: #4a1535;
     }
 
     body {
@@ -1367,6 +1377,11 @@
       <button type="submit" class="login-btn" id="loginBtn">
         <i class="fas fa-sign-in-alt"></i> Connexion
       </button>
+      <div style="text-align:center;margin-top:10px;">
+        <button type="button" onclick="resetPassword()" style="background:none;border:none;color:var(--primary);font-size:12px;cursor:pointer;text-decoration:underline;">
+          Mot de passe oublié ?
+        </button>
+      </div>
     </form>
 
     <div class="login-divider" style="margin:20px 0;">ou</div>
@@ -1416,7 +1431,10 @@
       </button>
       <div style="display:flex;gap:6px;">
         <button class="btn btn-secondary btn-small" onclick="exportCSV()" title="Exporter CSV"><i class="fas fa-file-csv"></i></button>
+        <button class="btn btn-secondary btn-small" onclick="exportICAL()" title="Export iCal"><i class="fas fa-calendar-check"></i></button>
         <button class="btn btn-secondary btn-small" onclick="window.print()" title="Imprimer / PDF"><i class="fas fa-print"></i></button>
+        <button class="btn btn-secondary btn-small" onclick="showKeyboardHelp()" title="Raccourcis clavier (?)"><i class="fas fa-keyboard"></i></button>
+        <button class="btn btn-secondary btn-small" id="pwaInstallBtn" style="display:none;" onclick="pwaInstall()" title="Installer l'application"><i class="fas fa-download"></i> Installer</button>
       </div>
       <button class="btn btn-secondary btn-small" onclick="logoutUser()" id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i></button>
       <button class="btn btn-secondary btn-small" onclick="changeRole()" id="changeRoleBtn">Changer</button>
@@ -1424,7 +1442,7 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fas fa-chart-bar"></i> Dashboard</button>
+    <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fas fa-chart-bar"></i> Dashboard <span id="tabBadgeQ1" style="display:none;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;"></span></button>
     <button class="tab-btn" id="bulkSelectBtn" onclick="toggleBulkSelect()" title="Sélection multiple" style="margin-left:auto;"><i class="fas fa-check-square"></i> Sélectionner</button>
     <button class="tab-btn" onclick="switchTab('myspace')"><i class="fas fa-user-circle"></i> Mon Espace</button>
     <button class="tab-btn" onclick="switchTab('task-detail')"><i class="fas fa-file-alt"></i> Détail</button>
@@ -1872,6 +1890,13 @@
           <button class="btn btn-secondary" onclick="exportJSON()" style="justify-content:center;">
             <i class="fas fa-code"></i> Export JSON (sauvegarde)
           </button>
+          <button class="btn btn-secondary" onclick="importJSONTrigger()" style="justify-content:center;">
+            <i class="fas fa-file-import"></i> Importer JSON
+          </button>
+          <input type="file" id="importJSONInput" accept=".json" style="display:none;" onchange="importJSON(this)">
+          <button class="btn btn-secondary" onclick="exportICAL()" style="justify-content:center;">
+            <i class="fas fa-calendar-check"></i> Export iCal (.ics)
+          </button>
         </div>
       </div>
     </div>
@@ -2200,7 +2225,7 @@
           // Re-add failed op but do NOT loop — will retry next sync cycle
           this.operations.push(op);
           this.save();
-          break;
+          return; // Don't call fetchTasks — Firebase is unreachable
         }
       }
 
@@ -2210,6 +2235,7 @@
 
   // ===== FETCH TASKS AVEC TIMEOUT =====
   async function fetchTasks(isRetry = false) {
+    await refreshIdTokenIfNeeded();
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -2964,18 +2990,23 @@
     checkUrgentNotifications(visibleTasks);
   }
 
+  const VALID_QUADRANTS = ['Q1','Q2','Q3','Q4'];
+
   function renderDashboard(tasks) {
-    const validQuadrants = ['Q1','Q2','Q3','Q4'];
     const q1 = tasks.filter(t => !t.completed && t.quadrant === 'Q1');
     const q2 = tasks.filter(t => !t.completed && t.quadrant === 'Q2');
     const q3 = tasks.filter(t => !t.completed && t.quadrant === 'Q3');
     // Q4 also catches tasks with no/invalid quadrant so nothing is lost
-    const q4 = tasks.filter(t => !t.completed && (t.quadrant === 'Q4' || !validQuadrants.includes(t.quadrant)));
+    const q4 = tasks.filter(t => !t.completed && (t.quadrant === 'Q4' || !VALID_QUADRANTS.includes(t.quadrant)));
 
     document.getElementById('q1-count').textContent = q1.length;
     document.getElementById('q2-count').textContent = q2.length;
     document.getElementById('q3-count').textContent = q3.length;
     document.getElementById('q4-count').textContent = q4.length;
+    // Tab badge: Q1 urgent count
+    const badge = document.getElementById('tabBadgeQ1');
+    if (q1.length > 0) { badge.textContent = q1.length; badge.style.display = 'inline'; }
+    else { badge.style.display = 'none'; }
 
     const today = new Date(); today.setHours(0,0,0,0);
     const emptyStates = {
@@ -3042,7 +3073,7 @@
 
   function renderTaskSelect(tasks) {
     const select = document.getElementById('taskSelect');
-    const html = tasks.filter(t => !t.completed && t.description).map(t => `<option value="${t.id}">${t.description.substring(0, 40)}</option>`).join('');
+    const html = tasks.filter(t => !t.completed).map(t => `<option value="${t.id}">${(t.description||'(sans titre)').substring(0, 40)}</option>`).join('');
     select.innerHTML = '<option value="">-- Sélectionner --</option>' + html;
   }
 
@@ -3530,6 +3561,46 @@
   let currentUser = null; // { email, uid, idToken, role, fullName, isDemo }
   const FIREBASE_AUTH_URL = 'https://identitytoolkit.googleapis.com/v1/accounts';
 
+  async function refreshIdTokenIfNeeded() {
+    if (!currentUser || currentUser.isDemo || !currentUser.refreshToken) return;
+    if (currentUser.tokenExpiry && Date.now() < currentUser.tokenExpiry) return;
+    try {
+      const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(currentUser.refreshToken)}`
+      });
+      const data = await res.json();
+      if (data.id_token) {
+        currentUser.idToken = data.id_token;
+        currentUser.refreshToken = data.refresh_token;
+        currentUser.tokenExpiry = Date.now() + (parseInt(data.expires_in || 3600) - 60) * 1000;
+        sessionStorage.setItem('gesta-session', JSON.stringify({
+          uid: currentUser.uid, idToken: currentUser.idToken,
+          refreshToken: currentUser.refreshToken, tokenExpiry: currentUser.tokenExpiry,
+          email: currentUser.email, role: currentUser.role, fullName: currentUser.fullName
+        }));
+      }
+    } catch(e) { console.warn('Token refresh failed:', e.message); }
+  }
+
+  async function resetPassword() {
+    const email = document.getElementById('loginEmail').value.trim();
+    if (!email) { alert('Entrez votre adresse email dans le champ ci-dessus, puis cliquez "Mot de passe oublié".'); return; }
+    try {
+      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestType: 'PASSWORD_RESET', email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Erreur');
+      alert(`Un email de réinitialisation a été envoyé à ${email}. Vérifiez vos spams.`);
+    } catch(e) {
+      alert(`Erreur : ${e.message}`);
+    }
+  }
+
   async function loginUser() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
@@ -3565,6 +3636,8 @@
         email: data.email,
         uid: data.localId,
         idToken: data.idToken,
+        refreshToken: data.refreshToken,
+        tokenExpiry: Date.now() + (parseInt(data.expiresIn || 3600) - 60) * 1000,
         role: profile.role || 'Coordinateur RH',
         fullName: profile.fullName || data.email.split('@')[0],
         isDemo: false
@@ -3572,6 +3645,7 @@
 
       sessionStorage.setItem('gesta-session', JSON.stringify({
         uid: currentUser.uid, idToken: currentUser.idToken,
+        refreshToken: currentUser.refreshToken, tokenExpiry: currentUser.tokenExpiry,
         email: currentUser.email, role: currentUser.role, fullName: currentUser.fullName
       }));
 
@@ -3788,17 +3862,20 @@
 
   // ===== DÉDOUBLONNAGE =====
   let dupesToDelete = []; // Firebase keys to delete
+  let dedupeRunId = 0;   // Incremented on each analyze — deleteDupes checks it to avoid stale runs
 
   async function analyzedupes() {
     if (!currentUser || currentUser.role !== 'Coordinateur RH') { showMessage('Accès refusé', 'error'); return; }
     const btn = document.getElementById('dedupeAnalyzeBtn');
     const statusEl = document.getElementById('dedupeStatus');
     const listEl = document.getElementById('dedupeList');
+    const runId = ++dedupeRunId;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse...';
     statusEl.textContent = 'Chargement de toutes les tâches depuis Firebase...';
     listEl.innerHTML = '';
     dupesToDelete = [];
+    document.getElementById('dedupeDeleteBtn').dataset.runId = runId;
 
     try {
       const res = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`);
@@ -3863,8 +3940,9 @@
   }
 
   async function deleteDupes() {
-    if (!dupesToDelete.length) return;
     const btn = document.getElementById('dedupeDeleteBtn');
+    if (parseInt(btn.dataset.runId) !== dedupeRunId) { showMessage('Analyse expirée — relancez l\'analyse', 'error'); return; }
+    if (!dupesToDelete.length) return;
     const statusEl = document.getElementById('dedupeStatus');
     if (!confirm(`Supprimer ${dupesToDelete.length} doublon(s) ? Cette action est irréversible.`)) return;
 
@@ -4110,6 +4188,80 @@
     showMessage('Export JSON téléchargé', 'success');
   }
 
+  function importJSONTrigger() { document.getElementById('importJSONInput').click(); }
+
+  function importJSON(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (!Array.isArray(imported)) throw new Error('Format invalide — attendu un tableau JSON');
+        if (!confirm(`Importer ${imported.length} tâche(s) ? Elles seront ajoutées à vos tâches existantes (sans suppression).`)) return;
+
+        let ok = 0, fail = 0;
+        for (const t of imported) {
+          // Strip old id so Firebase generates a new one
+          const { id, _key, ...rest } = t;
+          try {
+            await saveTask({ ...rest, importedAt: new Date().toISOString() });
+            ok++;
+          } catch { fail++; }
+        }
+        showMessage(`Import terminé — ${ok} tâche(s) importée(s)${fail ? `, ${fail} erreur(s)` : ''}`, 'success');
+        await fetchTasks();
+      } catch(err) {
+        showMessage(`Erreur import : ${err.message}`, 'error');
+      }
+      input.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  // ===== EXPORT iCAL =====
+  function exportICAL() {
+    const p = rolePermissions[currentRole];
+    const visible = tasks.filter(t =>
+      !t.completed && t.dueDate &&
+      (p.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH')
+    );
+    if (!visible.length) { showMessage('Aucune tâche avec date d\'échéance à exporter', 'error'); return; }
+
+    const esc = s => (s||'').replace(/[\\;,]/g, c => '\\'+c).replace(/\n/g, '\\n');
+    const dt = d => d.replace(/-/g,'') + 'T000000Z';
+
+    const lines = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//GESTA//AAEA-CAVA//FR',
+      'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'
+    ];
+    for (const t of visible) {
+      const uid = `${t.id}@gesta.aaea-cava`;
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z`,
+        `DTSTART;VALUE=DATE:${t.dueDate.replace(/-/g,'')}`,
+        `DTEND;VALUE=DATE:${t.dueDate.replace(/-/g,'')}`,
+        `SUMMARY:[${t.quadrant}] ${esc(t.description)}`,
+        `DESCRIPTION:Source: ${esc(t.source)} | Statut: ${esc(t.status)} | Assigné: ${esc(Array.isArray(t.assignedTo)?t.assignedTo.join(', '):t.assignedTo)}`,
+        `CATEGORIES:${t.quadrant},GESTA`,
+        `STATUS:${t.status === 'complété' ? 'COMPLETED' : 'CONFIRMED'}`,
+        'END:VEVENT'
+      );
+    }
+    lines.push('END:VCALENDAR');
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `GESTA_${new Date().toISOString().slice(0,10)}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showMessage(`${visible.length} tâche(s) exportée(s) en iCal`, 'success');
+  }
+
   // ===== PLANIFICATEUR =====
   let plannerView = 'calendar';
   let plannerDate = new Date();
@@ -4202,7 +4354,7 @@
       const moreHtml = dayTasks.length > 3 ? `<div class="cal-task-chip" style="background:var(--gray-100);color:var(--gray-600);">+${dayTasks.length - 3} autres</div>` : '';
       const overloadHtml = overload ? `<div class="cal-overload">⚡ ${totalHours}h</div>` : '';
 
-      html += `<div class="${classes.join(' ')}">${dayNumHtml}${chipsHtml}${moreHtml}${overloadHtml}</div>`;
+      html += `<div class="${classes.join(' ')}" title="Cliquer pour créer une tâche le ${dateStr}" onclick="createTaskOnDate('${dateStr}',event)">${dayNumHtml}${chipsHtml}${moreHtml}${overloadHtml}</div>`;
     }
 
     document.getElementById('calendarBody').innerHTML = html;
@@ -4476,8 +4628,124 @@ Règles :
     aiSuggestedSchedule = null;
   }
 
-  function applyAISuggestions() {
-    showMessage('Suggestions IA sauvegardées. Appliquez manuellement les dates via le formulaire de tâche.', 'success');
+  async function applyAISuggestions() {
+    if (!aiSuggestedSchedule) return;
+    // Parse lines like "| 2025-07-14 | Prénom Nom | description | ... |"
+    const dateRe = /\|\s*(\d{4}-\d{2}-\d{2})\s*\|[^|]*\|\s*([^|]+)\|/g;
+    const matches = [];
+    let m;
+    while ((m = dateRe.exec(aiSuggestedSchedule)) !== null) {
+      matches.push({ date: m[1], label: m[2].trim().toLowerCase() });
+    }
+    if (!matches.length) {
+      showMessage('Aucune date exploitable trouvée dans le résultat IA (format tableau attendu).', 'error');
+      return;
+    }
+    let applied = 0;
+    for (const t of tasks) {
+      if (t.completed) continue;
+      const desc = (t.description || '').toLowerCase();
+      const match = matches.find(m => desc.includes(m.label.substring(0, 20)) || m.label.includes(desc.substring(0, 20)));
+      if (match && !t.dueDate) {
+        try { await updateTask(t.id, { dueDate: match.date, scheduledDate: match.date }); applied++; } catch(_) {}
+      }
+    }
+    if (applied) {
+      await fetchTasks();
+      showMessage(`${applied} tâche(s) mise(s) à jour avec les dates IA`, 'success');
+    } else {
+      showMessage('Aucune correspondance trouvée entre les tâches et le planning IA. Vérifiez les descriptions.', 'error');
+    }
+  }
+
+  // ===== PWA INSTALL =====
+  let pwaPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    pwaPrompt = e;
+    const btn = document.getElementById('pwaInstallBtn');
+    if (btn) btn.style.display = 'inline-flex';
+  });
+  function pwaInstall() {
+    if (!pwaPrompt) return;
+    pwaPrompt.prompt();
+    pwaPrompt.userChoice.then(() => {
+      pwaPrompt = null;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.style.display = 'none';
+    });
+  }
+
+  // ===== RACCOURCIS CLAVIER =====
+  document.addEventListener('keydown', (e) => {
+    // Don't fire when typing in input/textarea/select
+    if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+    if (e.ctrlKey || e.metaKey) return;
+    if (!currentUser) return;
+
+    switch(e.key) {
+      case '1': switchTabByName('dashboard'); break;
+      case '2': switchTabByName('myspace'); break;
+      case '3': switchTabByName('task-detail'); break;
+      case '4': switchTabByName('analytics'); break;
+      case '5': switchTabByName('historique'); break;
+      case '6': switchTabByName('coach'); break;
+      case '7': switchTabByName('planner'); break;
+      case 'n': case 'N':
+        // Focus on new task input
+        switchTabByName('dashboard');
+        setTimeout(() => { const el = document.getElementById('taskInput'); if(el) { el.focus(); el.scrollIntoView({behavior:'smooth'}); } }, 100);
+        break;
+      case 'Escape':
+        document.getElementById('taskDetailContainer').style.display = 'none';
+        currentTaskId = null;
+        break;
+      case '?':
+        showKeyboardHelp();
+        break;
+    }
+  });
+
+  function createTaskOnDate(dateStr, event) {
+    // Don't trigger when clicking on a chip (task)
+    if (event.target.closest('.cal-task-chip')) return;
+    switchTabByName('dashboard');
+    setTimeout(() => {
+      const dueDateEl = document.getElementById('taskDueDate');
+      const inputEl = document.getElementById('taskInput');
+      if (dueDateEl) dueDateEl.value = dateStr;
+      if (inputEl) { inputEl.focus(); inputEl.scrollIntoView({ behavior: 'smooth' }); }
+      showMessage(`Nouvelle tâche pour le ${new Date(dateStr+'T00:00:00').toLocaleDateString('fr-FR', {day:'numeric',month:'long'})}`, 'success');
+    }, 150);
+  }
+
+  function switchTabByName(name) {
+    const btn = document.querySelector(`.tab-btn[onclick*="'${name}'"]`);
+    if (btn) btn.click();
+  }
+
+  function showKeyboardHelp() {
+    const existing = document.getElementById('kbHelpModal');
+    if (existing) { existing.remove(); return; }
+    const modal = document.createElement('div');
+    modal.id = 'kbHelpModal';
+    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;min-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+    modal.innerHTML = `
+      <div style="font-weight:700;font-size:16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <span><i class="fas fa-keyboard" style="color:var(--primary);margin-right:8px;"></i>Raccourcis clavier</span>
+        <button onclick="document.getElementById('kbHelpModal').remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--gray-400);">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;">
+        <kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-family:monospace;">1–7</kbd><span>Changer d'onglet</span>
+        <kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-family:monospace;">N</kbd><span>Nouvelle tâche</span>
+        <kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-family:monospace;">Esc</kbd><span>Fermer le détail</span>
+        <kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-family:monospace;">?</kbd><span>Afficher/masquer cette aide</span>
+        <kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-family:monospace;">Ctrl+Entrée</kbd><span>Envoyer commentaire</span>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => e.stopPropagation());
+    setTimeout(() => document.addEventListener('click', () => modal.remove(), { once: true }), 100);
   }
 
   // ===== STARTUP =====
