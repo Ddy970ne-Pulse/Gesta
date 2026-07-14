@@ -11,7 +11,7 @@
   <title>GESTA v4.0 - Planificateur Intelligent</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231A7A6E'/><text x='16' y='23' text-anchor='middle' font-size='20' font-weight='bold' fill='white'>G</text></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%231A7A6E'/><text x='90' y='130' text-anchor='middle' font-size='110' font-weight='bold' fill='white'>G</text></svg>">
-  <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GESTA%20-%20Planificateur%20Intelligent%22,%22short_name%22:%22GESTA%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%231A7A6E%22,%22theme_color%22:%22%231A7A6E%22,%22description%22:%22Planificateur%20Eisenhower%20pour%20AAEA-CAVA%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%231A7A6E'/><text x='96' y='140' text-anchor='middle' font-size='120' font-weight='bold' fill='white'>G</text></svg>%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+  <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
@@ -2750,6 +2750,17 @@
     if (name === 'admin' && currentUser && !currentUser.isDemo) {
       loadAccessLogs();
       loadAdminUsers();
+    }
+    // Re-render active module with latest data (instant, no network)
+    if (tasks.length > 0) {
+      const visible = tasks.filter(_isTaskVisible);
+      const display = activeTagFilter ? visible.filter(t => (t.tags || []).includes(activeTagFilter)) : visible;
+      if (name === 'dashboard') renderDashboard(display);
+      else if (name === 'myspace') renderMySpace(visible);
+      else if (name === 'analytics') renderAnalytics(visible);
+      else if (name === 'planner') renderPlanner(visible);
+      else if (name === 'historique') renderHistory(visible, currentHistoryFilter);
+      else if (name === 'coach') renderCoach(visible);
     }
   }
 
@@ -6202,6 +6213,24 @@ Règles :
       });
     }
   });
+</script>
+
+<script>
+  // ===== SERVICE WORKER (PWA) =====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const w = reg.installing;
+          w.addEventListener('statechange', () => {
+            if (w.state === 'installed' && navigator.serviceWorker.controller) {
+              showMessage('Mise à jour disponible — rechargez pour l\'appliquer', 'info', 6000);
+            }
+          });
+        });
+      }).catch(() => {});
+    });
+  }
 </script>
 
 </body>
