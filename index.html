@@ -1153,6 +1153,30 @@
     .due-soon { background: #FFF3E0; color: var(--warning); }
     .due-ok { background: #DCFCE7; color: var(--success); }
 
+    /* ===== SCOPE TOGGLE ===== */
+    .scope-toggle-label {
+      display: inline-flex; align-items: center; cursor: pointer; gap: 0;
+    }
+    .scope-toggle-label input { display: none; }
+    .scope-toggle-track {
+      position: relative; width: 36px; height: 20px;
+      background: var(--border); border-radius: 10px;
+      transition: background .2s; flex-shrink: 0;
+    }
+    .scope-toggle-label input:checked + .scope-toggle-track { background: var(--brand); }
+    .scope-toggle-thumb {
+      position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; transition: transform .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .scope-toggle-label input:checked + .scope-toggle-track .scope-toggle-thumb { transform: translateX(16px); }
+    .task-scope-badge {
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: .04em; flex-shrink: 0;
+    }
+    .task-scope-badge.personal { background: var(--brand-dim); color: var(--brand); }
+
     /* ===== COACH IA ===== */
     .coach-layout {
       display: grid;
@@ -1959,6 +1983,16 @@
           <label>Tags (séparés par virgule)</label>
           <input type="text" id="taskTags" placeholder="ex: réunion, paie, audit">
         </div>
+        <div class="input-group" style="margin-bottom:0;" id="taskScopeField">
+          <label>Visibilité</label>
+          <label class="scope-toggle-label">
+            <input type="checkbox" id="taskScopeToggle" onchange="updateScopeLabel()">
+            <span class="scope-toggle-track">
+              <span class="scope-toggle-thumb"></span>
+            </span>
+            <span id="scopeLabel" style="font-size:12px;color:var(--text-2);margin-left:6px;">Partagée</span>
+          </label>
+        </div>
       </div>
       <div id="messageContainer"></div>
     </div>
@@ -2681,6 +2715,9 @@
     document.getElementById('roleBadge').textContent = 'Mode démo';
     document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('changeRoleBtn').style.display = 'flex';
+    // Scope personnelle masqué en mode démo (pas de uid réel)
+    const scopeFieldDemo = document.getElementById('taskScopeField');
+    if (scopeFieldDemo) scopeFieldDemo.style.display = 'none';
 
     // Mon Espace hero for demo
     document.getElementById('myspaceAvatar').textContent = role[0];
@@ -2785,51 +2822,62 @@
   };
 
   // ===== FETCH TASKS AVEC TIMEOUT =====
+  // Chemin Firebase selon le scope de la tâche
+  function _taskPath(taskId, scope, ownerUid) {
+    if (scope === 'personal') return `${FIREBASE_DB_URL}/userTasks/${ownerUid || currentUser?.uid}/${taskId}.json`;
+    return `${FIREBASE_DB_URL}/tasks/${taskId}.json`;
+  }
+  function _taskListPath(scope, ownerUid) {
+    if (scope === 'personal') return `${FIREBASE_DB_URL}/userTasks/${ownerUid || currentUser?.uid}.json`;
+    return `${FIREBASE_DB_URL}/tasks.json`;
+  }
+
+  function _normalizeTasks(data, scope, ownerUid) {
+    if (!data) return [];
+    return Object.keys(data).map(key => {
+      const t = { id: key, scope: scope || 'shared', ownerUid: ownerUid || null, ...data[key] };
+      if (t.checklist && !Array.isArray(t.checklist)) t.checklist = Object.values(t.checklist);
+      return t;
+    });
+  }
+
   async function fetchTasks(isRetry = false) {
     await refreshIdTokenIfNeeded();
+    const uid = currentUser?.uid;
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`, {
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Firebase HTTP ${response.status}`);
-      }
-      
-      const data = await response.json();
-      tasks = [];
-      
-      if (data) {
-        Object.keys(data).forEach(key => {
-          const t = { id: key, ...data[key] };
-          if (t.checklist && !Array.isArray(t.checklist)) {
-            t.checklist = Object.values(t.checklist);
-          }
-          tasks.push(t);
-        });
-      }
-      
+      const ctrl1 = new AbortController(), ctrl2 = new AbortController();
+      const t1 = setTimeout(() => ctrl1.abort(), 8000);
+      const t2 = setTimeout(() => ctrl2.abort(), 8000);
+
+      // Fetch shared + personal en parallèle
+      const [resShared, resPersonal] = await Promise.all([
+        fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`, { signal: ctrl1.signal }),
+        uid && !currentUser?.isDemo
+          ? fetch(`${FIREBASE_DB_URL}/userTasks/${uid}.json?auth=${firebaseAuth()}`, { signal: ctrl2.signal })
+          : Promise.resolve(null)
+      ]);
+      clearTimeout(t1); clearTimeout(t2);
+
+      if (!resShared.ok) throw new Error(`Firebase HTTP ${resShared.status}`);
+
+      const sharedData   = await resShared.json();
+      const personalData = resPersonal?.ok ? await resPersonal.json() : null;
+
+      tasks = [
+        ..._normalizeTasks(sharedData, 'shared', null),
+        ..._normalizeTasks(personalData, 'personal', uid)
+      ];
+
       saveLocalTasks();
       renderAll();
       updateSyncStatus('connecté');
-      
+
     } catch (error) {
       console.error('Erreur fetchTasks:', error.message);
-      
       loadLocalTasks();
       renderAll();
       updateSyncStatus('hors ligne');
-      
-      if (!isRetry) {
-        console.log('🔄 Nouvelle tentative dans 3s...');
-        setTimeout(() => fetchTasks(true), 3000);
-      }
+      if (!isRetry) setTimeout(() => fetchTasks(true), 3000);
     }
   }
 
@@ -2838,7 +2886,8 @@
   async function saveTaskDirect(task) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`, {
+    const listUrl = _taskListPath(task.scope, task.ownerUid) + `?auth=${firebaseAuth()}`;
+    const response = await fetch(listUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
@@ -2854,23 +2903,19 @@
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`, {
+      const listUrl = _taskListPath(task.scope, task.ownerUid) + `?auth=${firebaseAuth()}`;
+      const response = await fetch(listUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify(task)
       });
-      
       clearTimeout(timeout);
-      
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      
       const data = await response.json();
       saveLocalTasks();
       updateSyncStatus('connecté');
       return data.name;
-      
     } catch (error) {
       console.error('saveTask échoué, ajout queue:', error.message);
       offlineQueue.add({ type: 'add', task });
@@ -2883,23 +2928,20 @@
   // ===== UPDATE TASK =====
   async function updateTask(taskId, updates) {
     try {
+      const task = tasks.find(t => t.id === taskId);
+      const url = _taskPath(taskId, task?.scope, task?.ownerUid) + `?auth=${firebaseAuth()}`;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${firebaseAuth()}`, {
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify(updates)
       });
-      
       clearTimeout(timeout);
-      
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      
       saveLocalTasks();
       updateSyncStatus('connecté');
-      
     } catch (error) {
       console.error('updateTask échoué, ajout queue:', error.message);
       offlineQueue.add({ type: 'update', taskId, updates });
@@ -2911,21 +2953,18 @@
   // ===== DELETE TASK =====
   async function deleteTaskFirebase(taskId) {
     try {
+      const task = tasks.find(t => t.id === taskId);
+      const url = _taskPath(taskId, task?.scope, task?.ownerUid) + `?auth=${firebaseAuth()}`;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`${FIREBASE_DB_URL}/tasks/${taskId}.json?auth=${firebaseAuth()}`, {
+      const response = await fetch(url, {
         method: 'DELETE',
         signal: controller.signal
       });
-      
       clearTimeout(timeout);
-      
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      
       saveLocalTasks();
       updateSyncStatus('connecté');
-      
     } catch (error) {
       console.error('deleteTask échoué, ajout queue:', error.message);
       offlineQueue.add({ type: 'delete', taskId });
@@ -3071,6 +3110,9 @@
 
     const assignedTo = getSelectedAssignees();
     const pilote = document.getElementById('piloteSelect').value || null;
+    const scopeToggle = document.getElementById('taskScopeToggle');
+    const isPersonal = scopeToggle?.checked && !currentUser?.isDemo;
+    const scope = isPersonal ? 'personal' : 'shared';
     const task = {
       description: desc,
       quadrant: analysis.quadrant,
@@ -3078,7 +3120,10 @@
       confidence: analysis.confidence,
       status: 'planifié',
       completed: false,
-      createdBy: currentRole,
+      createdBy: currentUser?.uid || currentRole,
+      createdByName: currentUser?.fullName || currentRole,
+      ownerUid: currentUser?.uid || null,
+      scope,
       createdAt: new Date().toISOString(),
       scheduledDate: document.getElementById('taskStartDate').value || null,
       dueDate: document.getElementById('taskDueDate').value || null,
@@ -3151,6 +3196,7 @@
     document.getElementById('taskHours').value = '';
     document.getElementById('taskRepeat').value = 'none';
     document.getElementById('taskTags').value = '';
+    const st = document.getElementById('taskScopeToggle'); if (st) { st.checked = false; updateScopeLabel(); }
     resetAssignDropdown();
     const msg = extraCount > 0
       ? `Tâche créée + ${extraCount} sous-tâche(s)/rappel(s) automatique(s)`
@@ -3781,16 +3827,39 @@
   }
 
   // ===== RENDER ALL =====
-  function renderAll() {
+  function updateScopeLabel() {
+    const toggle = document.getElementById('taskScopeToggle');
+    const label  = document.getElementById('scopeLabel');
+    if (!toggle || !label) return;
+    label.textContent = toggle.checked ? 'Personnelle (visible uniquement par moi)' : 'Partagée (visible selon les droits)';
+    label.style.color = toggle.checked ? 'var(--brand)' : 'var(--text-2)';
+  }
+
+  function _isTaskVisible(t) {
+    const uid = currentUser?.uid;
+    const isAdmin = currentRole === 'Director' || currentRole === 'Coordinateur RH';
+
+    // Tâche personnelle : visible uniquement par le propriétaire
+    if (t.scope === 'personal') {
+      return t.ownerUid === uid;
+    }
+
+    // Tâche partagée : visible si le rôle y a accès, ou si l'utilisateur est assigné/pilote
     const permissions = rolePermissions[currentRole];
-    const visibleTasks = tasks.filter(t =>
-      permissions.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH'
-    );
+    const inCanView = permissions?.canView.includes(t.source);
+    const isAssigned = (t.assignedTo || []).includes(currentUser?.fullName || currentRole) ||
+                       (t.assignedTo || []).includes(uid);
+    const isPilote = t.pilote === (currentUser?.fullName || currentRole) || t.pilote === uid;
+    return isAdmin || inCanView || isAssigned || isPilote;
+  }
+
+  function renderAll() {
+    const visibleTasks = tasks.filter(_isTaskVisible);
 
     renderTagFilterBar(visibleTasks);
     const displayTasks = activeTagFilter ? visibleTasks.filter(t => (t.tags || []).includes(activeTagFilter)) : visibleTasks;
     renderDashboard(displayTasks);
-    renderMySpace(tasks);
+    renderMySpace(visibleTasks);
     renderTaskSelect(visibleTasks);
     renderAnalytics(visibleTasks);
     renderCoach(visibleTasks);
@@ -3861,7 +3930,7 @@
               ${bulkMode ? `<input type="checkbox" ${isSelected ? 'checked' : ''} onclick="toggleTaskSelection('${t.id}',event)" style="width:15px;height:15px;accent-color:var(--danger);flex-shrink:0;">` : ''}
               ${(t.description||'(sans titre)').substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}
             </div>
-            <div class="task-meta" style="margin-top:6px;">${t.source||''} • <span class="status-badge status-${(t.status||'planifié').replace(/ /g, '-')}">${t.status||'planifié'}</span>${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}</div>
+            <div class="task-meta" style="margin-top:6px;">${t.source||''} • <span class="status-badge status-${(t.status||'planifié').replace(/ /g, '-')}">${t.status||'planifié'}</span>${t.scope === 'personal' ? ' <span class="task-scope-badge personal"><i class="fas fa-lock"></i> Perso</span>' : ''}${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}</div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
             ${(t.tags && t.tags.length) ? `<div class="task-tags-row">${t.tags.map(tag => `<span class="task-tag">#${tag}</span>`).join('')}</div>` : ''}
             ${(() => { const s = checklistStats(t.checklist); if (!s.total) return ''; const col = s.pct >= 100 ? 'var(--success)' : s.pct > 0 ? 'var(--warning)' : 'var(--text-3)'; return `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;"><div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${s.pct}%;background:${col};transition:width .3s;"></div></div><span style="font-size:10px;color:${col};font-weight:600;white-space:nowrap;">${s.done}/${s.total}</span></div>`; })()}
@@ -4875,6 +4944,10 @@ Consignes :
     document.getElementById('roleBadgeDemo').textContent = '';
     document.getElementById('changeRoleBtn').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'flex';
+    // Champ scope visible pour les vrais utilisateurs
+    const scopeField = document.getElementById('taskScopeField');
+    if (scopeField) scopeField.style.display = '';
+    updateScopeLabel();
     document.getElementById('userFullName').textContent = currentUser.fullName;
     document.getElementById('roleBadge').textContent = currentUser.role;
     const initials = currentUser.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
