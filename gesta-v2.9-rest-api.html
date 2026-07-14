@@ -1776,16 +1776,43 @@
         </div>
       </div>
 
-      <!-- Checklist manuelle -->
+      <!-- Checklist & Suivi de complétion -->
       <div class="card">
-        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
-          <span><i class="fas fa-check-square" style="color:var(--primary);"></i> Checklist <span id="checklistProgress" style="font-size:11px;font-weight:400;color:var(--gray-400);"></span></span>
-          <button class="btn btn-secondary btn-small" onclick="addChecklistItem()" title="Ajouter un élément"><i class="fas fa-plus"></i></button>
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span><i class="fas fa-tasks" style="color:var(--brand);"></i> Suivi de complétion <span id="checklistProgress" style="font-size:11px;font-weight:500;color:var(--text-3);margin-left:6px;"></span></span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-secondary btn-small" onclick="toggleBulkImport()" title="Importer une liste"><i class="fas fa-list-ul"></i> Importer</button>
+            <button class="btn btn-secondary btn-small" onclick="addCounterItem()" title="Ajouter un compteur numérique"><i class="fas fa-sort-numeric-up"></i> Compteur</button>
+          </div>
         </div>
+
+        <!-- Barre de progression globale -->
+        <div id="checklistProgressBar" style="display:none;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-2);">PROGRESSION</span>
+            <span id="checklistPct" style="font-size:12px;font-weight:700;color:var(--success);">0%</span>
+          </div>
+          <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div id="checklistBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--success),#34d399);border-radius:4px;transition:width .4s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Zone import en masse (cachée par défaut) -->
+        <div id="bulkImportZone" style="display:none;margin-bottom:12px;padding:12px;background:var(--surface2);border-radius:var(--radius);border:1px dashed var(--border);">
+          <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:8px;"><i class="fas fa-paste" style="color:var(--brand);margin-right:6px;"></i>Coller une liste (un élément par ligne)</div>
+          <textarea id="bulkImportText" rows="5" placeholder="Jean Dupont&#10;Marie Martin&#10;Pierre Durand&#10;..." style="font-size:12px;font-family:inherit;resize:vertical;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-primary btn-small" onclick="confirmBulkImport()"><i class="fas fa-check"></i> Importer</button>
+            <button class="btn btn-ghost btn-small" onclick="toggleBulkImport()"><i class="fas fa-times"></i> Annuler</button>
+          </div>
+        </div>
+
         <div id="checklistItems" style="display:flex;flex-direction:column;gap:6px;min-height:20px;"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <input type="text" id="checklistInput" placeholder="Nouvelle étape..." style="flex:1;font-size:13px;" onkeypress="if(event.key==='Enter')addChecklistItem()">
-          <button class="btn btn-primary btn-small" onclick="addChecklistItem()"><i class="fas fa-plus"></i> Ajouter</button>
+
+        <!-- Ajout rapide -->
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <input type="text" id="checklistInput" placeholder="Ajouter une étape, un nom, un document…" style="flex:1;font-size:13px;" onkeypress="if(event.key==='Enter')addChecklistItem()">
+          <button class="btn btn-primary btn-small" onclick="addChecklistItem()"><i class="fas fa-plus"></i></button>
         </div>
       </div>
 
@@ -2891,28 +2918,104 @@
   }
 
   // ===== CHECKLIST =====
+  // ===== CHECKLIST & SUIVI DE COMPLÉTION =====
+
+  function checklistStats(checklist) {
+    if (!checklist || !checklist.length) return { done: 0, total: 0, pct: 0 };
+    let done = 0, total = 0;
+    for (const item of checklist) {
+      if (item.type === 'counter') {
+        total += item.target || 1;
+        done += Math.min(item.current || 0, item.target || 1);
+      } else {
+        total += 1;
+        if (item.checked) done += 1;
+      }
+    }
+    return { done, total, pct: total ? Math.round(done / total * 100) : 0 };
+  }
+
   function renderChecklist(checklist) {
     const container = document.getElementById('checklistItems');
-    const progress = document.getElementById('checklistProgress');
+    const progressEl = document.getElementById('checklistProgress');
+    const barWrap = document.getElementById('checklistProgressBar');
+    const barEl = document.getElementById('checklistBar');
+    const pctEl = document.getElementById('checklistPct');
+
     if (!checklist || !checklist.length) {
-      container.innerHTML = '<div style="font-size:12px;color:var(--gray-400);padding:4px 0;">Aucune étape. Ajoutez-en une ci-dessous.</div>';
-      progress.textContent = '';
+      container.innerHTML = '<div style="font-size:12px;color:var(--text-3);padding:8px 0;text-align:center;"><i class="fas fa-clipboard-list" style="opacity:.3;margin-right:6px;"></i>Aucun élément. Ajoutez une étape, un nom ou un compteur.</div>';
+      progressEl.textContent = '';
+      barWrap.style.display = 'none';
       return;
     }
-    const done = checklist.filter(i => i.checked).length;
-    progress.textContent = `${done}/${checklist.length}`;
-    const pct = Math.round(done / checklist.length * 100);
-    container.innerHTML = `
-      <div style="height:4px;background:var(--gray-100);border-radius:2px;margin-bottom:6px;">
-        <div style="height:100%;width:${pct}%;background:var(--success);border-radius:2px;transition:width 0.3s;"></div>
-      </div>
-      ${checklist.map((item, idx) => `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;">
-          <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecklistItem(${idx})" style="width:16px;height:16px;cursor:pointer;accent-color:var(--success);">
-          <span style="flex:1;font-size:13px;${item.checked ? 'text-decoration:line-through;color:var(--gray-400);' : ''}">${item.text}</span>
-          ${item.checkedAt ? `<span style="font-size:10px;color:var(--gray-400);">${new Date(item.checkedAt).toLocaleDateString('fr-FR')}</span>` : ''}
-          <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:2px;font-size:11px;" title="Supprimer"><i class="fas fa-times"></i></button>
-        </div>`).join('')}`;
+
+    const { done, total, pct } = checklistStats(checklist);
+    progressEl.textContent = `${done} / ${total}`;
+    barWrap.style.display = 'block';
+    barEl.style.width = pct + '%';
+    barEl.style.background = pct === 100 ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg,var(--brand),#e879f9)';
+    pctEl.textContent = pct + '%';
+    pctEl.style.color = pct === 100 ? 'var(--success)' : 'var(--brand)';
+
+    container.innerHTML = checklist.map((item, idx) => {
+      if (item.type === 'counter') {
+        const cur = item.current || 0;
+        const tgt = item.target || 0;
+        const cpct = tgt ? Math.round(cur / tgt * 100) : 0;
+        const full = cur >= tgt && tgt > 0;
+        return `
+        <div style="padding:10px 12px;background:var(--surface);border:1px solid ${full ? 'var(--success)' : 'var(--border)'};border-radius:var(--radius);${full ? 'background:rgba(16,185,129,.05);' : ''}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <i class="fas fa-sort-numeric-up" style="color:${full ? 'var(--success)' : 'var(--brand)'};font-size:13px;flex-shrink:0;"></i>
+            <span style="flex:1;font-size:13px;font-weight:600;${full ? 'color:var(--success);' : ''}">${item.text}</span>
+            <span style="font-size:12px;font-weight:700;color:${full ? 'var(--success)' : 'var(--text-2)'};">${cur}/${tgt}</span>
+            <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;" title="Supprimer"><i class="fas fa-times"></i></button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${cpct}%;background:${full ? 'var(--success)' : 'var(--brand)'};border-radius:3px;transition:width .3s;"></div>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button onclick="adjustCounter(${idx},-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text-2);display:flex;align-items:center;justify-content:center;" ${cur<=0?'disabled':''}>−</button>
+              <button onclick="adjustCounter(${idx},1)" style="background:var(--brand);border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;" ${cur>=tgt?'disabled':''}>+</button>
+            </div>
+          </div>
+        </div>`;
+      } else {
+        return `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);border:1px solid ${item.checked ? 'var(--success)' : 'var(--border)'};border-radius:var(--radius);${item.checked ? 'background:rgba(16,185,129,.04);' : ''}transition:all .15s;">
+          <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecklistItem(${idx})" style="width:16px;height:16px;cursor:pointer;accent-color:var(--success);flex-shrink:0;">
+          <span style="flex:1;font-size:13px;${item.checked ? 'text-decoration:line-through;color:var(--text-3);' : 'color:var(--text);'}">${item.text}</span>
+          ${item.checkedAt ? `<span style="font-size:10px;color:var(--text-3);white-space:nowrap;">${new Date(item.checkedAt).toLocaleDateString('fr-FR')}</span>` : ''}
+          <button onclick="removeChecklistItem(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;font-size:11px;" title="Supprimer"><i class="fas fa-times"></i></button>
+        </div>`;
+      }
+    }).join('');
+  }
+
+  function toggleBulkImport() {
+    const zone = document.getElementById('bulkImportZone');
+    const vis = zone.style.display === 'none' || !zone.style.display;
+    zone.style.display = vis ? 'block' : 'none';
+    if (vis) document.getElementById('bulkImportText').focus();
+  }
+
+  async function confirmBulkImport() {
+    if (!currentTaskId) return;
+    const raw = document.getElementById('bulkImportText').value;
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return;
+    const task = tasks.find(t => t.id === currentTaskId);
+    const checklist = Array.isArray(task?.checklist) ? [...task.checklist] : [];
+    const now = new Date().toISOString();
+    lines.forEach(text => checklist.push({ text, checked: false, createdAt: now }));
+    await updateTask(currentTaskId, { checklist });
+    const tidx = tasks.findIndex(t => t.id === currentTaskId);
+    if (tidx !== -1) tasks[tidx].checklist = checklist;
+    renderChecklist(checklist);
+    document.getElementById('bulkImportText').value = '';
+    toggleBulkImport();
+    showMessage(`${lines.length} élément(s) importé(s)`, 'success');
   }
 
   async function addChecklistItem() {
@@ -2927,6 +3030,36 @@
     input.value = '';
     const idx = tasks.findIndex(t => t.id === currentTaskId);
     if (idx !== -1) tasks[idx].checklist = checklist;
+    renderChecklist(checklist);
+  }
+
+  async function addCounterItem() {
+    if (!currentTaskId) return;
+    const label = prompt('Nom du compteur (ex: Attestations récupérées) :');
+    if (!label) return;
+    const targetStr = prompt('Objectif total (ex: 30) :');
+    const target = parseInt(targetStr);
+    if (!target || isNaN(target) || target <= 0) { showMessage('Objectif invalide', 'error'); return; }
+    const task = tasks.find(t => t.id === currentTaskId);
+    const checklist = Array.isArray(task?.checklist) ? [...task.checklist] : [];
+    checklist.push({ type: 'counter', text: label, target, current: 0, createdAt: new Date().toISOString() });
+    await updateTask(currentTaskId, { checklist });
+    const tidx = tasks.findIndex(t => t.id === currentTaskId);
+    if (tidx !== -1) tasks[tidx].checklist = checklist;
+    renderChecklist(checklist);
+  }
+
+  async function adjustCounter(idx, delta) {
+    if (!currentTaskId) return;
+    const task = tasks.find(t => t.id === currentTaskId);
+    const checklist = (task?.checklist || []).map((item, i) => {
+      if (i !== idx || item.type !== 'counter') return item;
+      const next = Math.max(0, Math.min((item.current || 0) + delta, item.target || 99));
+      return { ...item, current: next, updatedAt: new Date().toISOString() };
+    });
+    await updateTask(currentTaskId, { checklist });
+    const tidx = tasks.findIndex(t => t.id === currentTaskId);
+    if (tidx !== -1) tasks[tidx].checklist = checklist;
     renderChecklist(checklist);
   }
 
@@ -3174,6 +3307,7 @@
             <div class="task-meta" style="margin-top:6px;">${t.source||''} • <span class="status-badge status-${(t.status||'planifié').replace(/ /g, '-')}">${t.status||'planifié'}</span>${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}</div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
             ${(t.tags && t.tags.length) ? `<div class="task-tags-row">${t.tags.map(tag => `<span class="task-tag">#${tag}</span>`).join('')}</div>` : ''}
+            ${(() => { const s = checklistStats(t.checklist); if (!s.total) return ''; const col = s.pct >= 100 ? 'var(--success)' : s.pct > 0 ? 'var(--warning)' : 'var(--text-3)'; return `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;"><div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${s.pct}%;background:${col};transition:width .3s;"></div></div><span style="font-size:10px;color:${col};font-weight:600;white-space:nowrap;">${s.done}/${s.total}</span></div>`; })()}
           </div>`;
       }).join('') : emptyHtml;
 
