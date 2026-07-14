@@ -3110,7 +3110,7 @@
             ondragstart="${bulkMode ? '' : `dragStart(event,'${t.id}')`}"
             ondragend="${bulkMode ? '' : 'dragEnd(event)'}"
             onclick="${bulkMode ? `toggleTaskSelection('${t.id}',event)` : `openTaskDetail('${t.id}')`}"
-            style="animation-delay:${i * 0.04}s;${isSelected ? 'border-color:var(--danger);background:rgba(214,51,52,0.06);' : ''}">`
+            style="animation-delay:${i * 0.04}s;${isSelected ? 'border-color:var(--danger);background:rgba(214,51,52,0.06);' : ''}">
             <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               ${bulkMode ? `<input type="checkbox" ${isSelected ? 'checked' : ''} onclick="toggleTaskSelection('${t.id}',event)" style="width:15px;height:15px;accent-color:var(--danger);flex-shrink:0;">` : ''}
               ${(t.description||'(sans titre)').substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}
