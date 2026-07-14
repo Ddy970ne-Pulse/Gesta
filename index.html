@@ -1173,51 +1173,85 @@
       pointer-events: none;
       line-height: 1;
     }
+    @keyframes notif-bell-shake {
+      0%,100% { transform: rotate(0); }
+      15%      { transform: rotate(14deg); }
+      30%      { transform: rotate(-10deg); }
+      45%      { transform: rotate(8deg); }
+      60%      { transform: rotate(-5deg); }
+      75%      { transform: rotate(3deg); }
+    }
+    #notifBellBtn.has-unread i { animation: notif-bell-shake 1.2s ease both; }
+    @keyframes notif-panel-in {
+      from { opacity:0; transform: translateY(-6px) scale(.97); }
+      to   { opacity:1; transform: translateY(0)   scale(1); }
+    }
     .notif-panel {
       position: absolute;
       top: calc(100% + 8px); right: 0;
-      width: 320px;
+      width: 340px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       box-shadow: 0 8px 32px rgba(0,0,0,.18);
       z-index: 9999;
       overflow: hidden;
+      animation: notif-panel-in .18s ease both;
+      transform-origin: top right;
     }
     .notif-panel-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
+      padding: 12px 16px 0;
     }
     .notif-panel-title {
       font-weight: 700; font-size: 13px; color: var(--text);
     }
+    .notif-header-actions { display: flex; gap: 4px; align-items: center; }
     .notif-clear-btn {
       background: none; border: none; cursor: pointer;
-      color: var(--text-2); font-size: 14px;
-      padding: 4px 6px; border-radius: 6px;
-      transition: background .15s;
+      color: var(--text-2); font-size: 12px;
+      padding: 4px 8px; border-radius: 6px;
+      transition: background .15s; white-space: nowrap;
+      font-family: inherit;
     }
-    .notif-clear-btn:hover { background: var(--surface2); }
+    .notif-clear-btn:hover { background: var(--surface2); color: var(--text); }
+    .notif-tabs {
+      display: flex; gap: 2px;
+      padding: 10px 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .notif-tab {
+      background: none; border: none; cursor: pointer;
+      font-size: 11px; font-weight: 600; font-family: inherit;
+      color: var(--text-3); padding: 5px 10px 7px;
+      border-radius: 6px 6px 0 0;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .notif-tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+    .notif-tab:hover:not(.active) { color: var(--text-2); background: var(--surface2); }
     .notif-panel-body {
-      max-height: 340px;
+      max-height: 320px;
       overflow-y: auto;
     }
     .notif-empty {
       text-align: center; color: var(--text-3);
-      font-size: 13px; padding: 24px 16px;
+      font-size: 13px; padding: 28px 16px;
     }
+    .notif-empty i { display: block; font-size: 22px; margin-bottom: 8px; opacity: .4; }
     .notif-item {
       display: flex; align-items: flex-start; gap: 10px;
-      padding: 12px 16px;
+      padding: 11px 14px;
       border-bottom: 1px solid var(--border2);
-      cursor: pointer;
       transition: background .12s;
+      position: relative;
     }
     .notif-item:last-child { border-bottom: none; }
     .notif-item:hover { background: var(--surface2); }
     .notif-item.unread { background: var(--brand-glow); }
     .notif-item.unread:hover { background: var(--brand-dim); }
+    .notif-item-click { cursor: pointer; flex: 1; display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
     .notif-icon {
       width: 32px; height: 32px; border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
@@ -1235,6 +1269,15 @@
     .notif-desc  { font-size: 11px; color: var(--text-2); margin-top: 2px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .notif-time  { font-size: 10px; color: var(--text-3); margin-top: 4px; font-variant-numeric: tabular-nums; }
     .notif-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); flex-shrink: 0; margin-top: 6px; }
+    .notif-dismiss {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); font-size: 11px;
+      padding: 2px 4px; border-radius: 4px;
+      line-height: 1; flex-shrink: 0; margin-top: 2px;
+      opacity: 0; transition: opacity .15s, color .15s;
+    }
+    .notif-item:hover .notif-dismiss { opacity: 1; }
+    .notif-dismiss:hover { color: var(--text); }
 
     /* ===== PRINT ===== */
     @media print {
@@ -1581,7 +1624,7 @@
 
   <!-- ===== SIDEBAR ===== -->
   <nav class="sidebar" id="appSidebar">
-    <div class="sidebar-logo">
+    <div class="sidebar-logo" onclick="showChangelog()" style="cursor:pointer;" title="Voir le journal des modifications">
       <div class="sidebar-logo-icon">G</div>
       <span class="sidebar-logo-text">GESTA</span>
       <span class="sidebar-logo-ver" id="appVersionBadge">v4.0</span>
@@ -1667,10 +1710,17 @@
           <div class="notif-panel" id="notifPanel" style="display:none;" role="dialog" aria-label="Centre de notifications">
             <div class="notif-panel-header">
               <span class="notif-panel-title">Notifications</span>
-              <button class="notif-clear-btn" onclick="clearAllNotifs()" title="Tout marquer comme lu"><i class="fas fa-check-double"></i></button>
+              <div class="notif-header-actions">
+                <button class="notif-clear-btn" onclick="clearAllNotifs()" title="Tout marquer comme lu"><i class="fas fa-check-double"></i> Lu</button>
+              </div>
+            </div>
+            <div class="notif-tabs">
+              <button class="notif-tab active" id="ntab-all"     onclick="switchNotifTab('all')">Tout</button>
+              <button class="notif-tab"         id="ntab-urgent" onclick="switchNotifTab('urgent')">Urgent</button>
+              <button class="notif-tab"         id="ntab-done"   onclick="switchNotifTab('done')">Complétées</button>
             </div>
             <div class="notif-panel-body" id="notifList">
-              <p class="notif-empty">Aucune notification</p>
+              <p class="notif-empty"><i class="fas fa-bell-slash"></i>Aucune notification</p>
             </div>
           </div>
         </div>
@@ -3915,6 +3965,7 @@
   let inAppNotifs = [];
   let notifReadIds = new Set(JSON.parse(sessionStorage.getItem('gesta-notif-read') || '[]'));
   let notifSeenTaskIds = new Set(JSON.parse(sessionStorage.getItem('gesta-notif-seen') || '[]'));
+  let activeNotifTab = 'all';
 
   function _notifId(prefix, taskId) { return `${prefix}-${taskId}`; }
 
@@ -3975,44 +4026,69 @@
     inAppNotifs = fresh;
   }
 
+  function _notifRelTime(isoStr) {
+    const diff = Date.now() - new Date(isoStr).getTime();
+    if (diff < 60000) return 'à l\'instant';
+    if (diff < 3600000) return `il y a ${Math.floor(diff/60000)} min`;
+    if (diff < 86400000) return `il y a ${Math.floor(diff/3600000)}h`;
+    return new Date(isoStr).toLocaleDateString('fr-FR');
+  }
+
+  function _notifFilter(notifs) {
+    if (activeNotifTab === 'urgent') return notifs.filter(n => n.type === 'danger' || n.type === 'warning');
+    if (activeNotifTab === 'done')   return notifs.filter(n => n.type === 'success');
+    return notifs;
+  }
+
+  function switchNotifTab(tab) {
+    activeNotifTab = tab;
+    ['all','urgent','done'].forEach(t => {
+      document.getElementById('ntab-' + t)?.classList.toggle('active', t === tab);
+    });
+    _renderNotifList();
+  }
+
   function renderNotifPanel() {
-    const list = document.getElementById('notifList');
     const badge = document.getElementById('notifBadge');
-    if (!list) return;
+    const bell  = document.getElementById('notifBellBtn');
+    if (!badge) return;
 
-    const unread = inAppNotifs.filter(n => !notifReadIds.has(n.id));
-    const count = unread.length;
-
-    if (count > 0) {
-      badge.textContent = count > 99 ? '99+' : count;
+    const unreadCount = inAppNotifs.filter(n => !notifReadIds.has(n.id)).length;
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
       badge.style.display = 'flex';
+      bell?.classList.add('has-unread');
     } else {
       badge.style.display = 'none';
+      bell?.classList.remove('has-unread');
     }
+    _renderNotifList();
+  }
 
-    if (!inAppNotifs.length) {
-      list.innerHTML = '<p class="notif-empty">Aucune notification</p>';
+  function _renderNotifList() {
+    const list = document.getElementById('notifList');
+    if (!list) return;
+    const visible = _notifFilter(inAppNotifs);
+
+    if (!visible.length) {
+      const labels = { all: 'Aucune notification', urgent: 'Aucune alerte urgente', done: 'Aucune sous-tâche complétée récemment' };
+      list.innerHTML = `<p class="notif-empty"><i class="fas fa-bell-slash"></i>${labels[activeNotifTab]}</p>`;
       return;
     }
 
-    function relTime(isoStr) {
-      const diff = Date.now() - new Date(isoStr).getTime();
-      if (diff < 60000) return 'à l\'instant';
-      if (diff < 3600000) return `il y a ${Math.floor(diff/60000)} min`;
-      if (diff < 86400000) return `il y a ${Math.floor(diff/3600000)}h`;
-      return new Date(isoStr).toLocaleDateString('fr-FR');
-    }
-
-    list.innerHTML = inAppNotifs.map(n => {
+    list.innerHTML = visible.map(n => {
       const read = notifReadIds.has(n.id);
-      return `<div class="notif-item${read ? '' : ' unread'}" onclick="handleNotifClick('${n.id}','${n.taskId||''}')">
-        <div class="notif-icon ${n.type}"><i class="fas ${n.icon}"></i></div>
-        <div class="notif-body">
-          <div class="notif-title">${n.title}</div>
-          <div class="notif-desc">${n.desc}</div>
-          <div class="notif-time">${relTime(n.time)}</div>
+      return `<div class="notif-item${read ? '' : ' unread'}">
+        <div class="notif-item-click" onclick="handleNotifClick('${n.id}','${n.taskId||''}')">
+          <div class="notif-icon ${n.type}"><i class="fas ${n.icon}"></i></div>
+          <div class="notif-body">
+            <div class="notif-title">${n.title}</div>
+            <div class="notif-desc">${n.desc}</div>
+            <div class="notif-time">${_notifRelTime(n.time)}</div>
+          </div>
+          ${read ? '' : '<div class="notif-dot"></div>'}
         </div>
-        ${read ? '' : '<div class="notif-dot"></div>'}
+        <button class="notif-dismiss" onclick="dismissNotif('${n.id}')" title="Marquer comme lu"><i class="fas fa-times"></i></button>
       </div>`;
     }).join('');
   }
@@ -4020,9 +4096,15 @@
   function toggleNotifPanel() {
     const panel = document.getElementById('notifPanel');
     const isOpen = panel.style.display !== 'none';
-    panel.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) {
-      renderNotifPanel();
+    if (isOpen) {
+      panel.style.display = 'none';
+    } else {
+      // Re-créer le panneau pour déclencher l'animation à chaque ouverture
+      panel.style.display = 'none';
+      requestAnimationFrame(() => {
+        panel.style.display = 'block';
+        renderNotifPanel();
+      });
     }
   }
 
@@ -4030,17 +4112,20 @@
     notifReadIds.add(notifId);
     sessionStorage.setItem('gesta-notif-read', JSON.stringify([...notifReadIds]));
     document.getElementById('notifPanel').style.display = 'none';
-    if (taskId) {
-      openTaskDetail(taskId);
-    }
+    renderNotifPanel();
+    if (taskId) openTaskDetail(taskId);
+  }
+
+  function dismissNotif(notifId) {
+    notifReadIds.add(notifId);
+    sessionStorage.setItem('gesta-notif-read', JSON.stringify([...notifReadIds]));
     renderNotifPanel();
   }
 
   function clearAllNotifs() {
-    inAppNotifs.forEach(n => notifReadIds.add(n.id));
+    _notifFilter(inAppNotifs).forEach(n => notifReadIds.add(n.id));
     sessionStorage.setItem('gesta-notif-read', JSON.stringify([...notifReadIds]));
     renderNotifPanel();
-    document.getElementById('notifPanel').style.display = 'none';
   }
 
   // Ferme le panneau si clic ailleurs
@@ -5319,6 +5404,65 @@ Règles :
 
   function switchTabByName(name) {
     switchTab(name);
+  }
+
+  const CHANGELOG = [
+    {
+      version: '4.0', date: '2025-07-14',
+      changes: [
+        { type: 'new',  text: 'Centre de notifications in-app : cloche avec badge, filtres Tout / Urgent / Complétées' },
+        { type: 'new',  text: 'Versioning centralisé — APP_VERSION unique, titre et badge synchronisés' },
+        { type: 'new',  text: 'Suivi date/heure de complétion sur toutes les sous-tâches (checkbox et compteur)' },
+        { type: 'new',  text: 'Compteur : valeur initiale demandée à la création (progression correcte dès le départ)' },
+        { type: 'fix',  text: 'Progression checklist 0/30 corrigée — normalisation Firebase array→object' },
+        { type: 'fix',  text: 'Barre de progression : animation CSS correcte via requestAnimationFrame' },
+        { type: 'fix',  text: 'Graphiques : mise à jour silencieuse des données sans recréation, sauf changement de thème' },
+        { type: 'fix',  text: 'Mode nuit — plus aucun fond blanc hardcodé (panneau IA, calendrier, modals)' },
+        { type: 'ui',   text: 'Refonte identité visuelle « Clarté Antillaise » : palette teal caribéen / mangrove / ambre' },
+        { type: 'ui',   text: 'Mode démo masqué par défaut, accessible par triple-clic sur le logo' },
+      ]
+    },
+  ];
+
+  function showChangelog() {
+    const existing = document.getElementById('changelogModal');
+    if (existing) { existing.remove(); return; }
+
+    const typeLabel = { new: 'Nouveau', fix: 'Correction', ui: 'Interface' };
+    const typeColor = { new: 'var(--brand)', fix: 'var(--danger)', ui: 'var(--warning)' };
+    const typeBg    = { new: 'var(--brand-dim)', fix: '#fee2e2', ui: '#fef3c7' };
+
+    const rows = CHANGELOG.map(v => `
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">
+          <span style="font-size:15px;font-weight:800;color:var(--brand);">v${v.version}</span>
+          <span style="font-size:11px;color:var(--text-3);">${new Date(v.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</span>
+        </div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+          ${v.changes.map(c => `
+            <li style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text);">
+              <span style="flex-shrink:0;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${typeBg[c.type]};color:${typeColor[c.type]};">${typeLabel[c.type]}</span>
+              <span style="line-height:1.5;">${c.text}</span>
+            </li>`).join('')}
+        </ul>
+      </div>`).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0 20px;">');
+
+    const modal = document.createElement('div');
+    modal.id = 'changelogModal';
+    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:440px;max-width:calc(100vw - 32px);max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+    modal.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div>
+          <div style="font-weight:800;font-size:17px;color:var(--text);">Journal des modifications</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:2px;">GESTA · AAEA-CAVA</div>
+        </div>
+        <button onclick="document.getElementById('changelogModal').remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-3);padding:4px 6px;">✕</button>
+      </div>
+      ${rows}
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => e.stopPropagation());
+    setTimeout(() => document.addEventListener('click', () => { const m = document.getElementById('changelogModal'); if(m) m.remove(); }, { once: true }), 100);
   }
 
   function showKeyboardHelp() {
