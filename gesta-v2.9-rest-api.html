@@ -3435,21 +3435,28 @@
   function renderCharts(tasks, q1, q2, q3, q4) {
     const isDark = document.body.classList.contains('dark-mode');
     const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-    const labelColor = isDark ? '#9ca3af' : '#6b7280';
+    const labelColor = isDark ? '#6EA49F' : '#6b7280';
     Chart.defaults.color = labelColor;
+    const themeKey = isDark ? 'dark' : 'light';
 
     // Donut
     const donutCtx = document.getElementById('chartDonut');
     if (donutCtx) {
-      if (chartDonut) chartDonut.destroy();
-      chartDonut = new Chart(donutCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Q1 Urgent+Important', 'Q2 Important', 'Q3 Urgent', 'Q4 Déléguer'],
-          datasets: [{ data: [q1, q2, q3, q4], backgroundColor: ['#dc2626','#1A7A6E','#C9760A','#6b7280'], borderWidth: 0, hoverOffset: 8 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } } }, cutout: '65%' }
-      });
+      if (chartDonut && chartDonut._themeKey === themeKey) {
+        chartDonut.data.datasets[0].data = [q1, q2, q3, q4];
+        chartDonut.update('none');
+      } else {
+        if (chartDonut) chartDonut.destroy();
+        chartDonut = new Chart(donutCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Q1 Urgent+Important', 'Q2 Important', 'Q3 Urgent', 'Q4 Déléguer'],
+            datasets: [{ data: [q1, q2, q3, q4], backgroundColor: ['#dc2626','#1A7A6E','#C9760A','#6b7280'], borderWidth: 0, hoverOffset: 8 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, animation: { duration: 600 }, plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } } }, cutout: '65%' }
+        });
+        chartDonut._themeKey = themeKey;
+      }
     }
 
     // Charge par coordinateur
@@ -3463,19 +3470,22 @@
           t.pilote === role || t.createdBy === role
         )).reduce((s, t) => s + (t.estimatedHours || 0), 0)
       );
-      if (chartCharge) chartCharge.destroy();
-      chartCharge = new Chart(chargeCtx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{ label: 'Heures', data: chargeData, backgroundColor: ['#dc2626','#1A7A6E','#C9760A','#6b7280','#16a34a','#0891b2'], borderRadius: 6 }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-          plugins: { legend: { display: false } },
-          scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor } }, y: { grid: { display: false }, ticks: { color: labelColor, font: { size: 11 } } } }
-        }
-      });
+      if (chartCharge && chartCharge._themeKey === themeKey) {
+        chartCharge.data.datasets[0].data = chargeData;
+        chartCharge.update('none');
+      } else {
+        if (chartCharge) chartCharge.destroy();
+        chartCharge = new Chart(chargeCtx, {
+          type: 'bar',
+          data: { labels, datasets: [{ label: 'Heures', data: chargeData, backgroundColor: ['#dc2626','#1A7A6E','#C9760A','#6b7280','#16a34a','#0891b2'], borderRadius: 6 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y', animation: { duration: 600 },
+            plugins: { legend: { display: false } },
+            scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor } }, y: { grid: { display: false }, ticks: { color: labelColor, font: { size: 11 } } } }
+          }
+        });
+        chartCharge._themeKey = themeKey;
+      }
     }
 
     // Line: créations par jour sur 30j
@@ -3485,7 +3495,7 @@
       const days = Array.from({ length: 30 }, (_, i) => {
         const d = new Date(today); d.setDate(d.getDate() - (29 - i)); return d;
       });
-      const labels = days.map(d => `${d.getDate()}/${d.getMonth()+1}`);
+      const lineLabels = days.map(d => `${d.getDate()}/${d.getMonth()+1}`);
       const created = days.map(d => tasks.filter(t => {
         const c = new Date(t.createdAt); c.setHours(0,0,0,0);
         return c.toDateString() === d.toDateString();
@@ -3495,25 +3505,32 @@
         const c = new Date(t.completedAt); c.setHours(0,0,0,0);
         return c.toDateString() === d.toDateString();
       }).length);
-      if (chartLine) chartLine.destroy();
-      chartLine = new Chart(lineCtx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            { label: 'Créées', data: created, borderColor: '#1A7A6E', backgroundColor: 'rgba(26,122,110,0.08)', tension: 0.4, fill: true, pointRadius: 3 },
-            { label: 'Complétées', data: completed, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', tension: 0.4, fill: true, pointRadius: 3 }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
-          scales: {
-            x: { grid: { color: gridColor }, ticks: { color: labelColor, maxTicksLimit: 10, font: { size: 10 } } },
-            y: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 }, min: 0 }
+      if (chartLine && chartLine._themeKey === themeKey) {
+        chartLine.data.datasets[0].data = created;
+        chartLine.data.datasets[1].data = completed;
+        chartLine.update('none');
+      } else {
+        if (chartLine) chartLine.destroy();
+        chartLine = new Chart(lineCtx, {
+          type: 'line',
+          data: {
+            labels: lineLabels,
+            datasets: [
+              { label: 'Créées', data: created, borderColor: '#1A7A6E', backgroundColor: 'rgba(26,122,110,0.08)', tension: 0.4, fill: true, pointRadius: 3 },
+              { label: 'Complétées', data: completed, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.08)', tension: 0.4, fill: true, pointRadius: 3 }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, animation: { duration: 600 },
+            plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: labelColor, maxTicksLimit: 10, font: { size: 10 } } },
+              y: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 }, min: 0 }
+            }
           }
-        }
-      });
+        });
+        chartLine._themeKey = themeKey;
+      }
     }
   }
 
