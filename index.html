@@ -1759,6 +1759,114 @@
 </head>
 <body>
 
+<!-- ===== PLAN GATE (plan suspendu / essai expiré) ===== -->
+<div id="planGate" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:20px;padding:40px;max-width:460px;width:90%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.4);">
+    <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+    <h2 style="font-size:22px;font-weight:800;margin-bottom:8px;" id="planGateTitle">Accès suspendu</h2>
+    <p style="color:var(--text-3);font-size:14px;margin-bottom:28px;line-height:1.6;" id="planGateMsg">Votre période d'essai est terminée. Abonnez-vous pour retrouver l'accès à GESTA.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="btn btn-primary" style="padding:14px 28px;font-size:15px;border-radius:12px;" onclick="openStripeCheckout()">
+        <i class="fas fa-credit-card"></i> S'abonner — continuer l'accès
+      </button>
+      <button class="btn btn-ghost" style="font-size:12px;" onclick="logoutUser()">Se déconnecter</button>
+    </div>
+    <p style="font-size:11px;color:var(--text-3);margin-top:20px;">Après paiement, votre accès sera réactivé sous 24h. Contactez <strong>dacalor.diego@gmail.com</strong> si vous avez déjà payé.</p>
+  </div>
+</div>
+
+<!-- ===== INVITATION — CRÉATION DE COMPTE ===== -->
+<div id="inviteScreen" style="display:none;position:fixed;inset:0;z-index:9000;background:var(--bg);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:20px;padding:40px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.2);">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:40px;margin-bottom:8px;">👋</div>
+      <h2 style="font-size:20px;font-weight:800;" id="inviteOrgName">Bienvenue sur GESTA</h2>
+      <p style="color:var(--text-3);font-size:13px;margin-top:4px;">Créez votre compte pour rejoindre l'équipe.</p>
+    </div>
+    <div class="input-group"><label>Prénom et nom</label><input type="text" id="inviteFullName" placeholder="Marie Dupont"></div>
+    <div class="input-group"><label>Email</label><input type="email" id="inviteEmail" placeholder="marie@exemple.fr"></div>
+    <div class="input-group"><label>Mot de passe</label><input type="password" id="invitePassword" placeholder="6 caractères minimum"></div>
+    <div id="inviteMsg" style="margin:8px 0;min-height:20px;font-size:12px;"></div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="redeemInvitation()">
+      <i class="fas fa-user-plus"></i> Créer mon compte
+    </button>
+    <input type="hidden" id="inviteToken">
+    <input type="hidden" id="inviteRole">
+    <input type="hidden" id="inviteOrgId">
+  </div>
+</div>
+
+<!-- ===== SUPER-ADMIN SAAS PANEL ===== -->
+<div id="saasPanel" style="display:none;position:fixed;inset:0;z-index:8000;background:var(--bg);overflow-y:auto;">
+  <div style="max-width:900px;margin:0 auto;padding:32px 20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">GESTA SaaS</div>
+        <h1 style="font-size:26px;font-weight:900;margin:0;">Super-Admin</h1>
+      </div>
+      <button class="btn btn-ghost" onclick="closeSaasPanel()"><i class="fas fa-times"></i> Fermer</button>
+    </div>
+
+    <!-- Créer une organisation -->
+    <div style="background:var(--surface);border-radius:16px;padding:24px;margin-bottom:24px;border:1px solid var(--border);">
+      <h3 style="font-size:15px;font-weight:700;margin:0 0 16px;"><i class="fas fa-building" style="color:var(--primary);margin-right:8px;"></i>Nouvelle organisation</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="input-group" style="margin:0;"><label>ID (slug unique)</label><input type="text" id="saasOrgId" placeholder="aaea-cava"></div>
+        <div class="input-group" style="margin:0;"><label>Nom affiché</label><input type="text" id="saasOrgName" placeholder="AAEA-CAVA"></div>
+        <div class="input-group" style="margin:0;"><label>Plan</label>
+          <select id="saasOrgPlan"><option value="trial">Essai (14 jours)</option><option value="active">Actif</option></select></div>
+        <div class="input-group" style="margin:0;"><label>Email admin</label><input type="email" id="saasOrgAdminEmail" placeholder="admin@client.fr"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary" onclick="saasCreateOrg()"><i class="fas fa-plus"></i> Créer l'organisation</button>
+        <span id="saasCreateMsg" style="font-size:12px;"></span>
+      </div>
+    </div>
+
+    <!-- Organisations existantes -->
+    <div style="background:var(--surface);border-radius:16px;padding:24px;margin-bottom:24px;border:1px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:700;margin:0;"><i class="fas fa-list" style="color:var(--primary);margin-right:8px;"></i>Organisations</h3>
+        <button class="btn btn-ghost btn-sm" onclick="saasLoadOrgs()"><i class="fas fa-sync"></i> Actualiser</button>
+      </div>
+      <div id="saasOrgList"><div style="color:var(--text-3);font-size:13px;">Cliquez sur Actualiser pour charger.</div></div>
+    </div>
+
+    <!-- Générer une invitation -->
+    <div style="background:var(--surface);border-radius:16px;padding:24px;margin-bottom:24px;border:1px solid var(--border);">
+      <h3 style="font-size:15px;font-weight:700;margin:0 0 16px;"><i class="fas fa-envelope" style="color:var(--primary);margin-right:8px;"></i>Générer une invitation</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="input-group" style="margin:0;"><label>Org ID cible</label><input type="text" id="saasInviteOrg" placeholder="aaea-cava"></div>
+        <div class="input-group" style="margin:0;"><label>Email (optionnel)</label><input type="email" id="saasInviteEmail" placeholder="user@client.fr"></div>
+        <div class="input-group" style="margin:0;"><label>Rôle</label>
+          <select id="saasInviteRole">
+            <option value="Coordinateur RH">Coordinateur RH</option>
+            <option value="Director">Directeur</option>
+            <option value="Coordinateur Ateliers">Coord. Ateliers</option>
+            <option value="Coordinateur Finance">Coord. Finance</option>
+            <option value="Chef Atelier">Chef Atelier</option>
+            <option value="Psychologue">Psychologue</option>
+          </select></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary" onclick="saasGenerateInvite()"><i class="fas fa-link"></i> Générer le lien</button>
+        <span id="saasInviteResult" style="font-size:12px;word-break:break-all;"></span>
+      </div>
+    </div>
+
+    <!-- Migration données legacy -->
+    <div style="background:var(--surface);border-radius:16px;padding:24px;border:1px solid var(--border);">
+      <h3 style="font-size:15px;font-weight:700;margin:0 0 8px;"><i class="fas fa-database" style="color:var(--warning);margin-right:8px;"></i>Migration données legacy</h3>
+      <p style="font-size:12px;color:var(--text-3);margin:0 0 16px;">Copie les données de l'ancienne structure (/, /tasks, /userProfiles…) vers /orgs/{orgId}/.</p>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="saasMigrateTarget" placeholder="org ID cible ex: aaea-cava" style="width:200px;font-size:13px;">
+        <button class="btn btn-secondary" onclick="saasMigrateLegacy()"><i class="fas fa-arrow-right"></i> Migrer</button>
+        <span id="saasMigrateMsg" style="font-size:12px;"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== ÉCRAN DE CONNEXION ===== -->
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
@@ -1863,6 +1971,7 @@
       </div>
       <div class="sidebar-actions">
         <button class="sidebar-icon-btn" onclick="toggleDarkMode()" id="darkToggle" title="Mode sombre/clair"><i class="fas fa-moon"></i></button>
+        <button class="sidebar-icon-btn" onclick="openSaasPanel()" id="saasPanelBtn" style="display:none;" title="GESTA SaaS — Super-Admin" style="color:var(--warning);"><i class="fas fa-server"></i></button>
         <button class="sidebar-icon-btn" onclick="logoutUser()" id="logoutBtn" style="display:none;" title="Déconnexion"><i class="fas fa-sign-out-alt"></i></button>
         <button class="sidebar-icon-btn" onclick="changeRole()" id="changeRoleBtn" title="Changer de rôle"><i class="fas fa-exchange-alt"></i></button>
       </div>
@@ -2630,13 +2739,28 @@
   const FIREBASE_DB_URL = 'https://gesta-7ffed-default-rtdb.europe-west1.firebasedatabase.app';
   const FIREBASE_API_KEY = 'AIzaSyAJND_hncATWiAosiHgU3lx7FRC66L5424';
 
+  // ===== CONFIG SAAS =====
+  const SUPER_ADMIN_EMAILS = ['dacalor.diego@gmail.com']; // emails super-admin (accès GESTA SaaS)
+  const STRIPE_PAYMENT_LINK = ''; // ex: https://buy.stripe.com/xxx — à configurer dans le super-admin
+  const TRIAL_DAYS = 14;
+
   // Retourne le token d'auth approprié : idToken Firebase Auth si connecté, sinon API key
   function firebaseAuth() {
     return (currentUser && currentUser.idToken) ? currentUser.idToken : FIREBASE_API_KEY;
   }
 
+  // Chemin Firebase dans l'espace de l'organisation courante
+  function _db(path) {
+    if (!currentOrgId) return `${FIREBASE_DB_URL}/${path}`; // legacy fallback
+    return `${FIREBASE_DB_URL}/orgs/${currentOrgId}/${path}`;
+  }
+  // Chemin Firebase super-admin (hors espace org)
+  function _sa(path) { return `${FIREBASE_DB_URL}/superAdmin/${path}`; }
+
   // ===== VARIABLES GLOBALES =====
   let currentRole = null;
+  let currentOrgId = null;       // ID de l'organisation active
+  let currentOrgConfig = null;   // { name, planStatus, trialEnds, stripePaymentLink, primaryColor }
   let tasks = [];
   let currentTaskId = null;
   let syncInterval = null;
@@ -2822,12 +2946,12 @@
   // ===== FETCH TASKS AVEC TIMEOUT =====
   // Chemin Firebase selon le scope de la tâche
   function _taskPath(taskId, scope, ownerUid) {
-    if (scope === 'personal') return `${FIREBASE_DB_URL}/userTasks/${ownerUid || currentUser?.uid}/${taskId}.json`;
-    return `${FIREBASE_DB_URL}/tasks/${taskId}.json`;
+    if (scope === 'personal') return `${_db('userTasks/')}${ownerUid || currentUser?.uid}/${taskId}.json`;
+    return `${_db('tasks/')}${taskId}.json`;
   }
   function _taskListPath(scope, ownerUid) {
-    if (scope === 'personal') return `${FIREBASE_DB_URL}/userTasks/${ownerUid || currentUser?.uid}.json`;
-    return `${FIREBASE_DB_URL}/tasks.json`;
+    if (scope === 'personal') return `${_db('userTasks/')}${ownerUid || currentUser?.uid}.json`;
+    return `${_db('tasks.json')}`;
   }
 
   function _normalizeTasks(data, scope, ownerUid) {
@@ -2849,9 +2973,9 @@
 
       // Fetch shared + personal en parallèle
       const [resShared, resPersonal] = await Promise.all([
-        fetch(`${FIREBASE_DB_URL}/tasks.json?auth=${firebaseAuth()}`, { signal: ctrl1.signal }),
+        fetch(`${_db('tasks.json')}?auth=${firebaseAuth()}`, { signal: ctrl1.signal }),
         uid && !currentUser?.isDemo
-          ? fetch(`${FIREBASE_DB_URL}/userTasks/${uid}.json?auth=${firebaseAuth()}`, { signal: ctrl2.signal })
+          ? fetch(`${_db('userTasks/')}${uid}.json?auth=${firebaseAuth()}`, { signal: ctrl2.signal })
           : Promise.resolve(null)
       ]);
       clearTimeout(t1); clearTimeout(t2);
@@ -5173,7 +5297,16 @@ Consignes :
         throw new Error(msgs[code] || `Erreur : ${code}`);
       }
 
+      // 1. Résoudre l'organisation de l'utilisateur
+      const orgId = await _resolveUserOrg(data.localId, data.idToken);
+      currentOrgId = orgId;
+
+      // 2. Charger le profil utilisateur (dans le namespace de l'org)
       const profile = await loadUserProfile(data.localId, data.idToken);
+
+      // 3. Charger la config de l'org
+      currentOrgConfig = await _loadOrgConfig(data.idToken);
+
       currentUser = {
         email: data.email,
         uid: data.localId,
@@ -5182,18 +5315,26 @@ Consignes :
         tokenExpiry: Date.now() + (parseInt(data.expiresIn || 3600) - 60) * 1000,
         role: profile.role || 'Coordinateur RH',
         fullName: profile.fullName || data.email.split('@')[0],
+        isSuperAdmin: SUPER_ADMIN_EMAILS.includes(data.email),
         isDemo: false
       };
 
       sessionStorage.setItem('gesta-session', JSON.stringify({
         uid: currentUser.uid, idToken: currentUser.idToken,
         refreshToken: currentUser.refreshToken, tokenExpiry: currentUser.tokenExpiry,
-        email: currentUser.email, role: currentUser.role, fullName: currentUser.fullName
+        email: currentUser.email, role: currentUser.role, fullName: currentUser.fullName,
+        isSuperAdmin: currentUser.isSuperAdmin, orgId: currentOrgId
       }));
 
       await logAccess('login', { email: currentUser.email, role: currentUser.role });
       await syncUserProfile();
       await requestNotifPermission();
+
+      // 4. Vérifier le plan avant d'afficher l'app
+      if (!currentUser.isSuperAdmin && _isPlanBlocked()) {
+        showPlanGate();
+        return;
+      }
       applyUserSession();
     } catch (e) {
       errMsg.textContent = e.message;
@@ -5216,9 +5357,46 @@ Consignes :
     };
   }
 
+  // ===== SAAS — ORG RESOLUTION =====
+
+  async function _resolveUserOrg(uid, idToken) {
+    try {
+      // Super-admin : pas besoin d'org (ou accès à toutes)
+      // Pour les autres : chercher dans /userOrgIndex/{uid}
+      const res = await fetch(`${FIREBASE_DB_URL}/userOrgIndex/${uid}.json?auth=${idToken}`);
+      if (res.ok) {
+        const orgId = await res.json();
+        if (orgId && typeof orgId === 'string') return orgId;
+      }
+    } catch (_) {}
+    // Fallback legacy : si pas d'entrée, vérifier si l'utilisateur est super-admin
+    return null; // null = pas d'org → mode super-admin ou invitation requise
+  }
+
+  async function _loadOrgConfig(idToken) {
+    if (!currentOrgId) return null;
+    try {
+      const res = await fetch(`${_db('config.json')}?auth=${idToken}`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return { name: 'Organisation', planStatus: 'active' };
+  }
+
+  function _isPlanBlocked() {
+    const plan = currentOrgConfig?.planStatus;
+    if (!plan || plan === 'active') return false;
+    if (plan === 'suspended') return true;
+    if (plan === 'trial') {
+      const ends = currentOrgConfig?.trialEnds;
+      if (!ends) return false;
+      return new Date(ends) < new Date();
+    }
+    return false;
+  }
+
   async function loadUserProfile(uid, idToken) {
     try {
-      const res = await fetch(`${FIREBASE_DB_URL}/userProfiles/${uid}.json?auth=${idToken}`);
+      const res = await fetch(`${_db('userProfiles/')}${uid}.json?auth=${idToken}`);
       if (res.ok) {
         const data = await res.json();
         return data || {};
@@ -5232,7 +5410,7 @@ Consignes :
     if (!currentUser || currentUser.isDemo || !currentUser.uid) return;
     try {
       const flags = _roleToPermFlags(currentUser.role);
-      await fetch(`${FIREBASE_DB_URL}/userProfiles/${currentUser.uid}.json?auth=${currentUser.idToken}`, {
+      await fetch(`${_db('userProfiles/')}${currentUser.uid}.json?auth=${currentUser.idToken}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -5250,7 +5428,7 @@ Consignes :
     try {
       const token = currentUser?.idToken;
       const authParam = token ? `?auth=${token}` : `?auth=${firebaseAuth()}`;
-      await fetch(`${FIREBASE_DB_URL}/accessLogs.json${authParam}`, {
+      await fetch(`${_db('accessLogs.json')}${authParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -5291,6 +5469,14 @@ Consignes :
     // Admin tab visibility
     document.getElementById('adminTabBtn').style.display = currentUser.role === 'Coordinateur RH' ? 'flex' : 'none';
 
+    // Bouton super-admin SaaS (visible uniquement pour les super-admins)
+    const saasBtn = document.getElementById('saasPanelBtn');
+    if (saasBtn) saasBtn.style.display = currentUser.isSuperAdmin ? 'flex' : 'none';
+
+    // Afficher le nom de l'organisation dans le sous-titre
+    const orgName = currentOrgConfig?.name;
+    if (orgName) document.getElementById('myspaceSubtitle').textContent = currentUser.role + ' · ' + orgName;
+
     loadKnownUsers();
     initializeApp();
   }
@@ -5301,9 +5487,13 @@ Consignes :
     }
     currentUser = null;
     currentRole = null;
+    currentOrgId = null;
+    currentOrgConfig = null;
     sessionStorage.removeItem('gesta-session');
     if (syncInterval) clearInterval(syncInterval);
 
+    document.getElementById('planGate').style.display = 'none';
+    document.getElementById('saasPanel').style.display = 'none';
     document.getElementById('appContainer').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('loginEmail').value = '';
@@ -5311,6 +5501,259 @@ Consignes :
     document.getElementById('loginError').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('changeRoleBtn').style.display = 'flex';
+  }
+
+  // ===== SAAS — PLAN GATE =====
+  function showPlanGate() {
+    const isSuspended = currentOrgConfig?.planStatus === 'suspended';
+    document.getElementById('planGateTitle').textContent = isSuspended ? 'Compte suspendu' : 'Période d\'essai terminée';
+    document.getElementById('planGateMsg').textContent = isSuspended
+      ? 'Votre organisation a été suspendue. Contactez-nous pour régulariser votre abonnement.'
+      : `Votre essai gratuit de ${TRIAL_DAYS} jours est terminé. Abonnez-vous pour continuer.`;
+    document.getElementById('planGate').style.display = 'flex';
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'none';
+  }
+
+  function openStripeCheckout() {
+    const link = currentOrgConfig?.stripePaymentLink || STRIPE_PAYMENT_LINK;
+    if (!link) { showMessage('Lien de paiement non configuré — contactez dacalor.diego@gmail.com', 'info', 5000); return; }
+    const url = link + (link.includes('?') ? '&' : '?') + `client_reference_id=${currentOrgId}`;
+    window.open(url, '_blank');
+  }
+
+  // ===== SAAS — INVITATION =====
+  async function checkInviteParam() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/superAdmin/invitations/${token}.json?auth=${FIREBASE_API_KEY}`);
+      if (!res.ok) throw new Error('Token invalide');
+      const inv = await res.json();
+      if (!inv || inv.used) { showMessage('Ce lien d\'invitation est invalide ou déjà utilisé.', 'error'); return; }
+
+      document.getElementById('inviteToken').value = token;
+      document.getElementById('inviteRole').value = inv.role || 'Coordinateur RH';
+      document.getElementById('inviteOrgId').value = inv.orgId;
+      document.getElementById('inviteEmail').value = inv.email || '';
+
+      // Charger le nom de l'org pour l'afficher
+      const orgRes = await fetch(`${FIREBASE_DB_URL}/superAdmin/orgs/${inv.orgId}/name.json?auth=${FIREBASE_API_KEY}`);
+      const orgName = orgRes.ok ? await orgRes.json() : inv.orgId;
+      document.getElementById('inviteOrgName').textContent = `Rejoindre ${orgName || inv.orgId}`;
+
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('inviteScreen').style.display = 'flex';
+    } catch (e) {
+      showMessage('Lien d\'invitation invalide : ' + e.message, 'error');
+    }
+  }
+
+  async function redeemInvitation() {
+    const fullName = document.getElementById('inviteFullName').value.trim();
+    const email = document.getElementById('inviteEmail').value.trim();
+    const password = document.getElementById('invitePassword').value;
+    const token = document.getElementById('inviteToken').value;
+    const role = document.getElementById('inviteRole').value;
+    const orgId = document.getElementById('inviteOrgId').value;
+    const msg = document.getElementById('inviteMsg');
+
+    if (!fullName || !email || !password) { msg.innerHTML = '<span style="color:var(--danger);">Tous les champs sont requis.</span>'; return; }
+    if (password.length < 6) { msg.innerHTML = '<span style="color:var(--danger);">Mot de passe : 6 caractères minimum.</span>'; return; }
+
+    msg.innerHTML = '<span style="color:var(--text-3);"><i class="fas fa-spinner fa-spin"></i> Création du compte…</span>';
+
+    try {
+      // 1. Créer le compte Firebase Auth
+      const res = await fetch(`${FIREBASE_AUTH_URL}:signUp?key=${FIREBASE_API_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || 'Erreur création compte');
+
+      const uid = data.localId;
+      const idToken = data.idToken;
+
+      // 2. Écrire le profil dans l'espace org
+      const flags = _roleToPermFlags(role);
+      await fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/userProfiles/${uid}.json?auth=${idToken}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, email, role, orgId, createdAt: new Date().toISOString(), ...flags })
+      });
+
+      // 3. Enregistrer userOrgIndex
+      await fetch(`${FIREBASE_DB_URL}/userOrgIndex/${uid}.json?auth=${idToken}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orgId)
+      });
+
+      // 4. Marquer l'invitation comme utilisée (via super-admin token — lecture publique)
+      // Note : on utilise l'idToken nouvellement créé
+      await fetch(`${FIREBASE_DB_URL}/superAdmin/invitations/${token}/used.json?auth=${idToken}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(true)
+      });
+
+      msg.innerHTML = '<span style="color:var(--success);"><i class="fas fa-check"></i> Compte créé ! Connexion en cours…</span>';
+
+      // 5. Connecter l'utilisateur automatiquement
+      currentOrgId = orgId;
+      currentOrgConfig = await _loadOrgConfig(idToken);
+      currentUser = {
+        email, uid, idToken,
+        refreshToken: data.refreshToken,
+        tokenExpiry: Date.now() + (parseInt(data.expiresIn || 3600) - 60) * 1000,
+        role, fullName, isDemo: false, isSuperAdmin: false
+      };
+      sessionStorage.setItem('gesta-session', JSON.stringify({ ...currentUser, orgId }));
+
+      // Nettoyer l'URL
+      history.replaceState({}, '', window.location.pathname);
+      document.getElementById('inviteScreen').style.display = 'none';
+      applyUserSession();
+    } catch (e) {
+      msg.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`;
+    }
+  }
+
+  // ===== SAAS — SUPER-ADMIN PANEL =====
+  function openSaasPanel() {
+    document.getElementById('saasPanel').style.display = 'block';
+    saasLoadOrgs();
+  }
+  function closeSaasPanel() { document.getElementById('saasPanel').style.display = 'none'; }
+
+  async function saasCreateOrg() {
+    const orgId = document.getElementById('saasOrgId').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const name = document.getElementById('saasOrgName').value.trim();
+    const plan = document.getElementById('saasOrgPlan').value;
+    const adminEmail = document.getElementById('saasOrgAdminEmail').value.trim();
+    const msg = document.getElementById('saasCreateMsg');
+    if (!orgId || !name) { msg.innerHTML = '<span style="color:var(--danger);">ID et nom requis.</span>'; return; }
+
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création…';
+    try {
+      const trialEnds = new Date(Date.now() + TRIAL_DAYS * 86400000).toISOString();
+      const config = { name, planStatus: plan, createdAt: new Date().toISOString(),
+        trialEnds: plan === 'trial' ? trialEnds : null, adminEmail };
+
+      // Écrire config org dans /superAdmin/orgs/{orgId} et /orgs/{orgId}/config
+      const token = currentUser.idToken;
+      await Promise.all([
+        fetch(`${FIREBASE_DB_URL}/superAdmin/orgs/${orgId}.json?auth=${token}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config)
+        }),
+        fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/config.json?auth=${token}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config)
+        })
+      ]);
+
+      msg.innerHTML = `<span style="color:var(--success);"><i class="fas fa-check"></i> Organisation "${name}" créée.</span>`;
+      document.getElementById('saasOrgId').value = '';
+      document.getElementById('saasOrgName').value = '';
+      saasLoadOrgs();
+    } catch (e) {
+      msg.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`;
+    }
+  }
+
+  async function saasLoadOrgs() {
+    const container = document.getElementById('saasOrgList');
+    container.innerHTML = '<div style="color:var(--text-3);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>';
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/superAdmin/orgs.json?auth=${currentUser.idToken}`);
+      const data = await res.json();
+      if (!data) { container.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Aucune organisation.</div>'; return; }
+      container.innerHTML = Object.entries(data).map(([id, org]) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:13px;">${org.name || id}</div>
+            <div style="font-size:11px;color:var(--text-3);">ID: ${id} · Plan: <strong style="color:${org.planStatus==='active'?'var(--success)':org.planStatus==='trial'?'var(--warning)':'var(--danger)'};">${org.planStatus}</strong>${org.trialEnds?' · Essai jusqu\'au '+new Date(org.trialEnds).toLocaleDateString('fr-FR'):''}</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-primary" onclick="saasSetPlan('${id}','active')">Activer</button>
+            <button class="btn btn-sm btn-secondary" onclick="saasSetPlan('${id}','suspended')" style="color:var(--danger);">Suspendre</button>
+          </div>
+        </div>`).join('');
+    } catch (e) {
+      container.innerHTML = `<div style="color:var(--danger);font-size:12px;">${e.message}</div>`;
+    }
+  }
+
+  async function saasSetPlan(orgId, status) {
+    try {
+      const token = currentUser.idToken;
+      await Promise.all([
+        fetch(`${FIREBASE_DB_URL}/superAdmin/orgs/${orgId}/planStatus.json?auth=${token}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(status)
+        }),
+        fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/config/planStatus.json?auth=${token}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(status)
+        })
+      ]);
+      showMessage(`Organisation ${orgId} : ${status}`, 'success');
+      saasLoadOrgs();
+    } catch (e) { showMessage(e.message, 'error'); }
+  }
+
+  async function saasGenerateInvite() {
+    const orgId = document.getElementById('saasInviteOrg').value.trim();
+    const email = document.getElementById('saasInviteEmail').value.trim();
+    const role = document.getElementById('saasInviteRole').value;
+    const result = document.getElementById('saasInviteResult');
+    if (!orgId) { result.innerHTML = '<span style="color:var(--danger);">Org ID requis.</span>'; return; }
+
+    result.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+      const token = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      await fetch(`${FIREBASE_DB_URL}/superAdmin/invitations/${token}.json?auth=${currentUser.idToken}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId, email, role, used: false, createdAt: new Date().toISOString() })
+      });
+      const link = `${window.location.origin}${window.location.pathname}?invite=${token}`;
+      result.innerHTML = `<a href="${link}" target="_blank" style="color:var(--primary);">${link}</a>
+        <button class="btn btn-sm btn-ghost" style="margin-left:6px;" onclick="navigator.clipboard.writeText('${link}').then(()=>showMessage('Lien copié !','success'))">
+          <i class="fas fa-copy"></i></button>`;
+    } catch (e) { result.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`; }
+  }
+
+  async function saasMigrateLegacy() {
+    const targetOrg = document.getElementById('saasMigrateTarget').value.trim();
+    const msg = document.getElementById('saasMigrateMsg');
+    if (!targetOrg) { msg.innerHTML = '<span style="color:var(--danger);">Org ID requis.</span>'; return; }
+
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Migration en cours…';
+    try {
+      const token = currentUser.idToken;
+      const paths = ['tasks', 'userProfiles', 'userTasks', 'accessLogs'];
+      let count = 0;
+      for (const path of paths) {
+        const res = await fetch(`${FIREBASE_DB_URL}/${path}.json?auth=${token}`);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (!data) continue;
+        await fetch(`${FIREBASE_DB_URL}/orgs/${targetOrg}/${path}.json?auth=${token}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+        });
+        count++;
+      }
+      // Créer userOrgIndex pour chaque utilisateur migré
+      const profRes = await fetch(`${FIREBASE_DB_URL}/orgs/${targetOrg}/userProfiles.json?auth=${token}`);
+      if (profRes.ok) {
+        const profiles = await profRes.json() || {};
+        await Promise.all(Object.keys(profiles).map(uid =>
+          fetch(`${FIREBASE_DB_URL}/userOrgIndex/${uid}.json?auth=${token}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(targetOrg)
+          })
+        ));
+      }
+      msg.innerHTML = `<span style="color:var(--success);"><i class="fas fa-check"></i> ${count} collections migrées vers /orgs/${targetOrg}/. Créez le userOrgIndex pour l'admin et reconnectez-vous.</span>`;
+    } catch (e) {
+      msg.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`;
+    }
   }
 
   // Mon Espace
@@ -5403,15 +5846,20 @@ Consignes :
 
       // Save profile + permission flags in DB (les règles Firebase les lisent)
       const flags = _roleToPermFlags(role);
-      await fetch(`${FIREBASE_DB_URL}/userProfiles/${data.localId}.json?auth=${currentUser.idToken}`, {
+      await fetch(`${_db('userProfiles/')}${data.localId}.json?auth=${currentUser.idToken}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName, email, role,
+          fullName, email, role, orgId: currentOrgId,
           createdAt: new Date().toISOString(),
           createdBy: currentUser.email,
           ...flags
         })
+      });
+      // Enregistrer le mapping uid → orgId
+      await fetch(`${FIREBASE_DB_URL}/userOrgIndex/${data.localId}.json?auth=${currentUser.idToken}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentOrgId)
       });
 
       await logAccess('admin_create_user', { targetEmail: email, targetRole: role });
@@ -5567,7 +6015,7 @@ Consignes :
     container.innerHTML = '<div style="color:var(--gray-400);font-size:12px;">Chargement...</div>';
     try {
       const token = currentUser?.idToken;
-      const res = await fetch(`${FIREBASE_DB_URL}/userProfiles.json?auth=${token}`);
+      const res = await fetch(`${_db('userProfiles.json')}?auth=${token}`);
       const data = await res.json();
       if (!data || typeof data !== 'object') { container.innerHTML = '<div style="color:var(--gray-400);font-size:12px;">Aucun utilisateur.</div>'; return; }
       const roleIcons = {
@@ -5694,7 +6142,7 @@ Consignes :
   async function loadKnownUsers() {
     if (currentUser?.isDemo) return;
     try {
-      const res = await fetch(`${FIREBASE_DB_URL}/userProfiles.json?auth=${firebaseAuth()}`);
+      const res = await fetch(`${_db('userProfiles.json')}?auth=${firebaseAuth()}`);
       if (!res.ok) return;
       const data = await res.json();
       if (!data) return;
@@ -6492,11 +6940,15 @@ Règles :
         const s = JSON.parse(savedSession);
         if (s.uid && s.idToken && s.role) {
           currentUser = { ...s, isDemo: false };
+          currentOrgId = s.orgId || null;
           applyUserSession();
           return;
         }
       } catch (_) {}
     }
+
+    // Vérifier si une invitation est présente dans l'URL
+    checkInviteParam().catch(() => {});
 
     // Show login screen (default state)
     document.getElementById('loginScreen').style.display = 'flex';

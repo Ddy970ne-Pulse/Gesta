@@ -1,70 +1,72 @@
 {
   "rules": {
 
-    // ── Profils utilisateurs ──────────────────────────────────────────────────
-    // Lecture : tout utilisateur connecté (pour la liste admin)
-    // Écriture : l'utilisateur lui-même OU un administrateur (isAdmin = true)
-    "userProfiles": {
-      ".read": "auth != null",
-      "$uid": {
-        ".write": "auth != null && (
-          auth.uid === $uid ||
-          root.child('userProfiles').child(auth.uid).child('isAdmin').val() === true
-        )"
-      }
-    },
-
-    // ── Tâches partagées ──────────────────────────────────────────────────────
-    // Lecture : tout utilisateur connecté (filtre source géré côté client)
-    // Création : utilisateurs avec canAddTask = true
-    // Modification : utilisateurs avec canEdit = true, OU créateur de la tâche
-    // Suppression : utilisateurs avec canDelete = true
-    "tasks": {
-      ".read": "auth != null",
-      "$taskId": {
-        ".write": "auth != null && (
-          (
-            !data.exists() &&
-            root.child('userProfiles').child(auth.uid).child('canAddTask').val() === true
-          ) ||
-          (
-            data.exists() &&
-            newData.exists() &&
-            (
-              root.child('userProfiles').child(auth.uid).child('canEdit').val() === true ||
-              data.child('createdBy').val() === auth.uid
-            )
-          ) ||
-          (
-            data.exists() &&
-            !newData.exists() &&
-            root.child('userProfiles').child(auth.uid).child('canDelete').val() === true
-          )
-        )"
-      }
-    },
-
-    // ── Tâches personnelles ───────────────────────────────────────────────────
-    // Lecture et écriture : uniquement le propriétaire (auth.uid === $uid)
-    "userTasks": {
+    // ── Index utilisateur → organisation ─────────────────────────────────────
+    "userOrgIndex": {
       "$uid": {
         ".read":  "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && (auth.uid === $uid || root.child('superAdmin/admins').child(auth.uid).val() === true)"
       }
     },
 
-    // ── Journaux d'accès ─────────────────────────────────────────────────────
-    // Écriture : tout utilisateur connecté (log de connexion)
-    // Lecture : administrateurs uniquement
-    "accessLogs": {
-      ".write": "auth != null",
-      ".read":  "auth != null && root.child('userProfiles').child(auth.uid).child('isAdmin').val() === true"
+    // ── Données par organisation ──────────────────────────────────────────────
+    "orgs": {
+      "$orgId": {
+
+        "config": {
+          ".read":  "auth != null && root.child('userOrgIndex').child(auth.uid).val() === $orgId",
+          ".write": "auth != null && root.child('superAdmin/admins').child(auth.uid).val() === true"
+        },
+
+        "userProfiles": {
+          ".read": "auth != null && root.child('userOrgIndex').child(auth.uid).val() === $orgId",
+          "$uid": {
+            ".write": "auth != null && root.child('userOrgIndex').child(auth.uid).val() === $orgId && (auth.uid === $uid || root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('isAdmin').val() === true)"
+          }
+        },
+
+        "tasks": {
+          ".read": "auth != null && root.child('userOrgIndex').child(auth.uid).val() === $orgId",
+          "$taskId": {
+            ".write": "auth != null && root.child('userOrgIndex').child(auth.uid).val() === $orgId && ((!data.exists() && root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canAddTask').val() === true) || (data.exists() && newData.exists() && (root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canEdit').val() === true || data.child('createdBy').val() === auth.uid)) || (data.exists() && !newData.exists() && root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canDelete').val() === true))"
+          }
+        },
+
+        "userTasks": {
+          "$uid": {
+            ".read":  "auth != null && auth.uid === $uid && root.child('userOrgIndex').child(auth.uid).val() === $orgId",
+            ".write": "auth != null && auth.uid === $uid && root.child('userOrgIndex').child(auth.uid).val() === $orgId"
+          }
+        },
+
+        "accessLogs": {
+          ".write": "auth != null && root.child('userOrgIndex').child(auth.uid).val() === $orgId",
+          ".read":  "auth != null && root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('isAdmin').val() === true"
+        }
+      }
     },
 
-    // ── Tout autre nœud : refusé par défaut ──────────────────────────────────
-    "$other": {
-      ".read":  false,
-      ".write": false
-    }
+    // ── Super-admin ───────────────────────────────────────────────────────────
+    "superAdmin": {
+      ".read":  "auth != null && root.child('superAdmin/admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('superAdmin/admins').child(auth.uid).val() === true",
+      "invitations": {
+        "$token": {
+          ".read": true,
+          ".write": "auth != null"
+        }
+      },
+      "orgs": {
+        "$orgId": { "name": { ".read": true } }
+      }
+    },
+
+    // ── Legacy (ancienne structure, lecture seule pendant migration) ──────────
+    "tasks":        { ".read": "auth != null", ".write": false },
+    "userProfiles": { ".read": "auth != null", ".write": false },
+    "userTasks":    { ".read": "auth != null", ".write": false },
+    "accessLogs":   { ".read": false,          ".write": false },
+
+    "$other": { ".read": false, ".write": false }
   }
 }
