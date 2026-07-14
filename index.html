@@ -1084,6 +1084,14 @@
       padding-top: 10px;
     }
     .assign-option select { padding: 4px 8px; font-size: 12px; border-radius: 4px; }
+    .assign-user-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--primary); color: #fff; font-size: 11px; font-weight: 700;
+    }
+    .assign-user-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .assign-user-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .assign-user-role { font-size: 10px; color: var(--text-3); }
 
     /* ===== EXPORT BUTTONS ===== */
     .export-bar {
@@ -1943,28 +1951,7 @@
               <span id="assignPlaceholder" style="color:var(--gray-400);font-size:13px;">Non assigné</span>
               <i class="fas fa-chevron-down" style="font-size:11px;color:var(--gray-400);flex-shrink:0;"></i>
             </div>
-            <div class="multi-assign-dropdown" id="assignDropdown">
-              <div style="font-size:11px;font-weight:700;color:var(--gray-400);padding:4px 6px 8px;">Contributeurs</div>
-              <div class="assign-option"><input type="checkbox" value="Director" onchange="updateAssignChips()"> <i class="fas fa-crown" style="color:var(--primary);width:16px;"></i> Directeur</div>
-              <div class="assign-option"><input type="checkbox" value="Coordinateur RH" onchange="updateAssignChips()"> <i class="fas fa-users" style="color:var(--primary);width:16px;"></i> Coord. RH</div>
-              <div class="assign-option"><input type="checkbox" value="Coordinateur Ateliers" onchange="updateAssignChips()"> <i class="fas fa-tools" style="color:var(--primary);width:16px;"></i> Coord. Ateliers</div>
-              <div class="assign-option"><input type="checkbox" value="Coordinateur Finance" onchange="updateAssignChips()"> <i class="fas fa-calculator" style="color:var(--primary);width:16px;"></i> Coord. Finance</div>
-              <div class="assign-option"><input type="checkbox" value="Chef Atelier" onchange="updateAssignChips()"> <i class="fas fa-hard-hat" style="color:var(--primary);width:16px;"></i> Chef Atelier</div>
-              <div class="assign-option"><input type="checkbox" value="Psychologue" onchange="updateAssignChips()"> <i class="fas fa-brain" style="color:var(--primary);width:16px;"></i> Psychologue</div>
-              <div class="assign-option pilote-option">
-                <i class="fas fa-star" style="color:var(--secondary);width:16px;"></i>
-                <span style="font-size:12px;font-weight:700;">Pilote (responsable)</span>
-                <select id="piloteSelect" style="margin-left:auto;width:auto;" onchange="updateAssignChips()">
-                  <option value="">-- Aucun --</option>
-                  <option value="Director">Directeur</option>
-                  <option value="Coordinateur RH">Coord. RH</option>
-                  <option value="Coordinateur Ateliers">Coord. Ateliers</option>
-                  <option value="Coordinateur Finance">Coord. Finance</option>
-                  <option value="Chef Atelier">Chef Atelier</option>
-                  <option value="Psychologue">Psychologue</option>
-                </select>
-              </div>
-            </div>
+            <div class="multi-assign-dropdown" id="assignDropdown"></div>
           </div>
         </div>
         <div class="input-group" style="margin-bottom:0">
@@ -3310,6 +3297,8 @@
     document.querySelectorAll('#transferAssignees input[type=checkbox]').forEach(cb => {
       cb.checked = currentAssignees.includes(cb.value);
     });
+
+    prefillAssignDropdown(task.assignedTo, task.pilote);
 
     let cl = task.checklist || [];
     if (!Array.isArray(cl)) cl = Object.values(cl);
@@ -4993,6 +4982,7 @@ Consignes :
     // Admin tab visibility
     document.getElementById('adminTabBtn').style.display = currentUser.role === 'Coordinateur RH' ? 'flex' : 'none';
 
+    loadKnownUsers();
     initializeApp();
   }
 
@@ -5389,8 +5379,72 @@ Consignes :
   }
 
   // ===== MULTI-ASSIGN =====
+  // ===== UTILISATEURS CONNUS (chargés depuis /userProfiles/) =====
+  let knownUsers = []; // [{ uid, fullName, email, role }]
+
+  async function loadKnownUsers() {
+    if (currentUser?.isDemo) return;
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/userProfiles.json?auth=${firebaseAuth()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data) return;
+      knownUsers = Object.entries(data)
+        .map(([uid, p]) => ({ uid, fullName: p.fullName || uid, email: p.email || '', role: p.role || '' }))
+        .filter(u => u.fullName)
+        .sort((a, b) => a.fullName.localeCompare(b.fullName));
+      renderAssignDropdown();
+    } catch (_) {}
+  }
+
+  const ROLE_ICONS = {
+    'Director': 'fa-crown', 'Coordinateur RH': 'fa-users',
+    'Coordinateur Ateliers': 'fa-tools', 'Coordinateur Finance': 'fa-calculator',
+    'Chef Atelier': 'fa-hard-hat', 'Psychologue': 'fa-brain'
+  };
+
+  function renderAssignDropdown() {
+    const dropdown = document.getElementById('assignDropdown');
+    if (!dropdown) return;
+
+    const users = knownUsers.length > 0 ? knownUsers : [];
+
+    // Garder les valeurs cochées avant le re-rendu
+    const prevChecked = new Set(
+      Array.from(dropdown.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value)
+    );
+    const prevPilote = document.getElementById('piloteSelect')?.value || '';
+
+    dropdown.innerHTML = users.length === 0
+      ? `<div style="font-size:11px;color:var(--text-3);padding:12px 10px;"><i class="fas fa-spinner fa-spin"></i> Chargement des utilisateurs…</div>`
+      : `<div style="font-size:10px;font-weight:700;color:var(--text-3);padding:6px 10px 4px;text-transform:uppercase;letter-spacing:.06em;">Contributeurs</div>
+         ${users.map(u => `
+           <label class="assign-option">
+             <input type="checkbox" value="${u.fullName}" data-uid="${u.uid}" onchange="updateAssignChips()" ${prevChecked.has(u.fullName) ? 'checked' : ''}>
+             <span class="assign-user-avatar">${u.fullName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</span>
+             <span class="assign-user-info">
+               <span class="assign-user-name">${u.fullName}</span>
+               <span class="assign-user-role"><i class="fas ${ROLE_ICONS[u.role] || 'fa-user'}" style="font-size:9px;margin-right:3px;"></i>${u.role}</span>
+             </span>
+           </label>`).join('')}
+         <div style="border-top:1px solid var(--border);margin:6px 0 4px;"></div>
+         <div style="font-size:10px;font-weight:700;color:var(--text-3);padding:2px 10px 6px;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px;">
+           <i class="fas fa-star" style="color:var(--warning);"></i> Pilote (responsable)
+         </div>
+         <div style="padding:0 10px 8px;">
+           <select id="piloteSelect" onchange="updateAssignChips()" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;background:var(--surface2);color:var(--text);">
+             <option value="">-- Aucun pilote --</option>
+             ${users.map(u => `<option value="${u.fullName}" ${prevPilote === u.fullName ? 'selected' : ''}>${u.fullName}</option>`).join('')}
+           </select>
+         </div>`;
+
+    updateAssignChips();
+  }
+
   function toggleAssignDropdown() {
-    document.getElementById('assignDropdown').classList.toggle('open');
+    const dd = document.getElementById('assignDropdown');
+    const isOpen = dd.classList.toggle('open');
+    if (isOpen && knownUsers.length === 0) loadKnownUsers();
   }
 
   function getSelectedAssignees() {
@@ -5399,26 +5453,48 @@ Consignes :
 
   function updateAssignChips() {
     const selected = getSelectedAssignees();
-    const pilote = document.getElementById('piloteSelect').value;
-    const trigger = document.getElementById('assignTrigger');
+    const piloteEl = document.getElementById('piloteSelect');
+    const pilote = piloteEl?.value || '';
     const placeholder = document.getElementById('assignPlaceholder');
+    if (!placeholder) return;
 
-    if (selected.length === 0) {
-      placeholder.innerHTML = '<span style="color:var(--gray-400);">Non assigné</span>';
+    if (selected.length === 0 && !pilote) {
+      placeholder.innerHTML = '<span style="color:var(--text-3);">Non assigné</span>';
     } else {
-      placeholder.innerHTML = selected.map(a => {
+      const all = [...new Set([...selected, ...(pilote ? [pilote] : [])])];
+      placeholder.innerHTML = all.map(a => {
         const isPilote = a === pilote;
-        const initials = a.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
-        return `<span class="assign-chip${isPilote ? ' pilote' : ''}">${initials}${isPilote ? ' ★' : ''}</span>`;
+        const initials = a.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        return `<span class="assign-chip${isPilote ? ' pilote' : ''}" title="${a}${isPilote ? ' (pilote)' : ''}">${initials}${isPilote ? '★' : ''}</span>`;
       }).join('');
     }
   }
 
   function resetAssignDropdown() {
     document.querySelectorAll('#assignDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
-    document.getElementById('piloteSelect').value = '';
+    const ps = document.getElementById('piloteSelect');
+    if (ps) ps.value = '';
     updateAssignChips();
-    document.getElementById('assignDropdown').classList.remove('open');
+    document.getElementById('assignDropdown')?.classList.remove('open');
+  }
+
+  // Pré-cocher les assignés lors de l'ouverture du détail d'une tâche existante
+  function prefillAssignDropdown(assignedTo, pilote) {
+    if (knownUsers.length === 0) {
+      loadKnownUsers().then(() => _doPreFill(assignedTo, pilote));
+    } else {
+      _doPreFill(assignedTo, pilote);
+    }
+  }
+  function _doPreFill(assignedTo, pilote) {
+    renderAssignDropdown();
+    const names = Array.isArray(assignedTo) ? assignedTo : (assignedTo ? [assignedTo] : []);
+    document.querySelectorAll('#assignDropdown input[type=checkbox]').forEach(cb => {
+      cb.checked = names.includes(cb.value);
+    });
+    const ps = document.getElementById('piloteSelect');
+    if (ps && pilote) ps.value = pilote;
+    updateAssignChips();
   }
 
   document.addEventListener('click', (e) => {
