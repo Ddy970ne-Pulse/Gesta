@@ -4894,6 +4894,7 @@ Consignes :
       }));
 
       await logAccess('login', { email: currentUser.email, role: currentUser.role });
+      await syncUserProfile();
       await requestNotifPermission();
       applyUserSession();
     } catch (e) {
@@ -4905,6 +4906,18 @@ Consignes :
     }
   }
 
+  // Mappe un rôle vers les flags de permission persistés en base (utilisés par les règles Firebase)
+  function _roleToPermFlags(role) {
+    const p = rolePermissions[role] || {};
+    return {
+      canEdit:    !!p.canEdit,
+      canDelete:  !!p.canDelete,
+      canAddTask: !!p.canAddTask,
+      canViewAll: role === 'Director' || role === 'Coordinateur RH',
+      isAdmin:    role === 'Coordinateur RH'
+    };
+  }
+
   async function loadUserProfile(uid, idToken) {
     try {
       const res = await fetch(`${FIREBASE_DB_URL}/userProfiles/${uid}.json?auth=${idToken}`);
@@ -4914,6 +4927,25 @@ Consignes :
       }
     } catch (_) {}
     return {};
+  }
+
+  // Synchronise les flags de permission du profil à chaque connexion (au cas où le rôle a changé)
+  async function syncUserProfile() {
+    if (!currentUser || currentUser.isDemo || !currentUser.uid) return;
+    try {
+      const flags = _roleToPermFlags(currentUser.role);
+      await fetch(`${FIREBASE_DB_URL}/userProfiles/${currentUser.uid}.json?auth=${currentUser.idToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: currentUser.role,
+          fullName: currentUser.fullName,
+          email: currentUser.email,
+          lastLogin: new Date().toISOString(),
+          ...flags
+        })
+      });
+    } catch (_) {}
   }
 
   async function logAccess(action, meta = {}) {
@@ -5070,11 +5102,17 @@ Consignes :
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || 'Erreur création compte');
 
-      // Save profile in DB
+      // Save profile + permission flags in DB (les règles Firebase les lisent)
+      const flags = _roleToPermFlags(role);
       await fetch(`${FIREBASE_DB_URL}/userProfiles/${data.localId}.json?auth=${currentUser.idToken}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, role, createdAt: new Date().toISOString(), createdBy: currentUser.email })
+        body: JSON.stringify({
+          fullName, email, role,
+          createdAt: new Date().toISOString(),
+          createdBy: currentUser.email,
+          ...flags
+        })
       });
 
       await logAccess('admin_create_user', { targetEmail: email, targetRole: role });
