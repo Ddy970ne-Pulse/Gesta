@@ -2988,8 +2988,10 @@
             <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
               <div style="height:100%;width:${cpct}%;background:${full ? 'var(--success)' : 'var(--brand)'};border-radius:3px;transition:width .3s;"></div>
             </div>
-            <div style="display:flex;gap:4px;">
+            <div style="display:flex;align-items:center;gap:4px;">
               <button onclick="adjustCounter(${idx},-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text-2);display:flex;align-items:center;justify-content:center;" ${cur<=0?'disabled':''}>−</button>
+              <input type="number" min="0" max="${tgt}" value="${cur}" onchange="setCounter(${idx},this.value)" onclick="this.select()"
+                style="width:52px;height:28px;text-align:center;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;font-weight:700;">
               <button onclick="adjustCounter(${idx},1)" style="background:var(--brand);border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;" ${cur>=tgt?'disabled':''}>+</button>
             </div>
           </div>
@@ -3068,6 +3070,20 @@
     const checklist = (task?.checklist || []).map((item, i) => {
       if (i !== idx || item.type !== 'counter') return item;
       const next = Math.max(0, Math.min((item.current || 0) + delta, item.target || 99));
+      return { ...item, current: next, updatedAt: new Date().toISOString() };
+    });
+    await updateTask(currentTaskId, { checklist });
+    const tidx = tasks.findIndex(t => t.id === currentTaskId);
+    if (tidx !== -1) tasks[tidx].checklist = checklist;
+    renderChecklist(checklist);
+  }
+
+  async function setCounter(idx, value) {
+    if (!currentTaskId) return;
+    const task = tasks.find(t => t.id === currentTaskId);
+    const checklist = (task?.checklist || []).map((item, i) => {
+      if (i !== idx || item.type !== 'counter') return item;
+      const next = Math.max(0, Math.min(parseInt(value) || 0, item.target || 99));
       return { ...item, current: next, updatedAt: new Date().toISOString() };
     });
     await updateTask(currentTaskId, { checklist });
