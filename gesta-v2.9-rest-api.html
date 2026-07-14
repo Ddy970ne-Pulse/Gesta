@@ -704,7 +704,7 @@
       cursor: pointer; transition: all 0.2s;
       animation: taskEnter 0.2s ease both;
     }
-    .myspace-task:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(214,51,132,0.1); }
+    .myspace-task:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(26,122,110,0.1); }
     .myspace-task-quad {
       width: 6px; border-radius: 3px; align-self: stretch; flex-shrink: 0;
     }
@@ -1281,10 +1281,10 @@
       font-weight: 600;
     }
     .cal-task-chip:hover { opacity: 0.8; }
-    .chip-q1 { background: #FFE0F0; color: #D63384; }
+    .chip-q1 { background: #FFE4E4; color: #dc2626; }
     .chip-q2 { background: #E8D5F2; color: var(--primary); }
     .chip-q3 { background: #FFF4E6; color: #FF9800; }
-    .chip-q4 { background: #EDE9FE; color: #7c3aed; }
+    .chip-q4 { background: #F3F4F6; color: #6b7280; }
     .cal-overload { font-size: 9px; color: var(--danger); font-weight: 700; }
 
     /* Gantt */
@@ -1336,10 +1336,10 @@
       transition: opacity 0.2s;
     }
     .gantt-bar:hover { opacity: 0.85; }
-    .bar-q1 { background: linear-gradient(135deg, #D63384, #B8217E); }
-    .bar-q2 { background: linear-gradient(135deg, #9333ea, #7c3aed); }
+    .bar-q1 { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .bar-q2 { background: linear-gradient(135deg, #1A7A6E, #135E54); }
     .bar-q3 { background: linear-gradient(135deg, #f59e0b, #d97706); color: #333; }
-    .bar-q4 { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .bar-q4 { background: linear-gradient(135deg, #6b7280, #4b5563); }
     .gantt-today-line {
       position: absolute;
       top: 0;
@@ -1905,7 +1905,7 @@
         <div class="myspace-kpi-label">Bloquées</div>
       </div>
       <div class="myspace-kpi">
-        <div class="myspace-kpi-num" style="color:#8b5cf6;" id="my-hours">0h</div>
+        <div class="myspace-kpi-num" style="color:#6b7280;" id="my-hours">0h</div>
         <div class="myspace-kpi-label">Charge semaine</div>
       </div>
     </div>
@@ -1972,7 +1972,7 @@
         <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">En retard</div>
       </div>
       <div class="chart-card" style="text-align:center;padding:16px;">
-        <div style="font-size:32px;font-weight:700;color:#8b5cf6;"><span id="stat-hours">0</span>h</div>
+        <div style="font-size:32px;font-weight:700;color:#6b7280;"><span id="stat-hours">0</span>h</div>
         <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">Charge totale</div>
       </div>
     </div>
@@ -2000,20 +2000,20 @@
         <div style="display: flex; flex-direction: column; gap: 16px;">
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-              <span style="font-weight: 600; color: #D63384;">⬛ Q1 Urgent + Important</span>
+              <span style="font-weight: 600; color: #dc2626;">⬛ Q1 Urgent + Important</span>
               <strong id="dist-q1">0%</strong>
             </div>
             <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
-              <div id="dist-q1-bar" style="width: 0%; height: 100%; background: #D63384; transition: width 0.5s;"></div>
+              <div id="dist-q1-bar" style="width: 0%; height: 100%; background: #dc2626; transition: width 0.5s;"></div>
             </div>
           </div>
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-              <span style="font-weight: 600; color: #9333ea;">⬛ Q2 Important</span>
+              <span style="font-weight: 600; color: #1A7A6E;">⬛ Q2 Important</span>
               <strong id="dist-q2">0%</strong>
             </div>
             <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
-              <div id="dist-q2-bar" style="width: 0%; height: 100%; background: #9333ea; transition: width 0.5s;"></div>
+              <div id="dist-q2-bar" style="width: 0%; height: 100%; background: #1A7A6E; transition: width 0.5s;"></div>
             </div>
           </div>
           <div>
@@ -2027,11 +2027,11 @@
           </div>
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-              <span style="font-weight: 600; color: #8b5cf6;">⬛ Q4 À déléguer</span>
+              <span style="font-weight: 600; color: #6b7280;">⬛ Q4 À déléguer</span>
               <strong id="dist-q4">0%</strong>
             </div>
             <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
-              <div id="dist-q4-bar" style="width: 0%; height: 100%; background: #8b5cf6; transition: width 0.5s;"></div>
+              <div id="dist-q4-bar" style="width: 0%; height: 100%; background: #6b7280; transition: width 0.5s;"></div>
             </div>
           </div>
         </div>
@@ -2199,10 +2199,10 @@
         <i class="fas fa-crosshairs"></i> Aujourd'hui
       </button>
       <div style="margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <span class="schedule-chip"><span style="width:10px;height:10px;border-radius:2px;background:#D63384;display:inline-block;"></span> Q1 Urgent</span>
-        <span class="schedule-chip"><span style="width:10px;height:10px;border-radius:2px;background:#9333ea;display:inline-block;"></span> Q2 Important</span>
+        <span class="schedule-chip"><span style="width:10px;height:10px;border-radius:2px;background:#dc2626;display:inline-block;"></span> Q1 Urgent</span>
+        <span class="schedule-chip"><span style="width:10px;height:10px;border-radius:2px;background:#1A7A6E;display:inline-block;"></span> Q2 Important</span>
         <span class="schedule-chip"><span style="width:10px;height:10px;border-radius:2px;background:#f59e0b;display:inline-block;"></span> Q3 Urgent</span>
-        <span class="schedule-chip"><span style="width:10px;height:10px;border-radius:2px;background:#8b5cf6;display:inline-block;"></span> Q4 Déléguer</span>
+        <span class="schedule-chip"><span style="width:10px;height:10px;border-radius:2px;background:#6b7280;display:inline-block;"></span> Q4 Déléguer</span>
       </div>
     </div>
 
@@ -2838,7 +2838,7 @@
     currentTaskId = id;
     document.getElementById('detailTaskTitle').innerHTML = `<i class="fas fa-tasks" style="color:var(--primary);"></i> ${task.description}`;
     document.getElementById('taskSource').textContent = task.source;
-    const qColors = {'Q1':'#D63384','Q2':'#9333ea','Q3':'#f59e0b','Q4':'#8b5cf6'};
+    const qColors = {'Q1':'#dc2626','Q2':'#1A7A6E','Q3':'#C9760A','Q4':'#6b7280'};
     document.getElementById('taskQuadrant').innerHTML = `<span style="font-weight:700;color:${qColors[task.quadrant]}">${task.quadrant}</span>`;
     document.getElementById('quadrantSelect').value = task.quadrant;
     document.getElementById('quadrantSelect').style.display = rolePermissions[currentRole]?.canEdit ? 'inline-block' : 'none';
@@ -2993,7 +2993,7 @@
       barEl.style.transition = 'width .4s ease';
       barEl.style.width = pct + '%';
     });
-    barEl.style.background = pct === 100 ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg,var(--brand),#e879f9)';
+    barEl.style.background = pct === 100 ? 'linear-gradient(90deg,#16a34a,#4ade80)' : 'linear-gradient(90deg,var(--brand),#0f9985)';
     pctEl.textContent = pct + '%';
     pctEl.style.color = pct === 100 ? 'var(--success)' : 'var(--brand)';
 
@@ -3158,7 +3158,7 @@
     const children = tasks.filter(t => t.parentId === parentId);
     if (!children.length) { card.style.display = 'none'; return; }
     card.style.display = 'block';
-    const qColors = {'Q1':'#D63384','Q2':'#9333ea','Q3':'#f59e0b','Q4':'#8b5cf6'};
+    const qColors = {'Q1':'#dc2626','Q2':'#1A7A6E','Q3':'#C9760A','Q4':'#6b7280'};
     list.innerHTML = children.map(t => `
       <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;${t.completed ? 'opacity:0.5;' : ''}" onclick="openTaskDetail('${t.id}')">
         <i class="fas ${t.isReminder ? 'fa-bell' : 'fa-tasks'}" style="color:${t.isReminder ? 'var(--warning)' : 'var(--primary)'};font-size:12px;flex-shrink:0;"></i>
@@ -3178,7 +3178,7 @@
       updatedAt: new Date().toISOString(),
       updatedBy: currentRole
     });
-    const qColors = {'Q1':'#D63384','Q2':'#9333ea','Q3':'#f59e0b','Q4':'#8b5cf6'};
+    const qColors = {'Q1':'#dc2626','Q2':'#1A7A6E','Q3':'#C9760A','Q4':'#6b7280'};
     document.getElementById('taskQuadrant').innerHTML = `<span style="font-weight:700;color:${qColors[newQuadrant]}">${newQuadrant}</span>`;
     showMessage(`Tâche déplacée vers ${newQuadrant}`, 'success');
     await fetchTasks();
@@ -3446,7 +3446,7 @@
         type: 'doughnut',
         data: {
           labels: ['Q1 Urgent+Important', 'Q2 Important', 'Q3 Urgent', 'Q4 Déléguer'],
-          datasets: [{ data: [q1, q2, q3, q4], backgroundColor: ['#D63384','#9333ea','#f59e0b','#8b5cf6'], borderWidth: 0, hoverOffset: 8 }]
+          datasets: [{ data: [q1, q2, q3, q4], backgroundColor: ['#dc2626','#1A7A6E','#C9760A','#6b7280'], borderWidth: 0, hoverOffset: 8 }]
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } } }, cutout: '65%' }
       });
@@ -3468,7 +3468,7 @@
         type: 'bar',
         data: {
           labels,
-          datasets: [{ label: 'Heures', data: chargeData, backgroundColor: ['#D63384','#9333ea','#f59e0b','#8b5cf6','#10b981','#06b6d4'], borderRadius: 6 }]
+          datasets: [{ label: 'Heures', data: chargeData, backgroundColor: ['#dc2626','#1A7A6E','#C9760A','#6b7280','#16a34a','#0891b2'], borderRadius: 6 }]
         },
         options: {
           responsive: true, maintainAspectRatio: false, indexAxis: 'y',
@@ -3501,7 +3501,7 @@
         data: {
           labels,
           datasets: [
-            { label: 'Créées', data: created, borderColor: '#D63384', backgroundColor: 'rgba(214,51,132,0.08)', tension: 0.4, fill: true, pointRadius: 3 },
+            { label: 'Créées', data: created, borderColor: '#1A7A6E', backgroundColor: 'rgba(26,122,110,0.08)', tension: 0.4, fill: true, pointRadius: 3 },
             { label: 'Complétées', data: completed, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', tension: 0.4, fill: true, pointRadius: 3 }
           ]
         },
@@ -3737,7 +3737,7 @@
       return;
     }
 
-    const qColors = { Q1:'#D63384', Q2:'#9333ea', Q3:'#f59e0b', Q4:'#8b5cf6' };
+    const qColors = { Q1:'#dc2626', Q2:'#1A7A6E', Q3:'#C9760A', Q4:'#6b7280' };
     timeline.innerHTML = completed.map((t, i) => {
       const completedDate = t.completedAt ? new Date(t.completedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' }) : 'Date inconnue';
       const createdDate = t.createdAt ? new Date(t.createdAt).toLocaleDateString('fr-FR') : '-';
@@ -4093,7 +4093,7 @@
     document.getElementById('my-blocked').textContent = blockedTasks.length;
     document.getElementById('my-hours').textContent = weekHours + 'h';
 
-    const qColors = { Q1: '#D63384', Q2: '#9333ea', Q3: '#f59e0b', Q4: '#8b5cf6' };
+    const qColors = { Q1: '#dc2626', Q2: '#1A7A6E', Q3: '#C9760A', Q4: '#6b7280' };
     const taskCard = t => `
       <div class="myspace-task" onclick="openTaskDetail('${t.id}')">
         <div class="myspace-task-quad" style="background:${qColors[t.quadrant] || 'var(--primary)'};min-height:40px;"></div>
@@ -4357,7 +4357,7 @@
       box.innerHTML = '<div style="padding:12px 14px;color:var(--gray-400);font-size:13px;">Aucun résultat</div>';
     } else {
       box.innerHTML = results.map(t => {
-        const quadColors = { Q1:'#D63384', Q2:'#9333ea', Q3:'#f59e0b', Q4:'#8b5cf6' };
+        const quadColors = { Q1:'#dc2626', Q2:'#1A7A6E', Q3:'#C9760A', Q4:'#6b7280' };
         return `<div class="search-result-item" onclick="selectSearchResult('${t.id}')">
           <span style="width:8px;height:8px;border-radius:50%;background:${quadColors[t.quadrant]};flex-shrink:0;"></span>
           <div>
