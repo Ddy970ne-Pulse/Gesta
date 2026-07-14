@@ -2864,7 +2864,9 @@
       cb.checked = currentAssignees.includes(cb.value);
     });
 
-    renderChecklist(task.checklist || []);
+    let cl = task.checklist || [];
+    if (!Array.isArray(cl)) cl = Object.values(cl);
+    renderChecklist(cl);
     loadSubTasks(id);
     loadComments(id);
   }
@@ -2925,7 +2927,9 @@
   // ===== CHECKLIST & SUIVI DE COMPLÉTION =====
 
   function checklistStats(checklist) {
-    if (!checklist || !checklist.length) return { done: 0, total: 0, pct: 0 };
+    if (!checklist) return { done: 0, total: 0, pct: 0 };
+    if (!Array.isArray(checklist)) checklist = Object.values(checklist);
+    if (!checklist.length) return { done: 0, total: 0, pct: 0 };
     let done = 0, total = 0;
     for (const item of checklist) {
       if (item.type === 'counter') {
@@ -2956,7 +2960,12 @@
     const { done, total, pct } = checklistStats(checklist);
     progressEl.textContent = `${done} / ${total}`;
     barWrap.style.display = 'block';
-    barEl.style.width = pct + '%';
+    barEl.style.transition = 'none';
+    barEl.style.width = '0%';
+    requestAnimationFrame(() => {
+      barEl.style.transition = 'width .4s ease';
+      barEl.style.width = pct + '%';
+    });
     barEl.style.background = pct === 100 ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg,var(--brand),#e879f9)';
     pctEl.textContent = pct + '%';
     pctEl.style.color = pct === 100 ? 'var(--success)' : 'var(--brand)';
