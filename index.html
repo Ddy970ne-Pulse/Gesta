@@ -1466,13 +1466,27 @@
 
     /* ===== PRINT ===== */
     @media print {
-      .role-selector, .tabs, .header-right, .input-section, .planner-controls, .ai-planner-panel,
-      .export-bar, .dark-toggle, .search-bar, button { display: none !important; }
-      body { background: white; padding: 0; }
-      .container { max-width: 100%; }
-      .card, .quadrant, .chart-card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
-      .tab-content { display: block !important; }
+      body * { visibility: hidden; }
+      #reportPrintArea, #reportPrintArea * { visibility: visible; }
+      #reportPrintArea {
+        position: fixed; inset: 0; z-index: 99999;
+        background: white; color: #111;
+        padding: 32px 40px; overflow: visible;
+        font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6;
+      }
     }
+    #reportPrintArea { display: none; }
+
+    .report-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1A7A6E; padding-bottom:16px; margin-bottom:24px; }
+    .report-header h1 { font-size:22px; font-weight:800; color:#1A7A6E; margin:0 0 4px; }
+    .report-kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+    .report-kpi { border:1px solid #ddd; border-radius:8px; padding:12px; text-align:center; }
+    .report-kpi .val { font-size:28px; font-weight:800; color:#1A7A6E; }
+    .report-kpi .lbl { font-size:11px; color:#666; margin-top:2px; }
+    .report-section { margin-bottom:20px; }
+    .report-section h2 { font-size:14px; font-weight:700; color:#1A7A6E; border-left:3px solid #1A7A6E; padding-left:10px; margin-bottom:10px; }
+    .report-task-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:12px; }
+    .report-ai-block { background:#f0f9f8; border-left:3px solid #1A7A6E; padding:14px 16px; border-radius:0 8px 8px 0; font-size:13px; line-height:1.7; white-space:pre-wrap; }
 
     /* ===== PLANIFICATEUR STYLES ===== */
     .planner-controls {
@@ -2463,6 +2477,23 @@
 
   <!-- ANALYTICS -->
   <div id="analytics-tab" class="tab-content">
+    <!-- Barre d'actions rapport -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:18px;font-weight:800;">Analytics</div>
+        <div style="font-size:12px;color:var(--text-3);">Vue d'ensemble de l'activité</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="reportPeriod" style="font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);">
+          <option value="7">7 derniers jours</option>
+          <option value="30" selected>30 derniers jours</option>
+          <option value="90">3 derniers mois</option>
+        </select>
+        <button class="btn btn-primary" onclick="generateReport()" id="reportBtn" style="gap:6px;">
+          <i class="fas fa-file-pdf"></i> Générer rapport PDF
+        </button>
+      </div>
+    </div>
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:24px;">
       <div class="chart-card" style="text-align:center;padding:16px;">
@@ -4807,6 +4838,9 @@ Consignes :
         offlineQueue.processQueue();
       }
     }, 8000);
+
+    // Briefing proactif après chargement initial (sans bloquer)
+    setTimeout(proactiveCoachAnalysis, 2000);
   }
 
   // ===== DRAG & DROP =====
@@ -7121,6 +7155,146 @@ Règles :
     switchTab(name);
   }
 
+  // ===== RAPPORT PDF =====
+  async function generateReport() {
+    const btn = document.getElementById('reportBtn');
+    const days = parseInt(document.getElementById('reportPeriod').value) || 30;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération…';
+
+    try {
+      const now = new Date();
+      const cutoff = new Date(now - days * 86400000);
+      const visible = tasks.filter(_isTaskVisible);
+      const inPeriod = visible.filter(t => new Date(t.createdAt) >= cutoff);
+      const completed = inPeriod.filter(t => t.completed);
+      const overdue = visible.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < now);
+      const blocked = visible.filter(t => t.status === 'bloqué');
+      const q1 = visible.filter(t => !t.completed && t.quadrant === 'Q1');
+      const byMember = {};
+      visible.forEach(t => (t.assignedTo || []).forEach(m => { byMember[m] = (byMember[m]||0) + 1; }));
+
+      // Résumé IA
+      const prompt = `Tu es un assistant de reporting pour une organisation. Génère un bilan exécutif concis (5-8 lignes) en français pour la période des ${days} derniers jours, basé sur ces données :
+- Tâches créées sur la période : ${inPeriod.length}
+- Tâches complétées sur la période : ${completed.length}
+- Taux de complétion : ${inPeriod.length ? Math.round(completed.length/inPeriod.length*100) : 0}%
+- Tâches en retard : ${overdue.length}
+- Tâches bloquées : ${blocked.length}
+- Tâches urgentes actives (Q1) : ${q1.length}
+- Charge par membre : ${Object.entries(byMember).map(([k,v])=>`${k}: ${v}`).join(', ') || 'non renseignée'}
+
+Sois direct, factuel, et conclus par 2 recommandations prioritaires.`;
+
+      let aiText = '';
+      try {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+          body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 400 })
+        });
+        if (groqRes.ok) {
+          const gd = await groqRes.json();
+          aiText = gd.choices?.[0]?.message?.content || '';
+        }
+      } catch(_) {}
+
+      // Construire le HTML du rapport
+      const orgName = currentOrgConfig?.name || currentOrgId || 'Organisation';
+      const periodLabel = days === 7 ? '7 derniers jours' : days === 30 ? '30 derniers jours' : '3 derniers mois';
+      const topMembers = Object.entries(byMember).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+      document.getElementById('reportPrintArea').innerHTML = `
+        <div class="report-header">
+          <div>
+            <h1>GESTA — Rapport d'activité</h1>
+            <div style="font-size:13px;color:#555;">${orgName} · ${periodLabel} · Généré le ${now.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</div>
+          </div>
+          <div style="font-size:11px;color:#999;text-align:right;">Confidentiel<br>GESTA v${APP_VERSION}</div>
+        </div>
+
+        <div class="report-kpi-grid">
+          <div class="report-kpi"><div class="val">${inPeriod.length}</div><div class="lbl">Tâches créées</div></div>
+          <div class="report-kpi"><div class="val" style="color:#16a34a;">${completed.length}</div><div class="lbl">Complétées</div></div>
+          <div class="report-kpi"><div class="val" style="color:${overdue.length>0?'#dc2626':'#1A7A6E'};">${overdue.length}</div><div class="lbl">En retard</div></div>
+          <div class="report-kpi"><div class="val" style="color:#d97706;">${q1.length}</div><div class="lbl">Urgences actives</div></div>
+        </div>
+
+        ${aiText ? `<div class="report-section"><h2>Analyse IA</h2><div class="report-ai-block">${aiText}</div></div>` : ''}
+
+        <div class="report-section">
+          <h2>Tâches urgentes en cours (Q1)</h2>
+          ${q1.slice(0,10).map(t=>`<div class="report-task-row"><span>${t.description?.substring(0,70)||'—'}</span><span style="color:#666;">${t.dueDate?new Date(t.dueDate).toLocaleDateString('fr-FR'):''}</span></div>`).join('')||'<div style="color:#666;font-size:12px;">Aucune tâche urgente.</div>'}
+        </div>
+
+        ${overdue.length ? `<div class="report-section">
+          <h2>Tâches en retard (${overdue.length})</h2>
+          ${overdue.slice(0,10).map(t=>`<div class="report-task-row"><span>${t.description?.substring(0,70)||'—'}</span><span style="color:#dc2626;">${t.dueDate?new Date(t.dueDate).toLocaleDateString('fr-FR'):''}</span></div>`).join('')}
+        </div>` : ''}
+
+        ${topMembers.length ? `<div class="report-section">
+          <h2>Charge par membre</h2>
+          ${topMembers.map(([m,n])=>`<div class="report-task-row"><span>${m}</span><span>${n} tâche${n>1?'s':''}</span></div>`).join('')}
+        </div>` : ''}
+
+        <div style="margin-top:32px;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:10px;text-align:center;">
+          Rapport généré automatiquement par GESTA · ${window.location.hostname}
+        </div>`;
+
+      document.getElementById('reportPrintArea').style.display = 'block';
+      window.print();
+      setTimeout(() => { document.getElementById('reportPrintArea').style.display = 'none'; }, 1000);
+
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-file-pdf"></i> Générer rapport PDF';
+    }
+  }
+
+  // ===== COACH PROACTIF =====
+  async function proactiveCoachAnalysis() {
+    if (!currentUser || currentUser.isDemo || !tasks.length) return;
+    const visible = tasks.filter(_isTaskVisible);
+    if (!visible.length) return;
+
+    const now = new Date();
+    const overdue = visible.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < now);
+    const q1 = visible.filter(t => !t.completed && t.quadrant === 'Q1');
+    const blocked = visible.filter(t => t.status === 'bloqué');
+    const byMember = {};
+    visible.forEach(t => (t.assignedTo || []).forEach(m => { byMember[m] = (byMember[m]||0) + (t.estimatedHours||1); }));
+    const overloaded = Object.entries(byMember).filter(([,h]) => h > 20).map(([m]) => m);
+
+    const prompt = `Tu es le Coach IA de GESTA. Analyse la situation de l'équipe et génère un briefing matinal court (3-5 phrases max) en français. Sois direct et actionnable.
+Données :
+- Tâches urgentes Q1 actives : ${q1.length}
+- Tâches en retard : ${overdue.length}${overdue.length ? ' ('+overdue.slice(0,3).map(t=>t.description?.substring(0,40)).join(', ')+')' : ''}
+- Tâches bloquées : ${blocked.length}
+- Membres surchargés (>20h) : ${overloaded.join(', ') || 'aucun'}
+Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la priorité #1 du jour.`;
+
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 200 })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content;
+      if (!text) return;
+
+      // Injecter dans le chat du coach sans ouvrir le tab
+      const thread = document.getElementById('coachThread');
+      if (thread) {
+        const bubble = document.createElement('div');
+        bubble.className = 'coach-bubble coach';
+        bubble.innerHTML = `<div class="coach-bubble-inner"><div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:4px;opacity:.7;"><i class="fas fa-bolt"></i> Briefing automatique</div>${text.replace(/\n/g,'<br>')}</div>`;
+        thread.appendChild(bubble);
+      }
+    } catch(_) {}
+  }
+
   const CHANGELOG = [
     {
       version: '4.0', date: '2025-07-14',
@@ -7268,5 +7442,6 @@ Règles :
   }
 </script>
 
+<div id="reportPrintArea"></div>
 </body>
 </html>
