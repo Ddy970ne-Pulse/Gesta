@@ -1,4 +1,4 @@
-const CACHE = 'gesta-v4.0';
+const CACHE = 'gesta-v4.1';
 const SHELL = [
   './index.html',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
@@ -21,13 +21,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-
-  // Firebase et Groq : réseau uniquement, jamais de cache
-  if (url.hostname.includes('firebase') || url.hostname.includes('groq.com')) {
-    return;
-  }
-
-  // App shell : cache en premier, réseau en arrière-plan (stale-while-revalidate)
+  if (url.hostname.includes('firebase') || url.hostname.includes('groq.com')) return;
   if (e.request.destination === 'document' || SHELL.includes(e.request.url)) {
     e.respondWith(
       caches.open(CACHE).then(async cache => {
@@ -41,9 +35,48 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+});
 
-  // Tout le reste : réseau avec fallback cache
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+// ===== NOTIFICATIONS =====
+self.addEventListener('push', e => {
+  if (!e.data) return;
+  const data = e.data.json();
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'GESTA', {
+      body: data.body || '',
+      icon: data.icon || './icon-192.png',
+      badge: './icon-192.png',
+      tag: data.tag || 'gesta-notif',
+      data: { url: data.url || '/' },
+      requireInteraction: data.urgent || false,
+    })
   );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = e.notification.data?.url || '/';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      const existing = list.find(c => c.url.includes('index.html') || c.url.endsWith('/'));
+      if (existing) return existing.focus();
+      return clients.openWindow(url);
+    })
+  );
+});
+
+// ===== MESSAGE depuis la page principale =====
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SHOW_NOTIFICATION') {
+    const { title, body, tag, urgent } = e.data;
+    self.registration.showNotification(title, {
+      body,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: tag || 'gesta',
+      requireInteraction: urgent || false,
+      data: { url: self.location.origin }
+    });
+  }
 });
