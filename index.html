@@ -1532,6 +1532,33 @@
     #voiceReply { color: rgba(255,255,255,.8); font-size: 15px; max-width: 600px; text-align: center; min-height: 48px; line-height: 1.6; }
     #voiceStatus { color: rgba(255,255,255,.5); font-size:12px; margin-top:16px; }
 
+    /* ===== DOCUMENTS MODULE ===== */
+    .doc-tpl-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px; }
+    .doc-tpl-card { background:var(--bg-1);border:1.5px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .18s,box-shadow .18s,transform .12s; }
+    .doc-tpl-card:hover { border-color:var(--brand);box-shadow:0 4px 18px rgba(26,122,110,.12);transform:translateY(-2px); }
+    .doc-tpl-icon { font-size:28px;margin-bottom:10px; }
+    .doc-tpl-title { font-weight:700;font-size:15px;color:var(--text-1);margin-bottom:6px; }
+    .doc-tpl-desc { font-size:12px;color:var(--text-2);line-height:1.55;margin-bottom:10px; }
+    .doc-tpl-tags { display:flex;flex-wrap:wrap;gap:5px; }
+    .doc-tpl-tags span { font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--bg-2);color:var(--text-2); }
+    .doc-editor-layout { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+    @media(max-width:768px){ .doc-editor-layout { grid-template-columns:1fr; } }
+    .doc-form-panel input,.doc-form-panel select { width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg-2);color:var(--text-1);font-size:13px;margin-bottom:10px; }
+    /* Document print styles */
+    .doc-print-page { font-family:'Times New Roman',serif;color:#000;max-width:680px;margin:0 auto;line-height:1.7; }
+    .doc-print-header { text-align:center;border-bottom:2px solid #1A7A6E;padding-bottom:12px;margin-bottom:20px; }
+    .doc-print-org { font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#1A7A6E; }
+    .doc-print-subtitle { font-size:11px;color:#555; }
+    .doc-print-title { font-size:16px;font-weight:700;text-transform:uppercase;margin:14px 0 6px;text-align:center; }
+    .doc-print-ref { font-size:11px;color:#777;text-align:right;margin-bottom:16px; }
+    .doc-meta-table { width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px; }
+    .doc-meta-table td { padding:5px 8px;border:1px solid #ccc; }
+    .doc-meta-table td:first-child { font-weight:700;background:#f5f5f5;width:38%; }
+    .doc-section-title { font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#1A7A6E;border-bottom:1px solid #1A7A6E;padding-bottom:3px;margin:18px 0 10px; }
+    .doc-body-text { font-size:13px;line-height:1.8;white-space:pre-wrap; }
+    .doc-footer { margin-top:40px;font-size:11px;color:#777;border-top:1px solid #ccc;padding-top:10px;text-align:center; }
+    .doc-signature-block { display:flex;justify-content:space-between;margin-top:40px;font-size:13px; }
+
     /* ===== COMMAND PALETTE ===== */
     #cmdPalette { position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding-top:15vh;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .15s; }
     #cmdPalette.active { opacity:1;pointer-events:all; }
@@ -2167,6 +2194,10 @@
     <button class="nav-item" data-tab="cr" onclick="switchTab('cr')">
       <i class="fas fa-file-alt"></i>
       <span>Comptes Rendus</span>
+    </button>
+    <button class="nav-item" data-tab="documents" onclick="switchTab('documents')">
+      <i class="fas fa-folder-open"></i>
+      <span>Documents</span>
     </button>
     <button class="nav-item" data-tab="focus" onclick="switchTab('focus')">
       <i class="fas fa-crosshairs"></i>
@@ -3059,6 +3090,94 @@
     <div id="crPrintArea" style="display:none;"></div>
   </div>
 
+  <!-- DOCUMENTS -->
+  <div id="documents-tab" class="tab-content">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <h2 style="margin:0;font-size:1.3rem;"><i class="fas fa-folder-open" style="color:var(--brand);margin-right:8px;"></i>Modèles de documents</h2>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="_docShowPanel('gallery')" id="docBtnGallery"><i class="fas fa-th-large"></i> Galerie</button>
+        <button class="btn btn-ghost btn-sm" onclick="_docShowPanel('editor')" id="docBtnEditor" style="display:none"><i class="fas fa-edit"></i> Éditeur</button>
+      </div>
+    </div>
+
+    <!-- Galerie des modèles -->
+    <div id="docGallery">
+      <p style="color:var(--text-2);font-size:14px;margin-bottom:20px;">Sélectionnez un modèle — GESTA pré-remplira automatiquement les informations disponibles.</p>
+      <div class="doc-tpl-grid">
+        <div class="doc-tpl-card" onclick="_docSelectTemplate('convocation')">
+          <div class="doc-tpl-icon">📋</div>
+          <div class="doc-tpl-title">Convocation</div>
+          <div class="doc-tpl-desc">Convocation à une réunion avec ordre du jour tiré des tâches planifiées</div>
+          <div class="doc-tpl-tags"><span>Réunion</span><span>Officiel</span></div>
+        </div>
+        <div class="doc-tpl-card" onclick="_docSelectTemplate('pv')">
+          <div class="doc-tpl-icon">📝</div>
+          <div class="doc-tpl-title">Procès-Verbal</div>
+          <div class="doc-tpl-desc">PV de réunion avec participants, décisions prises et tâches issues</div>
+          <div class="doc-tpl-tags"><span>Réunion</span><span>Officiel</span></div>
+        </div>
+        <div class="doc-tpl-card" onclick="_docSelectTemplate('note')">
+          <div class="doc-tpl-icon">📄</div>
+          <div class="doc-tpl-title">Note de service</div>
+          <div class="doc-tpl-desc">Note interne de direction à l'ensemble du personnel ou à un service</div>
+          <div class="doc-tpl-tags"><span>Interne</span><span>Direction</span></div>
+        </div>
+        <div class="doc-tpl-card" onclick="_docSelectTemplate('lettre')">
+          <div class="doc-tpl-icon">✉️</div>
+          <div class="doc-tpl-title">Lettre administrative</div>
+          <div class="doc-tpl-desc">Courrier officiel à destination d'un organisme ou d'un partenaire</div>
+          <div class="doc-tpl-tags"><span>Courrier</span><span>Officiel</span></div>
+        </div>
+        <div class="doc-tpl-card" onclick="_docSelectTemplate('ordre')">
+          <div class="doc-tpl-icon">📌</div>
+          <div class="doc-tpl-title">Ordre du jour</div>
+          <div class="doc-tpl-desc">Ordre du jour de réunion généré depuis les tâches Q1/Q2 en cours</div>
+          <div class="doc-tpl-tags"><span>Réunion</span><span>Planning</span></div>
+        </div>
+        <div class="doc-tpl-card" onclick="_docSelectTemplate('rapport')">
+          <div class="doc-tpl-icon">📊</div>
+          <div class="doc-tpl-title">Rapport d'activité</div>
+          <div class="doc-tpl-desc">Synthèse mensuelle des tâches accomplies, en cours et à venir</div>
+          <div class="doc-tpl-tags"><span>Mensuel</span><span>Synthèse</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Éditeur de document -->
+    <div id="docEditor" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <button class="btn btn-ghost btn-sm" onclick="_docShowPanel('gallery')"><i class="fas fa-arrow-left"></i> Retour</button>
+        <h3 id="docEditorTitle" style="margin:0;font-size:1.1rem;"></h3>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="_docEnrichAI()" id="docAiBtn"><i class="fas fa-magic"></i> Enrichir avec l'IA</button>
+          <button class="btn btn-secondary btn-sm" onclick="_docPreview()"><i class="fas fa-eye"></i> Aperçu</button>
+          <button class="btn btn-primary btn-sm" onclick="_docPrint()"><i class="fas fa-print"></i> Imprimer / PDF</button>
+        </div>
+      </div>
+
+      <div class="doc-editor-layout">
+        <!-- Formulaire de données -->
+        <div class="doc-form-panel card" style="padding:20px;">
+          <h4 style="margin:0 0 16px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);">Informations du document</h4>
+          <div id="docFormFields"></div>
+          <div style="margin-top:16px;">
+            <label style="font-size:13px;font-weight:600;color:var(--text-1);display:block;margin-bottom:6px;">Corps du document</label>
+            <textarea id="docBodyText" rows="10" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text-1);font-size:13px;line-height:1.7;resize:vertical;" placeholder="Saisissez ou laissez l'IA rédiger le contenu…"></textarea>
+          </div>
+          <div id="docAiStatus" style="margin-top:8px;font-size:12px;color:var(--brand);display:none;"><i class="fas fa-spinner fa-spin"></i> L'IA rédige…</div>
+        </div>
+
+        <!-- Aperçu live -->
+        <div class="doc-preview-panel card" style="padding:0;overflow:hidden;">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:.05em;">APERÇU</div>
+          <div id="docPreviewPane" style="padding:24px;font-size:13px;line-height:1.8;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="docPrintArea" style="display:none;"></div>
+  </div>
+
   <!-- FOCUS + POMODORO -->
   <div id="focus-tab" class="tab-content">
     <div style="max-width:680px;margin:0 auto;">
@@ -3487,6 +3606,7 @@
     'planner': 'Planificateur',
     'gantt': 'Gantt',
     'cr': 'Comptes Rendus',
+    'documents': 'Modèles de documents',
     'focus': 'Mode Focus — Pomodoro',
     'presentation': 'Mode Présentation',
     'admin': 'Administration'
@@ -3515,6 +3635,7 @@
       else if (name === 'planner') renderPlanner(visible);
       else if (name === 'historique') renderHistory(visible, currentHistoryFilter);
       else if (name === 'coach') { renderCoach(visible); const sb = document.getElementById('coachSendBtn'); if (sb) sb.disabled = false; }
+      else if (name === 'documents') { _docRenderGallery(); }
       else if (name === 'focus') { focusLoadTasks(); _updateFocusStats(); }
       else if (name === 'presentation') { _updatePresPlan(); }
       else if (name === 'gantt') renderGantt(visible);
@@ -9042,7 +9163,7 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     active.forEach(t => {
       const opt = document.createElement('option');
       opt.value = t._key || t.id || '';
-      opt.textContent = `Q${t.quadrant||'?'} · ${t.title}`;
+      opt.textContent = `Q${t.quadrant||'?'} · ${t.description || t.title || '(sans titre)'}`;
       sel.appendChild(opt);
     });
     if (current) sel.value = current;
@@ -9053,7 +9174,7 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     const task = tasks.find(t => (t._key || t.id) === taskId);
     const infoEl = document.getElementById('focusTaskInfo');
     if (!task) { infoEl.style.display = 'none'; document.getElementById('focusChecklistCard').style.display = 'none'; return; }
-    document.getElementById('focusTaskTitle').textContent = task.title;
+    document.getElementById('focusTaskTitle').textContent = task.description || task.title || '(sans titre)';
     document.getElementById('focusTaskMeta').textContent = `Q${task.quadrant||'?'} · ${task.status||'todo'} · ${task.dueDate ? new Date(task.dueDate).toLocaleDateString('fr-FR') : 'Sans échéance'}`;
     infoEl.style.display = 'block';
     const cl = Array.isArray(task.checklist) ? task.checklist : (task.checklist ? Object.values(task.checklist) : []);
@@ -9408,6 +9529,347 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
       document.getElementById('voiceStatus').textContent = 'Appuyez pour re-parler';
     };
     _voiceSynth.speak(utt);
+  }
+
+  // ===== MODULE DOCUMENTS =====
+  let _docCurrentTpl = null;
+
+  const DOC_TEMPLATES = {
+    convocation: {
+      title: 'Convocation à une réunion',
+      icon: '📋',
+      fields: [
+        { id:'docObj', label:'Objet de la réunion', type:'text', placeholder:'Ex : Réunion de direction mensuelle' },
+        { id:'docDate', label:'Date de la réunion', type:'date' },
+        { id:'docHeure', label:'Heure', type:'time', default:'09:00' },
+        { id:'docLieu', label:'Lieu', type:'text', placeholder:'Ex : Salle de réunion / Visioconférence' },
+        { id:'docDest', label:'Destinataires', type:'text', placeholder:'Ex : Membres du bureau, personnel…' },
+        { id:'docRef', label:'Référence (optionnel)', type:'text', placeholder:'Ex : AAEA-2026-001' },
+      ],
+      aiPrompt: (fields, tasks, body) => `Tu es une secrétaire de direction experte. Rédige le corps d'une convocation officielle pour une réunion de l'AAEA-CAVA (Guadeloupe). Objet : "${fields.docObj}". Date : ${fields.docDate}. Heure : ${fields.docHeure}. Lieu : ${fields.docLieu}. Destinataires : ${fields.docDest}. L'ordre du jour doit inclure : ${tasks.filter(t=>t.quadrant==='Q1'||t.quadrant==='Q2').slice(0,6).map(t=>'- '+t.title).join('\n')||'Points à définir'}. Rédige en français administratif formel, ton institutionnel, 3-5 paragraphes courts.`,
+      buildDoc: (fields, body, org) => _docBuildConvocation(fields, body, org),
+    },
+    pv: {
+      title: 'Procès-Verbal de réunion',
+      icon: '📝',
+      fields: [
+        { id:'docObj', label:'Objet de la réunion', type:'text', placeholder:'Ex : Conseil d\'administration' },
+        { id:'docDate', label:'Date', type:'date' },
+        { id:'docPresents', label:'Participants présents', type:'text', placeholder:'Noms séparés par des virgules' },
+        { id:'docAbsents', label:'Absents excusés (optionnel)', type:'text', placeholder:'Noms séparés par des virgules' },
+        { id:'docPresident', label:'Président(e) de séance', type:'text', placeholder:'Nom et fonction' },
+        { id:'docRef', label:'Référence', type:'text', placeholder:'Ex : PV-AAEA-2026-001' },
+      ],
+      aiPrompt: (fields, tasks, body) => `Tu es une secrétaire de direction experte. Rédige le corps d'un procès-verbal de réunion officiel de l'AAEA-CAVA (Guadeloupe). Réunion : "${fields.docObj}" du ${fields.docDate}. Présents : ${fields.docPresents}. Président : ${fields.docPresident}. Les décisions et actions issues de la réunion comprennent : ${tasks.filter(t=>!t.completed).slice(0,8).map(t=>`- ${t.title} (assigné à ${(t.assignedTo||[]).join(', ')||'N/A'}, échéance ${t.dueDate||'N/A'})`).join('\n')||'À compléter'}. Rédige un PV structuré : ouverture de séance, points abordés, décisions prises, actions à mener, clôture. Ton formel institutionnel.`,
+      buildDoc: (fields, body, org) => _docBuildPV(fields, body, org),
+    },
+    note: {
+      title: 'Note de service',
+      icon: '📄',
+      fields: [
+        { id:'docObj', label:'Objet', type:'text', placeholder:'Ex : Organisation des permanences' },
+        { id:'docDate', label:'Date', type:'date' },
+        { id:'docDest', label:'Destinataires', type:'text', placeholder:'Ex : Ensemble du personnel, Service X' },
+        { id:'docEmetteur', label:'Émetteur', type:'text', placeholder:'Nom et fonction' },
+        { id:'docRef', label:'Référence', type:'text', placeholder:'Ex : NS-2026-001' },
+      ],
+      aiPrompt: (fields, tasks, body) => `Tu es une secrétaire de direction experte. Rédige une note de service officielle de l'AAEA-CAVA. Objet : "${fields.docObj}". Destinataires : ${fields.docDest}. Émetteur : ${fields.docEmetteur}. Date : ${fields.docDate}. Rédige en français administratif formel, 2-4 paragraphes clairs, directs, sans ambiguïté. Précise les modalités pratiques et les dates si pertinent.`,
+      buildDoc: (fields, body, org) => _docBuildNote(fields, body, org),
+    },
+    lettre: {
+      title: 'Lettre administrative',
+      icon: '✉️',
+      fields: [
+        { id:'docDest', label:'Destinataire', type:'text', placeholder:'Nom, organisme' },
+        { id:'docAdresse', label:'Adresse destinataire', type:'text', placeholder:'Adresse complète' },
+        { id:'docObj', label:'Objet', type:'text', placeholder:'Objet de la lettre' },
+        { id:'docDate', label:'Date', type:'date' },
+        { id:'docRef', label:'Référence / dossier', type:'text', placeholder:'Ex : Dossier n° 2026-001' },
+        { id:'docSignataire', label:'Signataire', type:'text', placeholder:'Nom et fonction' },
+      ],
+      aiPrompt: (fields, tasks, body) => `Tu es une secrétaire de direction experte. Rédige une lettre administrative officielle de l'AAEA-CAVA (Guadeloupe) adressée à "${fields.docDest}". Objet : "${fields.docObj}". Référence : ${fields.docRef||'N/A'}. Signataire : ${fields.docSignataire}. Date : ${fields.docDate}. Rédige en français administratif soutenu : formule d'appel, corps en 3-5 paragraphes, formule de politesse finale. Ton officiel et professionnel.`,
+      buildDoc: (fields, body, org) => _docBuildLettre(fields, body, org),
+    },
+    ordre: {
+      title: 'Ordre du jour',
+      icon: '📌',
+      fields: [
+        { id:'docObj', label:'Intitulé de la réunion', type:'text', placeholder:'Ex : Réunion hebdomadaire' },
+        { id:'docDate', label:'Date', type:'date' },
+        { id:'docHeure', label:'Heure', type:'time', default:'09:00' },
+        { id:'docLieu', label:'Lieu', type:'text', placeholder:'Ex : Salle de réunion' },
+        { id:'docAnimateur', label:'Animateur(trice)', type:'text', placeholder:'Nom et fonction' },
+      ],
+      aiPrompt: (fields, tasks, body) => `Tu es une secrétaire de direction experte. Génère un ordre du jour structuré pour la réunion "${fields.docObj}" du ${fields.docDate} à ${fields.docHeure}, animée par ${fields.docAnimateur}. Basé sur ces tâches en cours : ${tasks.filter(t=>!t.completed).slice(0,10).map(t=>`- [${t.quadrant}] ${t.title}`).join('\n')||'Aucune tâche trouvée'}. Structure : accueil (5 min), points Q1 urgents, points Q2 stratégiques, divers, clôture. Indique une durée estimée pour chaque point.`,
+      buildDoc: (fields, body, org) => _docBuildOrdre(fields, body, org),
+    },
+    rapport: {
+      title: 'Rapport d\'activité mensuel',
+      icon: '📊',
+      fields: [
+        { id:'docMois', label:'Mois concerné', type:'text', placeholder:'Ex : Juin 2026' },
+        { id:'docService', label:'Service / Direction', type:'text', placeholder:'Ex : Direction générale' },
+        { id:'docRedacteur', label:'Rédacteur(trice)', type:'text', placeholder:'Nom et fonction' },
+        { id:'docDate', label:'Date du rapport', type:'date' },
+      ],
+      aiPrompt: (fields, tasks, body) => {
+        const done = tasks.filter(t=>t.completed||t.status==='done').slice(0,10);
+        const inprog = tasks.filter(t=>!t.completed&&t.status==='en cours').slice(0,8);
+        const todo = tasks.filter(t=>!t.completed&&(t.status==='todo'||t.status==='planifié')).slice(0,8);
+        return `Tu es une secrétaire de direction experte. Rédige un rapport d'activité mensuel pour ${fields.docMois}, service "${fields.docService}", rédigé par ${fields.docRedacteur}. Tâches accomplies : ${done.map(t=>'- '+t.title).join('\n')||'Aucune'}. En cours : ${inprog.map(t=>'- '+t.title).join('\n')||'Aucune'}. À venir : ${todo.map(t=>'- '+t.title).join('\n')||'Aucune'}. Structure : introduction, bilan des actions, actions en cours, perspectives du mois suivant, conclusion. Ton professionnel et synthétique.`;
+      },
+      buildDoc: (fields, body, org) => _docBuildRapport(fields, body, org),
+    },
+  };
+
+  function _docShowPanel(panel) {
+    document.getElementById('docGallery').style.display = panel === 'gallery' ? 'block' : 'none';
+    document.getElementById('docEditor').style.display = panel === 'editor' ? 'block' : 'none';
+    document.getElementById('docBtnEditor').style.display = panel === 'editor' ? 'inline-flex' : 'none';
+  }
+
+  function _docRenderGallery() { _docShowPanel('gallery'); }
+
+  function _docSelectTemplate(key) {
+    const tpl = DOC_TEMPLATES[key];
+    if (!tpl) return;
+    _docCurrentTpl = key;
+    document.getElementById('docEditorTitle').textContent = tpl.icon + ' ' + tpl.title;
+
+    // Build form fields
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('docFormFields').innerHTML = tpl.fields.map(f => `
+      <label style="font-size:13px;font-weight:600;color:var(--text-1);display:block;margin-bottom:4px;">${f.label}</label>
+      <input id="${f.id}" type="${f.type}" value="${f.default||''}" ${f.type==='date'?`max="2030-12-31"`:''}
+        placeholder="${f.placeholder||''}" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg-2);color:var(--text-1);font-size:13px;margin-bottom:10px;"
+        oninput="_docUpdatePreview()">
+    `).join('');
+
+    // Default date to today
+    tpl.fields.filter(f=>f.type==='date').forEach(f => {
+      const el = document.getElementById(f.id);
+      if (el && !el.value) el.value = today;
+    });
+
+    // Pre-fill destinataires with known members
+    const destEl = document.getElementById('docDest');
+    if (destEl && !destEl.value) destEl.value = (knownUsers||[]).map(u=>u.fullName).join(', ');
+
+    // Pre-fill signataire / émetteur / animateur with current user
+    ['docSignataire','docEmetteur','docAnimateur','docPresident','docRedacteur'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = currentUser?.fullName || '';
+    });
+
+    document.getElementById('docBodyText').value = '';
+    _docShowPanel('editor');
+    _docUpdatePreview();
+  }
+
+  function _docGetFields() {
+    const tpl = DOC_TEMPLATES[_docCurrentTpl];
+    if (!tpl) return {};
+    const out = {};
+    tpl.fields.forEach(f => { out[f.id] = document.getElementById(f.id)?.value || ''; });
+    return out;
+  }
+
+  function _docGetOrg() {
+    return currentOrgConfig?.name || 'AAEA-CAVA';
+  }
+
+  function _docUpdatePreview() {
+    if (!_docCurrentTpl) return;
+    const tpl = DOC_TEMPLATES[_docCurrentTpl];
+    const fields = _docGetFields();
+    const body = document.getElementById('docBodyText').value;
+    const html = tpl.buildDoc(fields, body, _docGetOrg());
+    document.getElementById('docPreviewPane').innerHTML = html;
+  }
+
+  async function _docEnrichAI() {
+    if (!_docCurrentTpl) return;
+    const apiKey = window.GROQ_API_KEY;
+    if (!apiKey) { alert('Configurez votre clé API Groq dans les Paramètres.'); return; }
+    const tpl = DOC_TEMPLATES[_docCurrentTpl];
+    const fields = _docGetFields();
+    const status = document.getElementById('docAiStatus');
+    const btn = document.getElementById('docAiBtn');
+    status.style.display = 'block';
+    btn.disabled = true;
+    try {
+      const prompt = tpl.aiPrompt(fields, tasks, document.getElementById('docBodyText').value);
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
+        body: JSON.stringify({
+          model:'llama-3.3-70b-versatile',
+          messages:[
+            {role:'system',content:'Tu es une secrétaire de direction experte en rédaction administrative française. Réponds UNIQUEMENT avec le texte du corps du document, sans introduction ni explication.'},
+            {role:'user',content:prompt}
+          ],
+          max_tokens:800,temperature:0.4
+        })
+      });
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || '';
+      document.getElementById('docBodyText').value = text.trim();
+      _docUpdatePreview();
+    } catch(e) {
+      alert('Erreur IA : ' + e.message);
+    } finally {
+      status.style.display = 'none';
+      btn.disabled = false;
+    }
+  }
+
+  function _docPreview() {
+    if (!_docCurrentTpl) return;
+    const tpl = DOC_TEMPLATES[_docCurrentTpl];
+    const html = tpl.buildDoc(_docGetFields(), document.getElementById('docBodyText').value, _docGetOrg());
+    const win = window.open('','_blank','width=800,height=900');
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${tpl.title}</title><style>
+      body{font-family:'Times New Roman',serif;color:#000;padding:40px;max-width:720px;margin:0 auto;line-height:1.7;}
+      .doc-print-org{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#1A7A6E;}
+      .doc-print-subtitle{font-size:11px;color:#555;}
+      .doc-print-header{text-align:center;border-bottom:2px solid #1A7A6E;padding-bottom:12px;margin-bottom:20px;}
+      .doc-print-title{font-size:16px;font-weight:700;text-transform:uppercase;margin:14px 0 6px;text-align:center;}
+      .doc-print-ref{font-size:11px;color:#777;text-align:right;margin-bottom:16px;}
+      .doc-meta-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;}
+      .doc-meta-table td{padding:5px 8px;border:1px solid #ccc;}
+      .doc-meta-table td:first-child{font-weight:700;background:#f5f5f5;width:38%;}
+      .doc-section-title{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#1A7A6E;border-bottom:1px solid #1A7A6E;padding-bottom:3px;margin:18px 0 10px;}
+      .doc-body-text{font-size:13px;line-height:1.8;white-space:pre-wrap;}
+      .doc-footer{margin-top:40px;font-size:11px;color:#777;border-top:1px solid #ccc;padding-top:10px;text-align:center;}
+      .doc-signature-block{display:flex;justify-content:space-between;margin-top:40px;font-size:13px;}
+      @media print{button{display:none!important;}}
+    </style></head><body>${html}<br>
+    <button onclick="window.print()" style="margin-top:16px;padding:10px 24px;background:#1A7A6E;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin-left:auto;">Imprimer / PDF</button>
+    </body></html>`);
+    win.document.close();
+  }
+
+  function _docPrint() { _docPreview(); }
+
+  function _docEsc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function _docHeader(org) {
+    return `<div class="doc-print-header">
+      <div class="doc-print-org">${_docEsc(org)}</div>
+      <div class="doc-print-subtitle">Guadeloupe — Administration</div>
+    </div>`;
+  }
+
+  function _docFooter() {
+    return `<div class="doc-footer">Document généré par GESTA v4.0 — ${new Date().toLocaleDateString('fr-FR')} — Confidentiel</div>`;
+  }
+
+  function _docBuildConvocation(f, body, org) {
+    const odj = tasks.filter(t=>!t.completed&&(t.quadrant==='Q1'||t.quadrant==='Q2')).slice(0,6);
+    return `${_docHeader(org)}
+    <div class="doc-print-ref">Réf. : ${_docEsc(f.docRef||'—')} &nbsp;|&nbsp; ${_docEsc(f.docDate)}</div>
+    <div class="doc-print-title">Convocation</div>
+    <table class="doc-meta-table">
+      <tr><td>Objet</td><td>${_docEsc(f.docObj)}</td></tr>
+      <tr><td>Date</td><td>${_docEsc(f.docDate)} à ${_docEsc(f.docHeure)}</td></tr>
+      <tr><td>Lieu</td><td>${_docEsc(f.docLieu)}</td></tr>
+      <tr><td>Destinataires</td><td>${_docEsc(f.docDest)}</td></tr>
+    </table>
+    ${body ? `<div class="doc-section-title">Corps</div><div class="doc-body-text">${_docEsc(body)}</div>` : ''}
+    <div class="doc-section-title">Ordre du jour prévisionnel</div>
+    <ol style="font-size:13px;line-height:2;">${odj.length ? odj.map(t=>`<li>${_docEsc(t.title)}</li>`).join('') : '<li>À définir</li>'}</ol>
+    <div class="doc-signature-block"><div></div><div style="text-align:center;"><div style="margin-bottom:40px;">Pour ${_docEsc(org)},</div><div style="border-top:1px solid #000;width:160px;margin:0 auto;padding-top:4px;">Signature</div></div></div>
+    ${_docFooter()}`;
+  }
+
+  function _docBuildPV(f, body, org) {
+    const actions = tasks.filter(t=>!t.completed).slice(0,8);
+    return `${_docHeader(org)}
+    <div class="doc-print-ref">Réf. : ${_docEsc(f.docRef||'—')} &nbsp;|&nbsp; ${_docEsc(f.docDate)}</div>
+    <div class="doc-print-title">Procès-Verbal de réunion</div>
+    <table class="doc-meta-table">
+      <tr><td>Réunion</td><td>${_docEsc(f.docObj)}</td></tr>
+      <tr><td>Date</td><td>${_docEsc(f.docDate)}</td></tr>
+      <tr><td>Président(e) de séance</td><td>${_docEsc(f.docPresident)}</td></tr>
+      <tr><td>Présents</td><td>${_docEsc(f.docPresents)}</td></tr>
+      ${f.docAbsents ? `<tr><td>Absents excusés</td><td>${_docEsc(f.docAbsents)}</td></tr>` : ''}
+    </table>
+    ${body ? `<div class="doc-section-title">Déroulement</div><div class="doc-body-text">${_docEsc(body)}</div>` : ''}
+    ${actions.length ? `<div class="doc-section-title">Actions décidées</div>
+    <table class="doc-meta-table"><tr><td><strong>Action</strong></td><td><strong>Responsable</strong></td><td><strong>Échéance</strong></td></tr>
+    ${actions.map(t=>`<tr><td>${_docEsc(t.title)}</td><td>${_docEsc((t.assignedTo||[]).join(', ')||'N/A')}</td><td>${_docEsc(t.dueDate||'—')}</td></tr>`).join('')}
+    </table>` : ''}
+    <div class="doc-signature-block">
+      <div style="text-align:center;"><div style="margin-bottom:40px;">La secrétaire de séance,</div><div style="border-top:1px solid #000;width:160px;padding-top:4px;">&nbsp;</div></div>
+      <div style="text-align:center;"><div style="margin-bottom:40px;">Le/La Président(e),</div><div style="border-top:1px solid #000;width:160px;padding-top:4px;">${_docEsc(f.docPresident)}</div></div>
+    </div>
+    ${_docFooter()}`;
+  }
+
+  function _docBuildNote(f, body, org) {
+    return `${_docHeader(org)}
+    <div class="doc-print-ref">Réf. : ${_docEsc(f.docRef||'—')} &nbsp;|&nbsp; ${_docEsc(f.docDate)}</div>
+    <div class="doc-print-title">Note de service</div>
+    <table class="doc-meta-table">
+      <tr><td>À</td><td>${_docEsc(f.docDest)}</td></tr>
+      <tr><td>De</td><td>${_docEsc(f.docEmetteur)}</td></tr>
+      <tr><td>Objet</td><td>${_docEsc(f.docObj)}</td></tr>
+      <tr><td>Date</td><td>${_docEsc(f.docDate)}</td></tr>
+    </table>
+    <div class="doc-body-text">${_docEsc(body)||'<em style="color:#999">Corps à rédiger ou générer via l\'IA</em>'}</div>
+    <div class="doc-signature-block"><div></div><div style="text-align:center;"><div style="margin-bottom:40px;">${_docEsc(f.docEmetteur)}</div><div style="border-top:1px solid #000;width:160px;margin:0 auto;padding-top:4px;">Signature</div></div></div>
+    ${_docFooter()}`;
+  }
+
+  function _docBuildLettre(f, body, org) {
+    return `${_docHeader(org)}
+    <div style="display:flex;justify-content:space-between;margin-bottom:24px;font-size:13px;">
+      <div><strong>${_docEsc(org)}</strong><br>Guadeloupe</div>
+      <div style="text-align:right;">${_docEsc(f.docDest)}<br>${_docEsc(f.docAdresse)}</div>
+    </div>
+    <div class="doc-print-ref">Réf. : ${_docEsc(f.docRef||'—')} &nbsp;|&nbsp; Le ${_docEsc(f.docDate)}</div>
+    <div style="margin:16px 0;font-size:13px;"><strong>Objet :</strong> ${_docEsc(f.docObj)}</div>
+    <div class="doc-body-text" style="margin-top:20px;">${_docEsc(body)||'<em style="color:#999">Corps à rédiger ou générer via l\'IA</em>'}</div>
+    <div style="text-align:right;margin-top:40px;font-size:13px;">
+      <div style="margin-bottom:40px;">${_docEsc(f.docSignataire)}</div>
+      <div style="border-top:1px solid #000;width:160px;margin-left:auto;padding-top:4px;">Signature</div>
+    </div>
+    ${_docFooter()}`;
+  }
+
+  function _docBuildOrdre(f, body, org) {
+    const pts = tasks.filter(t=>!t.completed).slice(0,8);
+    return `${_docHeader(org)}
+    <div class="doc-print-title">Ordre du jour</div>
+    <table class="doc-meta-table">
+      <tr><td>Réunion</td><td>${_docEsc(f.docObj)}</td></tr>
+      <tr><td>Date &amp; heure</td><td>${_docEsc(f.docDate)} à ${_docEsc(f.docHeure)}</td></tr>
+      <tr><td>Lieu</td><td>${_docEsc(f.docLieu)}</td></tr>
+      <tr><td>Animateur(trice)</td><td>${_docEsc(f.docAnimateur)}</td></tr>
+    </table>
+    ${body ? `<div class="doc-body-text">${_docEsc(body)}</div>` : ''}
+    <div class="doc-section-title">Points à l'ordre du jour</div>
+    <ol style="font-size:13px;line-height:2.2;">${pts.length ? pts.map(t=>`<li><strong>[${_docEsc(t.quadrant)}]</strong> ${_docEsc(t.title)} ${t.assignedTo?.length?`<em style="color:#777">— ${_docEsc((t.assignedTo||[]).join(', '))}</em>`:''}</li>`).join('') : '<li>À compléter</li>'}</ol>
+    ${_docFooter()}`;
+  }
+
+  function _docBuildRapport(f, body, org) {
+    const done = tasks.filter(t=>t.completed||t.status==='done');
+    const inprog = tasks.filter(t=>!t.completed&&t.status==='en cours');
+    const todo = tasks.filter(t=>!t.completed&&(t.status==='todo'||t.status==='planifié'));
+    return `${_docHeader(org)}
+    <div class="doc-print-title">Rapport d'activité — ${_docEsc(f.docMois)}</div>
+    <table class="doc-meta-table">
+      <tr><td>Service</td><td>${_docEsc(f.docService)}</td></tr>
+      <tr><td>Rédacteur(trice)</td><td>${_docEsc(f.docRedacteur)}</td></tr>
+      <tr><td>Date du rapport</td><td>${_docEsc(f.docDate)}</td></tr>
+    </table>
+    ${body ? `<div class="doc-section-title">Synthèse</div><div class="doc-body-text">${_docEsc(body)}</div>` : ''}
+    ${done.length ? `<div class="doc-section-title">Actions accomplies (${done.length})</div><ul style="font-size:13px;line-height:1.9;">${done.slice(0,10).map(t=>`<li>${_docEsc(t.title)}</li>`).join('')}</ul>` : ''}
+    ${inprog.length ? `<div class="doc-section-title">Actions en cours (${inprog.length})</div><ul style="font-size:13px;line-height:1.9;">${inprog.slice(0,8).map(t=>`<li>${_docEsc(t.title)} ${t.dueDate?`<em style="color:#777">— échéance ${_docEsc(t.dueDate)}</em>`:''}</li>`).join('')}</ul>` : ''}
+    ${todo.length ? `<div class="doc-section-title">À planifier (${todo.length})</div><ul style="font-size:13px;line-height:1.9;">${todo.slice(0,8).map(t=>`<li>${_docEsc(t.title)}</li>`).join('')}</ul>` : ''}
+    <div class="doc-signature-block"><div></div><div style="text-align:center;"><div style="margin-bottom:40px;">${_docEsc(f.docRedacteur)}</div><div style="border-top:1px solid #000;width:160px;margin:0 auto;padding-top:4px;">Signature</div></div></div>
+    ${_docFooter()}`;
   }
 
   // ===== COMMAND PALETTE =====
