@@ -5382,7 +5382,10 @@ Consignes :
     return { name: 'Organisation', planStatus: 'active' };
   }
 
+  const FREE_ORGS = ['aaea-cava']; // organisations gratuites permanentes
+
   function _isPlanBlocked() {
+    if (FREE_ORGS.includes(currentOrgId)) return false; // gratuit à vie
     const plan = currentOrgConfig?.planStatus;
     if (!plan || plan === 'active') return false;
     if (plan === 'suspended') return true;
