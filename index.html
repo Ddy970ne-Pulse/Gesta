@@ -5668,6 +5668,10 @@ Consignes :
     container.innerHTML = '<div style="color:var(--text-3);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>';
     try {
       const res = await fetch(`${FIREBASE_DB_URL}/superAdmin/orgs.json?auth=${currentUser.idToken}`);
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error((e?.error || `HTTP ${res.status}`) + ' — vérifiez que les règles Firebase sont publiées.');
+      }
       const data = await res.json();
       if (!data) { container.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Aucune organisation.</div>'; return; }
       container.innerHTML = Object.entries(data).map(([id, org]) => `
