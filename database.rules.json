@@ -1,21 +1,26 @@
 {
   "rules": {
 
-    // ── Index utilisateur → organisation ─────────────────────────────────────
-    "userOrgIndex": {
+    "gesta_admins": {
       "$uid": {
         ".read":  "auth != null && auth.uid === $uid",
-        ".write": "auth != null && (auth.uid === $uid || root.child('superAdmin/admins').child(auth.uid).val() === true)"
+        ".write": false
       }
     },
 
-    // ── Données par organisation ──────────────────────────────────────────────
+    "userOrgIndex": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.uid === $uid || root.child('gesta_admins').child(auth.uid).val() === true)"
+      }
+    },
+
     "orgs": {
       "$orgId": {
 
         "config": {
           ".read":  "auth != null && root.child('userOrgIndex').child(auth.uid).val() === $orgId",
-          ".write": "auth != null && root.child('superAdmin/admins').child(auth.uid).val() === true"
+          ".write": "auth != null && root.child('gesta_admins').child(auth.uid).val() === true"
         },
 
         "userProfiles": {
@@ -46,10 +51,9 @@
       }
     },
 
-    // ── Super-admin ───────────────────────────────────────────────────────────
     "superAdmin": {
-      ".read":  "auth != null && root.child('superAdmin/admins').child(auth.uid).val() === true",
-      ".write": "auth != null && root.child('superAdmin/admins').child(auth.uid).val() === true",
+      ".read":  "auth != null && root.child('gesta_admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('gesta_admins').child(auth.uid).val() === true",
       "invitations": {
         "$token": {
           ".read": true,
@@ -57,11 +61,12 @@
         }
       },
       "orgs": {
-        "$orgId": { "name": { ".read": true } }
+        "$orgId": {
+          "name": { ".read": true }
+        }
       }
     },
 
-    // ── Legacy (ancienne structure, lecture seule pendant migration) ──────────
     "tasks":        { ".read": "auth != null", ".write": false },
     "userProfiles": { ".read": "auth != null", ".write": false },
     "userTasks":    { ".read": "auth != null", ".write": false },
