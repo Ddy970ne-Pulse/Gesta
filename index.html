@@ -2755,8 +2755,44 @@
     <!-- Panel: CR → Tâches -->
     <div id="crImportPanel" class="card" style="display:none;margin-bottom:20px;">
       <div class="card-title"><i class="fas fa-file-import" style="color:var(--brand);"></i> Extraire des tâches depuis un texte / CR</div>
-      <p style="font-size:13px;color:var(--text-2);margin:0 0 12px;">Collez ci-dessous le texte brut d'un compte rendu, d'une réunion ou de notes. L'IA va extraire les actions à mener et les créer comme tâches dans GESTA.</p>
-      <textarea id="crImportText" rows="10" placeholder="Collez votre texte ici..." style="width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+      <p style="font-size:13px;color:var(--text-2);margin:0 0 12px;">Importez un fichier (TXT, DOCX, PDF), un enregistrement audio, ou collez directement du texte. L'IA extrait les actions à mener et les crée comme tâches dans GESTA.</p>
+
+      <!-- Source tabs -->
+      <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px;width:fit-content;">
+        <button id="crSrcText" onclick="crSwitchSource('text')" style="padding:7px 16px;font-size:12px;border:none;background:var(--brand);color:#fff;cursor:pointer;font-weight:600;">Texte</button>
+        <button id="crSrcFile" onclick="crSwitchSource('file')" style="padding:7px 16px;font-size:12px;border:none;background:var(--bg-2);color:var(--text);cursor:pointer;border-left:1px solid var(--border);">Fichier (TXT/DOCX)</button>
+        <button id="crSrcAudio" onclick="crSwitchSource('audio')" style="padding:7px 16px;font-size:12px;border:none;background:var(--bg-2);color:var(--text);cursor:pointer;border-left:1px solid var(--border);">Audio / Vidéo</button>
+      </div>
+
+      <!-- Text input -->
+      <div id="crSourceText">
+        <textarea id="crImportText" rows="10" placeholder="Collez votre texte ici..." style="width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+      </div>
+
+      <!-- File input -->
+      <div id="crSourceFile" style="display:none;">
+        <div id="crFileDropzone" onclick="document.getElementById('crFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--brand)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="event.preventDefault();crHandleFilesDrop(event.dataTransfer.files)"
+          style="border:2px dashed var(--border);border-radius:8px;padding:32px;text-align:center;cursor:pointer;background:var(--bg-2);transition:border-color .2s;">
+          <i class="fas fa-file-upload" style="font-size:2rem;color:var(--brand);opacity:0.6;display:block;margin-bottom:8px;"></i>
+          <div style="font-weight:600;margin-bottom:4px;">Glissez un fichier ici ou cliquez pour sélectionner</div>
+          <div style="font-size:11px;color:var(--text-2);">Formats supportés : TXT, DOCX, PDF</div>
+          <input type="file" id="crFileInput" accept=".txt,.docx,.pdf,.doc" style="display:none;" onchange="crHandleFile(this.files)">
+        </div>
+        <div id="crFileStatus" style="margin-top:8px;font-size:12px;color:var(--text-2);"></div>
+      </div>
+
+      <!-- Audio input -->
+      <div id="crSourceAudio" style="display:none;">
+        <div id="crAudioDropzone" onclick="document.getElementById('crAudioInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--brand)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="event.preventDefault();crHandleFilesDrop(event.dataTransfer.files)"
+          style="border:2px dashed var(--border);border-radius:8px;padding:32px;text-align:center;cursor:pointer;background:var(--bg-2);transition:border-color .2s;">
+          <i class="fas fa-microphone-alt" style="font-size:2rem;color:var(--brand);opacity:0.6;display:block;margin-bottom:8px;"></i>
+          <div style="font-weight:600;margin-bottom:4px;">Glissez un fichier audio ici ou cliquez pour sélectionner</div>
+          <div style="font-size:11px;color:var(--text-2);">Formats : MP3, MP4, M4A, WAV, OGG, WebM (max 25 Mo)</div>
+          <input type="file" id="crAudioInput" accept="audio/*,video/mp4,video/webm" style="display:none;" onchange="crHandleAudio(this.files)">
+        </div>
+        <div id="crAudioStatus" style="margin-top:8px;font-size:12px;color:var(--text-2);"></div>
+      </div>
+
       <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
         <button class="btn" onclick="crExtractTasks()" style="background:var(--brand);color:#fff;"><i class="fas fa-magic"></i> Analyser avec l'IA</button>
         <span id="crImportStatus" style="font-size:12px;color:var(--text-2);"></span>
@@ -7940,6 +7976,111 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
       }));
       partEl.value = names.filter(Boolean).join('\n');
     } catch (_) {}
+  }
+
+  function crSwitchSource(src) {
+    ['text','file','audio'].forEach(s => {
+      document.getElementById('crSource' + s.charAt(0).toUpperCase() + s.slice(1)).style.display = s === src ? 'block' : 'none';
+      const btn = document.getElementById('crSrc' + s.charAt(0).toUpperCase() + s.slice(1));
+      if (btn) { btn.style.background = s === src ? 'var(--brand)' : 'var(--bg-2)'; btn.style.color = s === src ? '#fff' : 'var(--text)'; }
+    });
+  }
+
+  function crHandleFilesDrop(files) {
+    if (!files.length) return;
+    const f = files[0];
+    if (f.type.startsWith('audio') || f.type.startsWith('video')) {
+      crSwitchSource('audio');
+      crHandleAudio([f]);
+    } else {
+      crSwitchSource('file');
+      crHandleFile([f]);
+    }
+  }
+
+  async function crHandleFile(files) {
+    const f = files[0]; if (!f) return;
+    const statusEl = document.getElementById('crFileStatus');
+    statusEl.textContent = `Lecture de ${f.name}...`;
+    try {
+      let text = '';
+      if (f.name.endsWith('.txt') || f.type === 'text/plain') {
+        text = await f.text();
+      } else if (f.name.endsWith('.docx')) {
+        text = await _crReadDocx(f);
+      } else if (f.name.endsWith('.pdf')) {
+        text = await _crReadPdf(f);
+      } else {
+        text = await f.text();
+      }
+      document.getElementById('crImportText').value = text;
+      crSwitchSource('text');
+      statusEl.textContent = '';
+      showMessage(`Fichier importé : ${f.name} (${text.length} caractères)`, 'success');
+    } catch (e) {
+      statusEl.textContent = 'Erreur lecture fichier: ' + e.message;
+    }
+  }
+
+  async function _crReadDocx(file) {
+    // Read DOCX as ZIP (it's a ZIP archive), extract word/document.xml, strip XML tags
+    const buf = await file.arrayBuffer();
+    const uint8 = new Uint8Array(buf);
+    // Simple ZIP parser: find PK signature entries
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    // Convert to find word/document.xml
+    const str = decoder.decode(uint8);
+    // Find document.xml content between <w:body> tags
+    const bodyMatch = str.match(/<w:body[^>]*>([\s\S]*?)<\/w:body>/);
+    if (!bodyMatch) throw new Error('Format DOCX non reconnu');
+    const bodyXml = bodyMatch[1];
+    // Extract text from <w:t> tags, add newlines at paragraph breaks
+    let text = '';
+    const paraRegex = /<w:p[\s>]([\s\S]*?)<\/w:p>/g;
+    let para;
+    while ((para = paraRegex.exec(bodyXml)) !== null) {
+      const tRegex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+      let paraText = '', t;
+      while ((t = tRegex.exec(para[1])) !== null) paraText += t[1];
+      if (paraText.trim()) text += paraText + '\n';
+    }
+    return text || bodyXml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  async function _crReadPdf(file) {
+    // For PDF, we can only read the raw bytes and try to extract visible text
+    // Since we have no PDF.js, inform user to use text version
+    throw new Error('Pour les PDF, utilisez "Enregistrer sous → Texte" ou copiez-collez le contenu. Le format DOCX ou TXT est recommandé.');
+  }
+
+  async function crHandleAudio(files) {
+    const f = files[0]; if (!f) return;
+    const statusEl = document.getElementById('crAudioStatus');
+    const apiKey = localStorage.getItem('gesta-groq-key') || GROQ_API_KEY;
+    if (!apiKey) { showMessage('Clé API Groq requise pour la transcription audio', 'warning'); return; }
+    if (f.size > 25 * 1024 * 1024) { statusEl.textContent = 'Fichier trop grand (max 25 Mo)'; return; }
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Transcription audio en cours (Groq Whisper)...';
+    try {
+      const formData = new FormData();
+      formData.append('file', f, f.name);
+      formData.append('model', 'whisper-large-v3');
+      formData.append('language', 'fr');
+      formData.append('response_format', 'text');
+      const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+        body: formData
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error?.message || `HTTP ${res.status}`); }
+      const transcript = await res.text();
+      document.getElementById('crImportText').value = transcript;
+      crSwitchSource('text');
+      statusEl.textContent = '';
+      showMessage(`Transcription terminée (${transcript.length} caractères)`, 'success');
+    } catch (e) {
+      statusEl.textContent = 'Erreur transcription: ' + e.message;
+      showMessage('Erreur transcription: ' + e.message, 'error');
+    }
   }
 
   async function crExtractTasks() {
