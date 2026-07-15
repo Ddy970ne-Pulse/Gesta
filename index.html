@@ -8104,7 +8104,7 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
           model: 'llama-3.3-70b-versatile',
           temperature: 0.2,
           messages: [
-            { role: 'system', content: `Tu es un assistant expert en gestion de projet. Analyse le texte fourni et extrait toutes les actions à mener. Pour chaque action, fournis un JSON avec : title (libellé court), description (détail si dispo), assignee (parmi: ${userList}, ou null), dueDate (ISO YYYY-MM-DD ou null), quadrant (1=urgent+important, 2=important, 3=urgent, 4=autre). Réponds UNIQUEMENT avec un tableau JSON valide, sans explication.` },
+            { role: 'system', content: `Tu es un assistant expert en gestion de projet. Analyse le texte fourni et extrait toutes les actions à mener. Pour chaque action, fournis un objet JSON avec ces champs : title (libellé court de la tâche principale), description (contexte ou détail si disponible), assignee (nom de la personne responsable parmi: ${userList}, ou null), dueDate (date ISO YYYY-MM-DD si mentionnée, sinon null), quadrant (1=urgent+important, 2=important non-urgent, 3=urgent non-important, 4=autre), subtasks (tableau de strings : les étapes ou sous-actions détaillées mentionnées pour cette tâche — tableau vide si aucune). Décompose intelligemment : si une action principale comprend des étapes distinctes, liste-les dans subtasks. Réponds UNIQUEMENT avec un tableau JSON valide, sans explication ni markdown.` },
             { role: 'user', content: text }
           ]
         })
@@ -8128,20 +8128,35 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
   function _crRenderExtractedPreview(list) {
     const el = document.getElementById('crExtractedList');
     if (!list.length) { el.innerHTML = '<p style="color:var(--text-2);">Aucune action trouvée.</p>'; document.getElementById('crExtractedPreview').style.display = 'block'; return; }
-    el.innerHTML = list.map((t, i) => `
+    el.innerHTML = list.map((t, i) => {
+      const subs = Array.isArray(t.subtasks) ? t.subtasks : [];
+      const subsHtml = subs.length ? `
+        <div style="margin-top:8px;padding-left:12px;border-left:2px solid var(--border);">
+          <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px;"><i class="fas fa-list-ul"></i> Sous-tâches (${subs.length})</div>
+          ${subs.map((s, j) => `
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+              <i class="fas fa-circle" style="font-size:5px;color:var(--text-3);flex-shrink:0;margin-top:2px;"></i>
+              <input type="text" value="${_crEsc(s)}" onchange="_crExtractedTasks[${i}].subtasks[${j}]=this.value" style="flex:1;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">
+              <button onclick="_crExtractedTasks[${i}].subtasks.splice(${j},1);_crRenderExtractedPreview(_crExtractedTasks)" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0;">×</button>
+            </div>`).join('')}
+          <button onclick="_crExtractedTasks[${i}].subtasks.push('Nouvelle sous-tâche');_crRenderExtractedPreview(_crExtractedTasks)" style="font-size:11px;background:none;border:1px dashed var(--border);border-radius:4px;color:var(--text-2);cursor:pointer;padding:2px 8px;margin-top:2px;">+ Ajouter</button>
+        </div>` : `
+        <button onclick="_crExtractedTasks[${i}].subtasks=_crExtractedTasks[${i}].subtasks||[];_crExtractedTasks[${i}].subtasks.push('Nouvelle sous-tâche');_crRenderExtractedPreview(_crExtractedTasks)" style="font-size:11px;background:none;border:1px dashed var(--border);border-radius:4px;color:var(--text-2);cursor:pointer;padding:2px 8px;margin-top:6px;">+ Sous-tâches</button>`;
+      return `
       <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;background:var(--bg-2);">
         <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;">
           <span style="font-size:11px;background:var(--brand);color:#fff;border-radius:4px;padding:1px 6px;flex-shrink:0;">Q${t.quadrant||1}</span>
-          <input type="text" value="${_crEsc(t.title)}" onchange="_crExtractedTasks[${i}].title=this.value" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:13px;">
+          <input type="text" value="${_crEsc(t.title)}" onchange="_crExtractedTasks[${i}].title=this.value" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:13px;font-weight:600;">
           <button onclick="_crExtractedTasks.splice(${i},1);_crRenderExtractedPreview(_crExtractedTasks)" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;">×</button>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text-2);">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text-2);margin-bottom:4px;">
           ${t.assignee ? `<span><i class="fas fa-user"></i> ${_crEsc(t.assignee)}</span>` : ''}
           ${t.dueDate ? `<span><i class="fas fa-calendar"></i> ${t.dueDate}</span>` : ''}
-          ${t.description ? `<span>${_crEsc(t.description.slice(0,80))}${t.description.length>80?'…':''}</span>` : ''}
+          ${t.description ? `<span>${_crEsc(t.description.slice(0,100))}${t.description.length>100?'…':''}</span>` : ''}
         </div>
-      </div>
-    `).join('');
+        ${subsHtml}
+      </div>`;
+    }).join('');
     document.getElementById('crExtractedPreview').style.display = 'block';
   }
 
@@ -8156,6 +8171,8 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
           const m = knownUsers.find(u => (u.fullName||'').toLowerCase().includes(t.assignee.toLowerCase()) || (u.email||'').toLowerCase().includes(t.assignee.toLowerCase()));
           if (m) assigneeUid = m.uid;
         }
+        const subs = Array.isArray(t.subtasks) ? t.subtasks.filter(Boolean) : [];
+        const checklist = subs.map((s, idx) => ({ id: 'cl-' + idx, text: s, done: false, priority: 'normal', order: idx }));
         const task = {
           title: t.title || 'Sans titre',
           description: t.description || '',
@@ -8165,7 +8182,8 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
           assignedTo: assigneeUid || currentUser.uid,
           createdBy: currentUser.uid,
           createdAt: Date.now(),
-          source: 'cr-import'
+          source: 'cr-import',
+          ...(checklist.length ? { checklist } : {})
         };
         const taskId = 'task-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
         const r = await fetch(`${FIREBASE_DB_URL}/orgs/${currentOrgId}/tasks/${taskId}.json?auth=${currentUser.idToken}`, {
