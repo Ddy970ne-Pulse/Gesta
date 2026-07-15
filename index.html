@@ -1474,8 +1474,37 @@
         padding: 32px 40px; overflow: visible;
         font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6;
       }
+      #crPrintArea, #crPrintArea * { visibility: visible; }
+      #crPrintArea {
+        position: fixed; inset: 0; z-index: 99999;
+        background: white; color: #111;
+        padding: 28px 36px; overflow: visible;
+        font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6;
+      }
     }
     #reportPrintArea { display: none; }
+
+    /* CR document styles */
+    .cr-doc { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; color: #111; background: white; }
+    .cr-doc-header { text-align: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 3px double #1A7A6E; }
+    .cr-doc-header .org-name { font-size: 14px; font-weight: 700; color: #1A7A6E; margin: 0 0 2px; }
+    .cr-doc-header .org-sub { font-size: 13px; font-weight: 700; color: #1A7A6E; margin: 0 0 12px; }
+    .cr-doc-header .cr-title { font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin: 8px 0; color: #111; }
+    .cr-meta-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }
+    .cr-meta-table td { padding: 4px 8px; border: 1px solid #ccc; }
+    .cr-meta-table td:first-child { font-weight: 700; background: #f0f7f6; width: 160px; }
+    .cr-section-title { font-size: 13px; font-weight: 800; background: #1A7A6E; color: white; padding: 5px 10px; margin: 16px 0 8px; }
+    .cr-subsection-title { font-size: 12px; font-weight: 700; color: #1A7A6E; margin: 12px 0 6px; border-left: 3px solid #1A7A6E; padding-left: 8px; }
+    .cr-action-block { background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px; margin: 8px 0; font-size: 11px; }
+    .cr-action-block .cr-action-label { font-weight: 700; color: #1A7A6E; font-size: 11px; margin-bottom: 4px; }
+    .cr-summary-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 11px; }
+    .cr-summary-table th { background: #1A7A6E; color: white; padding: 5px 8px; text-align: left; font-weight: 700; }
+    .cr-summary-table td { padding: 4px 8px; border: 1px solid #ddd; vertical-align: top; }
+    .cr-summary-table tr:nth-child(even) td { background: #f8f8f8; }
+    .cr-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #555; }
+    .cr-status-todo { color: #e67e22; font-weight: 600; }
+    .cr-status-inprogress { color: #2980b9; font-weight: 600; }
+    .cr-status-done { color: #27ae60; font-weight: 600; }
 
     .report-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1A7A6E; padding-bottom:16px; margin-bottom:24px; }
     .report-header h1 { font-size:22px; font-weight:800; color:#1A7A6E; margin:0 0 4px; }
@@ -2038,6 +2067,10 @@
     <button class="nav-item" data-tab="coach" onclick="switchTab('coach')">
       <i class="fas fa-brain"></i>
       <span>Coach IA</span>
+    </button>
+    <button class="nav-item" data-tab="cr" onclick="switchTab('cr')">
+      <i class="fas fa-file-alt"></i>
+      <span>Comptes Rendus</span>
     </button>
     <button class="nav-item" data-tab="admin" id="adminTabBtn" style="display:none;" onclick="switchTab('admin')">
       <i class="fas fa-shield-alt"></i>
@@ -2705,6 +2738,117 @@
     </div>
   </div>
 
+  <!-- COMPTES RENDUS -->
+  <div id="cr-tab" class="tab-content">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <h2 style="margin:0;font-size:1.3rem;"><i class="fas fa-file-alt" style="color:var(--brand);margin-right:8px;"></i>Comptes Rendus</h2>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn" id="crTabImport" onclick="showCrPanel('import')" style="background:var(--brand);color:#fff;">
+          <i class="fas fa-file-import"></i> CR → Tâches
+        </button>
+        <button class="btn" id="crTabGenerate" onclick="showCrPanel('generate')" style="background:var(--success);color:#fff;">
+          <i class="fas fa-file-export"></i> Tâches → CR
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel: CR → Tâches -->
+    <div id="crImportPanel" class="card" style="display:none;margin-bottom:20px;">
+      <div class="card-title"><i class="fas fa-file-import" style="color:var(--brand);"></i> Extraire des tâches depuis un texte / CR</div>
+      <p style="font-size:13px;color:var(--text-2);margin:0 0 12px;">Collez ci-dessous le texte brut d'un compte rendu, d'une réunion ou de notes. L'IA va extraire les actions à mener et les créer comme tâches dans GESTA.</p>
+      <textarea id="crImportText" rows="10" placeholder="Collez votre texte ici..." style="width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+        <button class="btn" onclick="crExtractTasks()" style="background:var(--brand);color:#fff;"><i class="fas fa-magic"></i> Analyser avec l'IA</button>
+        <span id="crImportStatus" style="font-size:12px;color:var(--text-2);"></span>
+      </div>
+      <div id="crExtractedPreview" style="display:none;margin-top:16px;">
+        <div style="font-weight:600;margin-bottom:10px;font-size:14px;">Tâches extraites — vérifiez avant d'importer :</div>
+        <div id="crExtractedList"></div>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+          <button class="btn" onclick="crImportConfirm()" style="background:var(--success);color:#fff;"><i class="fas fa-check"></i> Importer toutes les tâches</button>
+          <button class="btn" onclick="document.getElementById('crExtractedPreview').style.display='none'" style="background:var(--bg-2);border:1px solid var(--border);">Annuler</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Tâches → CR -->
+    <div id="crGeneratePanel" class="card" style="display:none;">
+      <div class="card-title"><i class="fas fa-file-export" style="color:var(--success);"></i> Générer un Compte Rendu depuis GESTA</div>
+      <div class="grid-2" style="gap:12px;margin-bottom:16px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">N° du CR</label>
+          <input type="text" id="crNum" placeholder="ex: 2025-09" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Date de réunion</label>
+          <input type="date" id="crDate" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Heure</label>
+          <input type="time" id="crHeure" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Lieu</label>
+          <input type="text" id="crLieu" placeholder="ex: Salle de réunion CAVA" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Type de réunion</label>
+          <input type="text" id="crType" placeholder="ex: Réunion institutionnelle" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Service</label>
+          <input type="text" id="crService" placeholder="ex: CAVA" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Rédacteur</label>
+          <input type="text" id="crRedacteur" placeholder="Nom du rédacteur" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Titre du rédacteur</label>
+          <input type="text" id="crRedacteurTitre" placeholder="ex: Attaché de direction" value="Attaché de direction" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Participants</label>
+        <textarea id="crParticipants" rows="3" placeholder="Liste des participants (un par ligne)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Ordre du jour</label>
+        <textarea id="crOdj" rows="4" placeholder="Points à l'ordre du jour (un par ligne)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Prochaine réunion (facultatif)</label>
+        <input type="text" id="crProchaineReunion" placeholder="ex: 15 octobre 2025, 14h00, Salle de réunion CAVA" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Filtrer les tâches à inclure</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;"><input type="checkbox" id="crIncludeTodo" checked> À faire</label>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;"><input type="checkbox" id="crIncludeInProgress" checked> En cours</label>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;"><input type="checkbox" id="crIncludeDone"> Réalisées</label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="crGenerateDocument()" style="background:var(--success);color:#fff;"><i class="fas fa-file-pdf"></i> Générer le CR</button>
+        <button class="btn" onclick="crPreviewDocument()" style="background:var(--brand);color:#fff;"><i class="fas fa-eye"></i> Aperçu</button>
+      </div>
+    </div>
+
+    <!-- Welcome state -->
+    <div id="crWelcome" class="card" style="text-align:center;padding:48px 24px;">
+      <i class="fas fa-file-alt" style="font-size:3rem;color:var(--brand);opacity:0.5;"></i>
+      <h3 style="margin:16px 0 8px;">Comptes Rendus CAVA</h3>
+      <p style="color:var(--text-2);font-size:14px;max-width:400px;margin:0 auto 24px;">Importez un CR existant pour en extraire des tâches, ou générez un nouveau CR à partir de vos tâches GESTA.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn" onclick="showCrPanel('import')" style="background:var(--brand);color:#fff;padding:12px 24px;"><i class="fas fa-file-import"></i> Extraire des tâches d'un texte</button>
+        <button class="btn" onclick="showCrPanel('generate')" style="background:var(--success);color:#fff;padding:12px 24px;"><i class="fas fa-file-export"></i> Générer un Compte Rendu</button>
+      </div>
+    </div>
+
+    <!-- Hidden print area for CR -->
+    <div id="crPrintArea" style="display:none;"></div>
+  </div>
+
   <!-- ADMIN -->
   <div id="admin-tab" class="tab-content">
     <div class="grid-2" style="margin-bottom:24px;">
@@ -2880,6 +3024,8 @@
   const SUPER_ADMIN_EMAILS = ['dacalor.diego@gmail.com']; // emails super-admin (accès GESTA SaaS)
   const STRIPE_PAYMENT_LINK = ''; // ex: https://buy.stripe.com/xxx — à configurer dans le super-admin
   const TRIAL_DAYS = 14;
+  const _getGroqKey = () => localStorage.getItem('gesta-groq-key') || document.getElementById('claudeApiKey')?.value?.trim() || '';
+  Object.defineProperty(window, 'GROQ_API_KEY', { get: _getGroqKey });
 
   // Retourne le token d'auth approprié : idToken Firebase Auth si connecté, sinon API key
   function firebaseAuth() {
@@ -2997,6 +3143,7 @@
     'coach': 'Coach IA',
     'planner': 'Planificateur',
     'gantt': 'Gantt',
+    'cr': 'Comptes Rendus',
     'admin': 'Administration'
   };
 
@@ -3022,8 +3169,14 @@
       else if (name === 'analytics') renderAnalytics(visible);
       else if (name === 'planner') renderPlanner(visible);
       else if (name === 'historique') renderHistory(visible, currentHistoryFilter);
-      else if (name === 'coach') renderCoach(visible);
+      else if (name === 'coach') { renderCoach(visible); const sb = document.getElementById('coachSendBtn'); if (sb) sb.disabled = false; }
       else if (name === 'gantt') renderGantt(visible);
+      else if (name === 'cr') {
+        const crWelcome = document.getElementById('crWelcome');
+        if (crWelcome && document.getElementById('crImportPanel').style.display === 'none' && document.getElementById('crGeneratePanel').style.display === 'none') {
+          crWelcome.style.display = 'block';
+        }
+      }
     }
   }
 
@@ -7749,6 +7902,227 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
       });
     }
   });
+
+  // ===== COMPTES RENDUS (CR) =====
+
+  let _crExtractedTasks = [];
+
+  function showCrPanel(panel) {
+    document.getElementById('crWelcome').style.display = 'none';
+    document.getElementById('crImportPanel').style.display = 'none';
+    document.getElementById('crGeneratePanel').style.display = 'none';
+    if (panel === 'import') {
+      document.getElementById('crImportPanel').style.display = 'block';
+    } else if (panel === 'generate') {
+      const redEl = document.getElementById('crRedacteur');
+      if (redEl && !redEl.value && currentUser) redEl.value = currentUser.fullName || '';
+      const dateEl = document.getElementById('crDate');
+      if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
+      _crPrefillParticipants();
+      document.getElementById('crGeneratePanel').style.display = 'block';
+    }
+  }
+
+  async function _crPrefillParticipants() {
+    if (!currentOrgId || !currentUser) return;
+    const partEl = document.getElementById('crParticipants');
+    if (!partEl || partEl.value) return;
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/orgs/${currentOrgId}/userProfiles.json?auth=${currentUser.idToken}&shallow=true`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data) return;
+      const uids = Object.keys(data);
+      const names = await Promise.all(uids.map(async uid => {
+        const r = await fetch(`${FIREBASE_DB_URL}/orgs/${currentOrgId}/userProfiles/${uid}/name.json?auth=${currentUser.idToken}`);
+        if (!r.ok) return null;
+        return r.json();
+      }));
+      partEl.value = names.filter(Boolean).join('\n');
+    } catch (_) {}
+  }
+
+  async function crExtractTasks() {
+    const text = document.getElementById('crImportText').value.trim();
+    if (!text) { showMessage('Collez du texte à analyser', 'warning'); return; }
+    const apiKey = localStorage.getItem('gesta-groq-key') || GROQ_API_KEY;
+    if (!apiKey) { showMessage('Clé API Groq requise (paramètres)', 'warning'); return; }
+
+    const statusEl = document.getElementById('crImportStatus');
+    statusEl.textContent = 'Analyse en cours...';
+    const btn = document.querySelector('#crImportPanel button');
+    if (btn) btn.disabled = true;
+
+    const userList = (knownUsers||[]).map(u => u.fullName || u.email).join(', ') || 'membres de l\'équipe';
+
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.2,
+          messages: [
+            { role: 'system', content: `Tu es un assistant expert en gestion de projet. Analyse le texte fourni et extrait toutes les actions à mener. Pour chaque action, fournis un JSON avec : title (libellé court), description (détail si dispo), assignee (parmi: ${userList}, ou null), dueDate (ISO YYYY-MM-DD ou null), quadrant (1=urgent+important, 2=important, 3=urgent, 4=autre). Réponds UNIQUEMENT avec un tableau JSON valide, sans explication.` },
+            { role: 'user', content: text }
+          ]
+        })
+      });
+      const data = await resp.json();
+      let raw = (data.choices?.[0]?.message?.content || '[]').replace(/```json?\s*/g,'').replace(/```/g,'').trim();
+      let extracted = JSON.parse(raw);
+      if (!Array.isArray(extracted)) extracted = [];
+      _crExtractedTasks = extracted;
+      _crRenderExtractedPreview(extracted);
+      statusEl.textContent = `${extracted.length} tâche(s) extraite(s)`;
+    } catch (e) {
+      statusEl.textContent = 'Erreur: ' + e.message;
+      showMessage('Erreur analyse IA: ' + e.message, 'error');
+    }
+    if (btn) btn.disabled = false;
+  }
+
+  function _crEsc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function _crRenderExtractedPreview(list) {
+    const el = document.getElementById('crExtractedList');
+    if (!list.length) { el.innerHTML = '<p style="color:var(--text-2);">Aucune action trouvée.</p>'; document.getElementById('crExtractedPreview').style.display = 'block'; return; }
+    el.innerHTML = list.map((t, i) => `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;background:var(--bg-2);">
+        <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;">
+          <span style="font-size:11px;background:var(--brand);color:#fff;border-radius:4px;padding:1px 6px;flex-shrink:0;">Q${t.quadrant||1}</span>
+          <input type="text" value="${_crEsc(t.title)}" onchange="_crExtractedTasks[${i}].title=this.value" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:13px;">
+          <button onclick="_crExtractedTasks.splice(${i},1);_crRenderExtractedPreview(_crExtractedTasks)" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;">×</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text-2);">
+          ${t.assignee ? `<span><i class="fas fa-user"></i> ${_crEsc(t.assignee)}</span>` : ''}
+          ${t.dueDate ? `<span><i class="fas fa-calendar"></i> ${t.dueDate}</span>` : ''}
+          ${t.description ? `<span>${_crEsc(t.description.slice(0,80))}${t.description.length>80?'…':''}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('crExtractedPreview').style.display = 'block';
+  }
+
+  async function crImportConfirm() {
+    if (!_crExtractedTasks.length) return;
+    if (!currentUser || !currentOrgId) { showMessage('Non connecté', 'error'); return; }
+    let created = 0, failed = 0;
+    for (const t of _crExtractedTasks) {
+      try {
+        let assigneeUid = null;
+        if (t.assignee && allMembers) {
+          const m = knownUsers.find(u => (u.fullName||'').toLowerCase().includes(t.assignee.toLowerCase()) || (u.email||'').toLowerCase().includes(t.assignee.toLowerCase()));
+          if (m) assigneeUid = m.uid;
+        }
+        const task = {
+          title: t.title || 'Sans titre',
+          description: t.description || '',
+          quadrant: t.quadrant || 1,
+          status: 'todo',
+          dueDate: t.dueDate || null,
+          assignedTo: assigneeUid || currentUser.uid,
+          createdBy: currentUser.uid,
+          createdAt: Date.now(),
+          source: 'cr-import'
+        };
+        const taskId = 'task-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
+        const r = await fetch(`${FIREBASE_DB_URL}/orgs/${currentOrgId}/tasks/${taskId}.json?auth=${currentUser.idToken}`, {
+          method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(task)
+        });
+        if (r.ok) created++; else failed++;
+      } catch (_) { failed++; }
+    }
+    showMessage(`${created} tâche(s) créée(s)${failed ? `, ${failed} erreur(s)` : ''}`, created > 0 ? 'success' : 'error');
+    if (created > 0) {
+      await fetchTasks();
+      document.getElementById('crExtractedPreview').style.display = 'none';
+      document.getElementById('crImportText').value = '';
+      document.getElementById('crImportStatus').textContent = '';
+      _crExtractedTasks = [];
+    }
+  }
+
+  function _crStatusLabel(status) {
+    if (status === 'done') return '<span class="cr-status-done">Réalisé</span>';
+    if (status === 'in-progress' || status === 'inprogress') return '<span class="cr-status-inprogress">En cours</span>';
+    return '<span class="cr-status-todo">À faire</span>';
+  }
+
+  function _crBuildDocument() {
+    const num = document.getElementById('crNum').value || '—';
+    const rawDate = document.getElementById('crDate').value;
+    const date = rawDate ? new Date(rawDate).toLocaleDateString('fr-FR', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) : '—';
+    const heure = document.getElementById('crHeure').value || '—';
+    const lieu = document.getElementById('crLieu').value || '—';
+    const type = document.getElementById('crType').value || 'Réunion';
+    const service = document.getElementById('crService').value || '—';
+    const redacteur = document.getElementById('crRedacteur').value || currentUser?.fullName || '—';
+    const redTitre = document.getElementById('crRedacteurTitre').value || '';
+    const participants = (document.getElementById('crParticipants').value || '').split('\n').filter(Boolean);
+    const odjLines = (document.getElementById('crOdj').value || '').split('\n').filter(Boolean);
+    const prochaineReunion = document.getElementById('crProchaineReunion').value || '';
+    const includeTodo = document.getElementById('crIncludeTodo').checked;
+    const includeInProgress = document.getElementById('crIncludeInProgress').checked;
+    const includeDone = document.getElementById('crIncludeDone').checked;
+
+    const allT = tasks.filter(t => {
+      if (t.status === 'done' && !includeDone) return false;
+      if ((t.status === 'in-progress' || t.status === 'inprogress') && !includeInProgress) return false;
+      if (t.status === 'todo' && !includeTodo) return false;
+      return true;
+    });
+
+    const byQ = {1:[], 2:[], 3:[], 4:[]};
+    allT.forEach(t => byQ[t.quadrant || 1].push(t));
+    const qNames = {1:'Actions urgentes et prioritaires', 2:'Planification et développement', 3:'Actions à déléguer', 4:'Tâches secondaires'};
+    const memberName = uid => { const m = (knownUsers||[]).find(u => u.uid === uid); return m ? (m.fullName||m.email) : uid||'—'; };
+
+    let sIdx = 3, sHtml = '', rows = [], rIdx = 1;
+    [1,2,3,4].forEach(q => {
+      const qt = byQ[q]; if (!qt.length) return;
+      sHtml += `<div class="cr-section-title">${sIdx}. ${qNames[q]}</div>`;
+      qt.forEach(t => {
+        const resp = memberName(t.assignedTo);
+        const due = t.dueDate ? new Date(t.dueDate).toLocaleDateString('fr-FR') : '—';
+        sHtml += `<div style="margin-bottom:8px;"><div style="font-weight:600;margin-bottom:2px;">${_crEsc(t.title)}</div>${t.description?`<div style="color:#444;font-size:11px;margin-bottom:4px;">${_crEsc(t.description)}</div>`:''}<div class="cr-action-block"><div class="cr-action-label">Plan d'action :</div><div>${_crEsc(t.title)} — <strong>${_crEsc(resp)}</strong>${due!=='—'?` — ${due}`:''}</div></div></div>`;
+        rows.push({ idx: rIdx++, title: t.title, responsible: resp, due, status: t.status });
+      });
+      sIdx++;
+    });
+
+    const trs = rows.map(r => `<tr><td style="text-align:center;width:32px;">${r.idx}</td><td>${_crEsc(r.title)}</td><td>${_crEsc(r.responsible)}</td><td style="white-space:nowrap;">${r.due}</td><td>${_crStatusLabel(r.status)}</td></tr>`).join('');
+    const today = new Date().toLocaleDateString('fr-FR');
+
+    return `<div class="cr-doc">
+<div class="cr-doc-header"><div class="org-name">Association pour l'Aide à l'Enfance et à l'Adolescence (A.A.E.A)</div><div class="org-sub">Centre d'Adaptation à la Vie Active (C.A.V.A) — Ateliers 44</div><div class="cr-title">Compte Rendu de Réunion Institutionnelle</div></div>
+<table class="cr-meta-table"><tr><td>N° du CR</td><td>${_crEsc(num)}</td><td>Type de réunion</td><td>${_crEsc(type)}</td></tr><tr><td>Date</td><td>${date}</td><td>Service</td><td>${_crEsc(service)}</td></tr><tr><td>Heure</td><td>${_crEsc(heure)}</td><td>Rédacteur</td><td>${_crEsc(redacteur)}${redTitre?', '+_crEsc(redTitre):''}</td></tr><tr><td>Lieu</td><td colspan="3">${_crEsc(lieu)}</td></tr></table>
+<div class="cr-section-title">1. Participants</div>${participants.length?`<ul style="margin:4px 0 8px 16px;padding:0;">${participants.map(p=>`<li>${_crEsc(p)}</li>`).join('')}</ul>`:'<p>—</p>'}
+<div class="cr-section-title">2. Ordre du jour</div>${odjLines.length?`<ol style="margin:4px 0 8px 16px;padding:0;">${odjLines.map(l=>`<li>${_crEsc(l)}</li>`).join('')}</ol>`:'<p>—</p>'}
+${sHtml}
+<div class="cr-section-title">${sIdx}. Tableau récapitulatif des actions à mener</div>${rows.length?`<table class="cr-summary-table"><thead><tr><th>N°</th><th>Action</th><th>Responsable</th><th>Échéance</th><th>Statut</th></tr></thead><tbody>${trs}</tbody></table>`:'<p>Aucune action.</p>'}
+${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion</div><p>${_crEsc(prochaineReunion)}</p>`:''}
+<div class="cr-footer"><div>Document rédigé le ${today} — Rédacteur : ${_crEsc(redacteur)}${redTitre?', '+_crEsc(redTitre):''}</div><div style="margin-top:4px;">Émargement : feuille jointe</div><div style="margin-top:2px;">Diffusion : ensemble du personnel du CAVA, cadres de direction, Direction générale AEA</div></div>
+</div>`;
+  }
+
+  const _crPrintStyles = `body{font-family:Arial,sans-serif;font-size:12px;line-height:1.6;color:#111;padding:32px 48px;max-width:860px;margin:0 auto;}.cr-doc-header{text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:3px double #1A7A6E;}.org-name{font-size:14px;font-weight:700;color:#1A7A6E;margin:0 0 2px;}.org-sub{font-size:13px;font-weight:700;color:#1A7A6E;margin:0 0 12px;}.cr-title{font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:8px 0;color:#111;}.cr-meta-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:12px;}.cr-meta-table td{padding:4px 8px;border:1px solid #ccc;}.cr-meta-table td:first-child{font-weight:700;background:#f0f7f6;width:160px;}.cr-section-title{font-size:13px;font-weight:800;background:#1A7A6E;color:white;padding:5px 10px;margin:16px 0 8px;}.cr-action-block{background:#f8f8f8;border:1px solid #ddd;border-radius:4px;padding:8px 12px;margin:8px 0;font-size:11px;}.cr-action-label{font-weight:700;color:#1A7A6E;font-size:11px;margin-bottom:4px;}.cr-summary-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px;}.cr-summary-table th{background:#1A7A6E;color:white;padding:5px 8px;text-align:left;font-weight:700;}.cr-summary-table td{padding:4px 8px;border:1px solid #ddd;vertical-align:top;}.cr-summary-table tr:nth-child(even) td{background:#f8f8f8;}.cr-footer{margin-top:24px;padding-top:12px;border-top:1px solid #ccc;font-size:11px;color:#555;}.cr-status-todo{color:#e67e22;font-weight:600;}.cr-status-inprogress{color:#2980b9;font-weight:600;}.cr-status-done{color:#27ae60;font-weight:600;}@media print{body{padding:16px 24px;}.no-print{display:none;}}`;
+
+  function crPreviewDocument() {
+    const html = _crBuildDocument();
+    const win = window.open('', '_blank', 'width=900,height=700');
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Aperçu CR</title><style>${_crPrintStyles}</style></head><body>${html}<br><button class="no-print" onclick="window.print()" style="margin-top:16px;padding:10px 24px;background:#1A7A6E;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Imprimer / Enregistrer en PDF</button></body></html>`);
+    win.document.close();
+  }
+
+  function crGenerateDocument() {
+    const printArea = document.getElementById('crPrintArea');
+    printArea.innerHTML = _crBuildDocument();
+    printArea.style.display = 'block';
+    window.print();
+    setTimeout(() => { printArea.style.display = 'none'; }, 2000);
+  }
+
 </script>
 
 <script>
@@ -7770,5 +8144,7 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
 </script>
 
 <div id="reportPrintArea"></div>
+
+
 </body>
 </html>
