@@ -1968,6 +1968,7 @@
       <div class="sidebar-user-info">
         <div class="sidebar-user-name" id="userFullName">—</div>
         <div class="sidebar-user-role" id="roleBadge">—</div>
+        <div id="orgBadge" style="display:none;font-size:9px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;opacity:.8;"></div>
       </div>
       <div class="sidebar-actions">
         <button class="sidebar-icon-btn" onclick="toggleDarkMode()" id="darkToggle" title="Mode sombre/clair"><i class="fas fa-moon"></i></button>
@@ -5476,9 +5477,13 @@ Consignes :
     const saasBtn = document.getElementById('saasPanelBtn');
     if (saasBtn) saasBtn.style.display = currentUser.isSuperAdmin ? 'flex' : 'none';
 
-    // Afficher le nom de l'organisation dans le sous-titre
-    const orgName = currentOrgConfig?.name;
-    if (orgName) document.getElementById('myspaceSubtitle').textContent = currentUser.role + ' · ' + orgName;
+    // Afficher le nom de l'organisation
+    const orgName = currentOrgConfig?.name || currentOrgId;
+    if (orgName) {
+      document.getElementById('myspaceSubtitle').textContent = currentUser.role + ' · ' + orgName;
+      const orgBadge = document.getElementById('orgBadge');
+      if (orgBadge) { orgBadge.textContent = orgName; orgBadge.style.display = 'block'; }
+    }
 
     loadKnownUsers();
     initializeApp();
