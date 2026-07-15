@@ -1464,6 +1464,69 @@
     .notif-item:hover .notif-dismiss { opacity: 1; }
     .notif-dismiss:hover { color: var(--text); }
 
+    /* ===== FOCUS / POMODORO ===== */
+    #pomoStartBtn:hover { filter: brightness(1.1); }
+
+    /* ===== PRÉSENTATION PLEIN ÉCRAN ===== */
+    #presOverlay {
+      display: none; position: fixed; inset: 0; z-index: 99998;
+      background: #0d0d1a; color: #fff;
+      font-family: Arial, sans-serif;
+      flex-direction: column;
+    }
+    #presOverlay.active { display: flex; }
+    #presSlide {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 48px 80px; text-align: center;
+      animation: slideIn .4s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+    #presNav {
+      display: flex; gap: 16px; align-items: center; justify-content: center;
+      padding: 16px; background: rgba(255,255,255,.05); border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .pres-nav-btn {
+      padding: 10px 24px; border: 1px solid rgba(255,255,255,.3); border-radius: 8px;
+      background: rgba(255,255,255,.1); color: #fff; cursor: pointer; font-size: 14px;
+    }
+    .pres-nav-btn:hover { background: rgba(255,255,255,.2); }
+    #presProgress { color: rgba(255,255,255,.5); font-size:13px; }
+    .pres-kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-top: 32px; width: 100%; max-width: 900px; }
+    .pres-kpi { background: rgba(255,255,255,.07); border-radius: 12px; padding: 24px 16px; }
+    .pres-kpi .val { font-size: 3rem; font-weight: 800; color: #4fc3f7; }
+    .pres-kpi .lbl { font-size: 13px; color: rgba(255,255,255,.6); margin-top: 6px; }
+    .pres-task-list { width: 100%; max-width: 800px; margin-top: 24px; text-align: left; }
+    .pres-task-item { display:flex; gap:12px; align-items:flex-start; padding:12px 16px; background:rgba(255,255,255,.07); border-radius:8px; margin-bottom:8px; }
+    .pres-task-badge { flex-shrink:0; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    .pres-gantt-bar-wrap { width:100%;max-width:900px;margin-top:24px; }
+
+    /* ===== COACH VOCAL ===== */
+    #voiceCoachOverlay {
+      display: none; position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center; flex-direction: column;
+    }
+    #voiceCoachOverlay.active { display: flex; }
+    #voiceOrb {
+      width: 120px; height: 120px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #4fc3f7, #1A7A6E);
+      box-shadow: 0 0 0 0 rgba(79,195,247,.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem; cursor: pointer; transition: transform .2s;
+      margin-bottom: 24px;
+    }
+    #voiceOrb.listening {
+      animation: orbPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes orbPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(79,195,247,.4); transform: scale(1); }
+      50% { box-shadow: 0 0 0 32px rgba(79,195,247,0); transform: scale(1.08); }
+    }
+    #voiceTranscript { color: #fff; font-size: 18px; max-width: 600px; text-align: center; min-height: 60px; margin-bottom: 16px; line-height: 1.5; }
+    #voiceReply { color: rgba(255,255,255,.8); font-size: 15px; max-width: 600px; text-align: center; min-height: 48px; line-height: 1.6; }
+    #voiceStatus { color: rgba(255,255,255,.5); font-size:12px; margin-top:16px; }
+
     /* ===== PRINT ===== */
     @media print {
       body * { visibility: hidden; }
@@ -2072,6 +2135,14 @@
       <i class="fas fa-file-alt"></i>
       <span>Comptes Rendus</span>
     </button>
+    <button class="nav-item" data-tab="focus" onclick="switchTab('focus')">
+      <i class="fas fa-crosshairs"></i>
+      <span>Focus</span>
+    </button>
+    <button class="nav-item" data-tab="presentation" onclick="switchTab('presentation')">
+      <i class="fas fa-tv"></i>
+      <span>Présentation</span>
+    </button>
     <button class="nav-item" data-tab="admin" id="adminTabBtn" style="display:none;" onclick="switchTab('admin')">
       <i class="fas fa-shield-alt"></i>
       <span>Administration</span>
@@ -2138,6 +2209,7 @@
         <button class="btn btn-ghost btn-icon" onclick="exportCSV()" title="Export CSV"><i class="fas fa-file-csv"></i></button>
         <button class="btn btn-ghost btn-icon" onclick="exportICAL()" title="Export iCal"><i class="fas fa-calendar-check"></i></button>
         <button class="btn btn-ghost btn-icon" onclick="window.print()" title="Imprimer"><i class="fas fa-print"></i></button>
+        <button class="btn btn-ghost btn-icon" onclick="openVoiceCoach()" title="Coach vocal IA" id="voiceCoachBtn" style="color:var(--brand);"><i class="fas fa-microphone"></i></button>
         <button class="btn btn-ghost btn-icon" onclick="showKeyboardHelp()" title="Raccourcis (?)"><i class="fas fa-keyboard"></i></button>
         <button class="btn btn-primary btn-small" id="pwaInstallBtn" style="display:none;" onclick="pwaInstall()"><i class="fas fa-download"></i> Installer</button>
       </div>
@@ -2885,6 +2957,139 @@
     <div id="crPrintArea" style="display:none;"></div>
   </div>
 
+  <!-- FOCUS + POMODORO -->
+  <div id="focus-tab" class="tab-content">
+    <div style="max-width:680px;margin:0 auto;">
+
+      <!-- Sélection tâche focus -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title"><i class="fas fa-crosshairs" style="color:var(--brand);"></i> Tâche en cours de focus</div>
+        <select id="focusTaskSelect" onchange="focusSelectTask(this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:14px;margin-bottom:10px;">
+          <option value="">— Choisir une tâche —</option>
+        </select>
+        <div id="focusTaskInfo" style="display:none;padding:10px;background:var(--bg-2);border-radius:8px;border-left:3px solid var(--brand);">
+          <div id="focusTaskTitle" style="font-weight:700;font-size:15px;margin-bottom:4px;"></div>
+          <div id="focusTaskMeta" style="font-size:12px;color:var(--text-2);"></div>
+        </div>
+      </div>
+
+      <!-- Minuteur Pomodoro -->
+      <div class="card" style="text-align:center;margin-bottom:16px;">
+        <div class="card-title" style="justify-content:center;"><i class="fas fa-clock" style="color:var(--danger);"></i> Minuteur Pomodoro</div>
+
+        <!-- Mode selector -->
+        <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content;margin:0 auto 20px;">
+          <button id="pomoBtnWork" onclick="pomoSetMode('work')" style="padding:7px 18px;font-size:12px;border:none;background:var(--danger);color:#fff;cursor:pointer;font-weight:600;">Travail · 25 min</button>
+          <button id="pomoBtnShort" onclick="pomoSetMode('short')" style="padding:7px 18px;font-size:12px;border:none;background:var(--bg-2);color:var(--text);cursor:pointer;border-left:1px solid var(--border);">Pause courte · 5 min</button>
+          <button id="pomoBtnLong" onclick="pomoSetMode('long')" style="padding:7px 18px;font-size:12px;border:none;background:var(--bg-2);color:var(--text);cursor:pointer;border-left:1px solid var(--border);">Pause longue · 15 min</button>
+        </div>
+
+        <!-- Ring timer -->
+        <div style="position:relative;width:200px;height:200px;margin:0 auto 20px;">
+          <svg width="200" height="200" style="transform:rotate(-90deg);">
+            <circle cx="100" cy="100" r="88" fill="none" stroke="var(--border)" stroke-width="10"/>
+            <circle id="pomoRing" cx="100" cy="100" r="88" fill="none" stroke="var(--danger)" stroke-width="10"
+              stroke-dasharray="553" stroke-dashoffset="0" style="transition:stroke-dashoffset .5s linear,stroke .3s;"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div id="pomoTime" style="font-size:3rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px;">25:00</div>
+            <div id="pomoLabel" style="font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Travail</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:center;align-items:center;">
+          <button id="pomoStartBtn" onclick="pomoToggle()" style="padding:12px 32px;background:var(--danger);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;min-width:120px;">
+            <i class="fas fa-play"></i> Démarrer
+          </button>
+          <button onclick="pomoReset()" style="padding:12px 16px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;font-size:14px;cursor:pointer;color:var(--text);">
+            <i class="fas fa-redo"></i>
+          </button>
+        </div>
+
+        <!-- Compteur sessions -->
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;align-items:center;">
+          <div id="pomoSessions" style="display:flex;gap:6px;"></div>
+          <span style="font-size:12px;color:var(--text-2);" id="pomoSessionCount"></span>
+        </div>
+      </div>
+
+      <!-- Checklist focus -->
+      <div class="card" id="focusChecklistCard" style="display:none;">
+        <div class="card-title"><i class="fas fa-tasks" style="color:var(--success);"></i> Sous-tâches de la session</div>
+        <div id="focusChecklist" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Stats session -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title"><i class="fas fa-chart-bar" style="color:var(--warning);"></i> Session d'aujourd'hui</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div id="focusStatPomos" style="font-size:2rem;font-weight:800;color:var(--danger);">0</div>
+            <div style="font-size:11px;color:var(--text-2);">Pomodoros</div>
+          </div>
+          <div style="text-align:center;">
+            <div id="focusStatMins" style="font-size:2rem;font-weight:800;color:var(--brand);">0</div>
+            <div style="font-size:11px;color:var(--text-2);">Minutes focus</div>
+          </div>
+          <div style="text-align:center;">
+            <div id="focusStatTasks" style="font-size:2rem;font-weight:800;color:var(--success);">0</div>
+            <div style="font-size:11px;color:var(--text-2);">Sous-tâches cochées</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRÉSENTATION -->
+  <div id="presentation-tab" class="tab-content">
+    <div style="margin-bottom:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <h2 style="margin:0;font-size:1.3rem;"><i class="fas fa-tv" style="color:var(--brand);margin-right:8px;"></i>Mode Présentation</h2>
+      <button onclick="startPresentation()" style="margin-left:auto;padding:10px 24px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
+        <i class="fas fa-expand"></i> Lancer la présentation plein écran
+      </button>
+    </div>
+
+    <!-- Config -->
+    <div class="grid-2" style="margin-bottom:20px;gap:16px;">
+      <div class="card">
+        <div class="card-title"><i class="fas fa-sliders-h" style="color:var(--brand);"></i> Configuration</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Titre de la réunion</label>
+            <input type="text" id="presTitle" placeholder="ex: Réunion institutionnelle CAVA" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Date</label>
+            <input type="date" id="presDate" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Slides à afficher</label>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+              <label><input type="checkbox" id="presSlideKpi" checked> KPIs — Vue d'ensemble</label>
+              <label><input type="checkbox" id="presSlideQ1" checked> Priorités urgentes (Q1)</label>
+              <label><input type="checkbox" id="presSlideQ2" checked> Planification (Q2)</label>
+              <label><input type="checkbox" id="presSlideOverdue" checked> Tâches en retard</label>
+              <label><input type="checkbox" id="presSlideMembers" checked> Charge par membre</label>
+              <label><input type="checkbox" id="presSlideGantt" checked> Gantt</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fas fa-eye" style="color:var(--success);"></i> Aperçu du plan</div>
+        <div id="presPlanPreview" style="font-size:13px;color:var(--text-2);line-height:2;"></div>
+      </div>
+    </div>
+
+    <!-- Prévisualisation slide en cours -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-desktop" style="color:var(--text-2);"></i> Aperçu miniature</div>
+      <div id="presMiniPreview" style="background:#1a1a2e;border-radius:8px;padding:32px;min-height:200px;display:flex;align-items:center;justify-content:center;color:white;font-family:Arial,sans-serif;">
+        <div style="text-align:center;opacity:0.4;"><i class="fas fa-tv" style="font-size:3rem;"></i><div style="margin-top:12px;">Configurez et lancez la présentation</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ADMIN -->
   <div id="admin-tab" class="tab-content">
     <div class="grid-2" style="margin-bottom:24px;">
@@ -3180,6 +3385,8 @@
     'planner': 'Planificateur',
     'gantt': 'Gantt',
     'cr': 'Comptes Rendus',
+    'focus': 'Mode Focus — Pomodoro',
+    'presentation': 'Mode Présentation',
     'admin': 'Administration'
   };
 
@@ -3206,6 +3413,8 @@
       else if (name === 'planner') renderPlanner(visible);
       else if (name === 'historique') renderHistory(visible, currentHistoryFilter);
       else if (name === 'coach') { renderCoach(visible); const sb = document.getElementById('coachSendBtn'); if (sb) sb.disabled = false; }
+      else if (name === 'focus') { focusLoadTasks(); _updateFocusStats(); }
+      else if (name === 'presentation') { _updatePresPlan(); }
       else if (name === 'gantt') renderGantt(visible);
       else if (name === 'cr') {
         const crWelcome = document.getElementById('crWelcome');
@@ -8282,6 +8491,395 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     setTimeout(() => { printArea.style.display = 'none'; }, 2000);
   }
 
+  // ===== FOCUS + POMODORO =====
+  let _pomoTimer = null, _pomoRunning = false, _pomoSecondsLeft = 25*60, _pomoMode = 'work';
+  let _pomoSessionsToday = parseInt(localStorage.getItem('gesta-pomo-sessions-' + new Date().toDateString()) || '0');
+  let _pomoFocusMins = parseInt(localStorage.getItem('gesta-pomo-mins-' + new Date().toDateString()) || '0');
+  let _pomoTasksDone = 0;
+  let _focusTaskId = null;
+
+  const POMO_DURATIONS = { work: 25*60, short: 5*60, long: 15*60 };
+  const POMO_LABELS = { work: 'Travail', short: 'Pause courte', long: 'Pause longue' };
+  const POMO_COLORS = { work: 'var(--danger)', short: 'var(--success)', long: 'var(--brand)' };
+
+  function focusLoadTasks() {
+    const sel = document.getElementById('focusTaskSelect');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Choisir une tâche —</option>';
+    const active = tasks.filter(t => t.status !== 'done' && !t.completed);
+    active.sort((a,b) => (a.quadrant||4)-(b.quadrant||4));
+    active.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t._key || t.id || '';
+      opt.textContent = `Q${t.quadrant||'?'} · ${t.title}`;
+      sel.appendChild(opt);
+    });
+    if (current) sel.value = current;
+  }
+
+  function focusSelectTask(taskId) {
+    _focusTaskId = taskId;
+    const task = tasks.find(t => (t._key || t.id) === taskId);
+    const infoEl = document.getElementById('focusTaskInfo');
+    if (!task) { infoEl.style.display = 'none'; document.getElementById('focusChecklistCard').style.display = 'none'; return; }
+    document.getElementById('focusTaskTitle').textContent = task.title;
+    document.getElementById('focusTaskMeta').textContent = `Q${task.quadrant||'?'} · ${task.status||'todo'} · ${task.dueDate ? new Date(task.dueDate).toLocaleDateString('fr-FR') : 'Sans échéance'}`;
+    infoEl.style.display = 'block';
+    const cl = Array.isArray(task.checklist) ? task.checklist : (task.checklist ? Object.values(task.checklist) : []);
+    if (cl.length) {
+      document.getElementById('focusChecklistCard').style.display = 'block';
+      document.getElementById('focusChecklist').innerHTML = cl.map((item, i) => `
+        <label style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:6px;background:var(--bg-2);cursor:pointer;">
+          <input type="checkbox" ${item.done ? 'checked' : ''} onchange="focusCheckItem('${taskId}',${i},this.checked)" style="width:16px;height:16px;cursor:pointer;">
+          <span style="${item.done ? 'text-decoration:line-through;color:var(--text-2);' : ''}">${item.text || ''}</span>
+        </label>`).join('');
+    } else {
+      document.getElementById('focusChecklistCard').style.display = 'none';
+    }
+  }
+
+  async function focusCheckItem(taskId, idx, done) {
+    const task = tasks.find(t => (t._key || t.id) === taskId);
+    if (!task) return;
+    let cl = Array.isArray(task.checklist) ? [...task.checklist] : (task.checklist ? Object.values(task.checklist) : []);
+    if (!cl[idx]) return;
+    cl[idx] = { ...cl[idx], done };
+    if (done) { _pomoTasksDone++; _updateFocusStats(); }
+    try {
+      await fetch(`${FIREBASE_DB_URL}/orgs/${currentOrgId}/tasks/${taskId}/checklist.json?auth=${currentUser.idToken}`, {
+        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(cl)
+      });
+      task.checklist = cl;
+      focusSelectTask(taskId);
+    } catch(_) {}
+  }
+
+  function pomoSetMode(mode) {
+    _pomoMode = mode; pomoReset();
+    ['work','short','long'].forEach(m => {
+      const b = document.getElementById('pomoBtnWork'.replace('Work', m.charAt(0).toUpperCase()+m.slice(1)).replace('pomoBtnwork','pomoBtnWork'));
+      if (b) { b.style.background = m === mode ? POMO_COLORS[mode] : 'var(--bg-2)'; b.style.color = m === mode ? '#fff' : 'var(--text)'; }
+    });
+    const btn = document.getElementById('pomoBtnWork');
+    const btnShort = document.getElementById('pomoBtnShort');
+    const btnLong = document.getElementById('pomoBtnLong');
+    [['work',btn],['short',btnShort],['long',btnLong]].forEach(([m,b]) => {
+      if (!b) return;
+      b.style.background = m === mode ? POMO_COLORS[mode] : 'var(--bg-2)';
+      b.style.color = m === mode ? '#fff' : 'var(--text)';
+    });
+    document.getElementById('pomoRing').style.stroke = POMO_COLORS[mode];
+    document.getElementById('pomoLabel').textContent = POMO_LABELS[mode];
+  }
+
+  function _pomoUpdateDisplay() {
+    const m = Math.floor(_pomoSecondsLeft / 60).toString().padStart(2,'0');
+    const s = (_pomoSecondsLeft % 60).toString().padStart(2,'0');
+    document.getElementById('pomoTime').textContent = `${m}:${s}`;
+    const total = POMO_DURATIONS[_pomoMode];
+    const pct = 1 - _pomoSecondsLeft / total;
+    const circ = 2 * Math.PI * 88;
+    document.getElementById('pomoRing').style.strokeDashoffset = pct * circ;
+    document.title = _pomoRunning ? `${m}:${s} · GESTA Focus` : 'GESTA';
+  }
+
+  function pomoToggle() {
+    if (_pomoRunning) {
+      clearInterval(_pomoTimer); _pomoRunning = false;
+      document.getElementById('pomoStartBtn').innerHTML = '<i class="fas fa-play"></i> Reprendre';
+    } else {
+      _pomoRunning = true;
+      document.getElementById('pomoStartBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+      _pomoTimer = setInterval(() => {
+        _pomoSecondsLeft--;
+        if (_pomoSecondsLeft <= 0) { _pomoFinish(); return; }
+        if (_pomoMode === 'work') { _pomoFocusMins = (_pomoFocusMins || 0) + 1/60; _updateFocusStats(); }
+        _pomoUpdateDisplay();
+      }, 1000);
+    }
+  }
+
+  function pomoReset() {
+    clearInterval(_pomoTimer); _pomoRunning = false;
+    _pomoSecondsLeft = POMO_DURATIONS[_pomoMode];
+    document.getElementById('pomoStartBtn').innerHTML = '<i class="fas fa-play"></i> Démarrer';
+    document.title = 'GESTA';
+    _pomoUpdateDisplay();
+  }
+
+  function _pomoFinish() {
+    clearInterval(_pomoTimer); _pomoRunning = false;
+    document.getElementById('pomoStartBtn').innerHTML = '<i class="fas fa-play"></i> Démarrer';
+    document.title = 'GESTA';
+    if (_pomoMode === 'work') {
+      _pomoSessionsToday++;
+      _pomoFocusMins += 25;
+      localStorage.setItem('gesta-pomo-sessions-' + new Date().toDateString(), _pomoSessionsToday);
+      localStorage.setItem('gesta-pomo-mins-' + new Date().toDateString(), _pomoFocusMins);
+      _updateFocusStats();
+      try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA==').play(); } catch(_) {}
+      showMessage('🍅 Pomodoro terminé ! Prenez une pause.', 'success', 5000);
+      pomoSetMode('short');
+    } else {
+      showMessage('Pause terminée — reprenez le travail !', 'info', 4000);
+      pomoSetMode('work');
+    }
+  }
+
+  function _updateFocusStats() {
+    const s = document.getElementById('focusStatPomos'); if (s) s.textContent = _pomoSessionsToday;
+    const m = document.getElementById('focusStatMins'); if (m) m.textContent = Math.round(_pomoFocusMins);
+    const t = document.getElementById('focusStatTasks'); if (t) t.textContent = _pomoTasksDone;
+    const sessions = document.getElementById('pomoSessions');
+    if (sessions) sessions.innerHTML = Array.from({length: Math.min(_pomoSessionsToday,8)}, (_,i) =>
+      `<span style="font-size:18px;" title="Pomodoro ${i+1}">🍅</span>`).join('');
+    const cnt = document.getElementById('pomoSessionCount');
+    if (cnt) cnt.textContent = _pomoSessionsToday > 0 ? `${_pomoSessionsToday} pomodoro${_pomoSessionsToday>1?'s':''} aujourd'hui` : '';
+  }
+
+  // ===== PRÉSENTATION =====
+  let _presSlides = [], _presIdx = 0;
+
+  function _buildPresSlides() {
+    const title = document.getElementById('presTitle')?.value || (currentOrgConfig?.name || 'GESTA');
+    const date = document.getElementById('presDate')?.value ? new Date(document.getElementById('presDate').value).toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) : new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    const visible = tasks.filter(_isTaskVisible);
+    const overdue = visible.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < new Date());
+    const q1 = visible.filter(t => !t.completed && t.quadrant === 1);
+    const q2 = visible.filter(t => !t.completed && t.quadrant === 2);
+    const done = visible.filter(t => t.completed || t.status === 'done');
+    const memberName = uid => { const m = (knownUsers||[]).find(u => u.uid === uid); return m ? (m.fullName||m.email) : uid||'—'; };
+    const byMember = {};
+    visible.filter(t=>!t.completed).forEach(t => { const n = memberName(t.assignedTo); byMember[n] = (byMember[n]||0)+1; });
+
+    const slides = [];
+
+    // Slide 0: Titre
+    slides.push(`
+      <div style="font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">Réunion institutionnelle</div>
+      <div style="font-size:3rem;font-weight:900;line-height:1.1;margin-bottom:16px;">${title}</div>
+      <div style="font-size:1.1rem;color:rgba(255,255,255,.6);">${date}</div>
+      <div style="margin-top:32px;width:60px;height:4px;background:var(--brand);border-radius:2px;margin-left:auto;margin-right:auto;"></div>`);
+
+    if (document.getElementById('presSlideKpi')?.checked) {
+      slides.push(`
+        <div style="font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;">Vue d'ensemble</div>
+        <div style="font-size:2rem;font-weight:800;margin-bottom:32px;">Tableau de bord</div>
+        <div class="pres-kpi-grid">
+          <div class="pres-kpi"><div class="val">${visible.filter(t=>!t.completed).length}</div><div class="lbl">Tâches actives</div></div>
+          <div class="pres-kpi"><div class="val" style="color:#4ade80;">${done.length}</div><div class="lbl">Terminées</div></div>
+          <div class="pres-kpi"><div class="val" style="color:#f87171;">${overdue.length}</div><div class="lbl">En retard</div></div>
+          <div class="pres-kpi"><div class="val" style="color:#facc15;">${q1.length}</div><div class="lbl">Urgentes (Q1)</div></div>
+        </div>`);
+    }
+
+    if (document.getElementById('presSlideQ1')?.checked && q1.length) {
+      slides.push(`
+        <div style="font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Priorités</div>
+        <div style="font-size:2rem;font-weight:800;margin-bottom:24px;color:#f87171;">🔴 Actions urgentes — Q1</div>
+        <div class="pres-task-list">${q1.slice(0,6).map(t=>`
+          <div class="pres-task-item">
+            <span class="pres-task-badge" style="background:rgba(248,113,113,.2);color:#f87171;">Q1</span>
+            <div style="flex:1;"><div style="font-weight:700;">${t.title}</div><div style="font-size:12px;opacity:.6;">${memberName(t.assignedTo)}${t.dueDate?' · '+new Date(t.dueDate).toLocaleDateString('fr-FR'):''}</div></div>
+          </div>`).join('')}${q1.length>6?`<div style="text-align:center;opacity:.5;font-size:13px;margin-top:8px;">+${q1.length-6} autres</div>`:''}</div>`);
+    }
+
+    if (document.getElementById('presSlideQ2')?.checked && q2.length) {
+      slides.push(`
+        <div style="font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Planification</div>
+        <div style="font-size:2rem;font-weight:800;margin-bottom:24px;color:#60a5fa;">🔵 À planifier — Q2</div>
+        <div class="pres-task-list">${q2.slice(0,6).map(t=>`
+          <div class="pres-task-item">
+            <span class="pres-task-badge" style="background:rgba(96,165,250,.2);color:#60a5fa;">Q2</span>
+            <div style="flex:1;"><div style="font-weight:700;">${t.title}</div><div style="font-size:12px;opacity:.6;">${memberName(t.assignedTo)}${t.dueDate?' · '+new Date(t.dueDate).toLocaleDateString('fr-FR'):''}</div></div>
+          </div>`).join('')}${q2.length>6?`<div style="text-align:center;opacity:.5;font-size:13px;margin-top:8px;">+${q2.length-6} autres</div>`:''}</div>`);
+    }
+
+    if (document.getElementById('presSlideOverdue')?.checked && overdue.length) {
+      slides.push(`
+        <div style="font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Alerte</div>
+        <div style="font-size:2rem;font-weight:800;margin-bottom:24px;color:#fb923c;">⚠️ Tâches en retard (${overdue.length})</div>
+        <div class="pres-task-list">${overdue.slice(0,6).map(t=>`
+          <div class="pres-task-item" style="border-left:3px solid #fb923c;">
+            <div style="flex:1;"><div style="font-weight:700;">${t.title}</div><div style="font-size:12px;color:#fb923c;">${memberName(t.assignedTo)} · Échéance : ${new Date(t.dueDate).toLocaleDateString('fr-FR')}</div></div>
+          </div>`).join('')}${overdue.length>6?`<div style="text-align:center;opacity:.5;font-size:13px;margin-top:8px;">+${overdue.length-6} autres</div>`:''}</div>`);
+    }
+
+    if (document.getElementById('presSlideMembers')?.checked && Object.keys(byMember).length) {
+      const sorted = Object.entries(byMember).sort((a,b)=>b[1]-a[1]);
+      const max = sorted[0]?.[1] || 1;
+      slides.push(`
+        <div style="font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Équipe</div>
+        <div style="font-size:2rem;font-weight:800;margin-bottom:24px;">Charge par membre</div>
+        <div style="width:100%;max-width:600px;">
+          ${sorted.slice(0,8).map(([name,cnt])=>`
+            <div style="margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:14px;">
+                <span>${name}</span><span style="font-weight:700;color:#4fc3f7;">${cnt} tâche${cnt>1?'s':''}</span>
+              </div>
+              <div style="background:rgba(255,255,255,.1);border-radius:4px;height:8px;">
+                <div style="background:#4fc3f7;height:100%;border-radius:4px;width:${Math.round(cnt/max*100)}%;transition:width .6s;"></div>
+              </div>
+            </div>`).join('')}
+        </div>`);
+    }
+
+    // Slide finale
+    slides.push(`
+      <div style="font-size:4rem;margin-bottom:24px;">✅</div>
+      <div style="font-size:2.5rem;font-weight:800;margin-bottom:12px;">Merci</div>
+      <div style="font-size:1.1rem;color:rgba(255,255,255,.5);">Questions / Échanges</div>`);
+
+    return slides;
+  }
+
+  function startPresentation() {
+    _presSlides = _buildPresSlides();
+    _presIdx = 0;
+    const overlay = document.getElementById('presOverlay');
+    overlay.classList.add('active');
+    if (overlay.requestFullscreen) overlay.requestFullscreen().catch(()=>{});
+    _presRender();
+  }
+
+  function endPresentation() {
+    document.getElementById('presOverlay').classList.remove('active');
+    if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    document.title = 'GESTA';
+  }
+
+  function presGo(dir) {
+    _presIdx = Math.max(0, Math.min(_presSlides.length-1, _presIdx + dir));
+    _presRender();
+  }
+
+  function _presRender() {
+    const slide = document.getElementById('presSlide');
+    slide.innerHTML = _presSlides[_presIdx] || '';
+    document.getElementById('presProgress').textContent = `${_presIdx+1} / ${_presSlides.length}`;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('presOverlay').classList.contains('active')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ') presGo(1);
+    else if (e.key === 'ArrowLeft') presGo(-1);
+    else if (e.key === 'Escape') endPresentation();
+  });
+
+  // Preview plan côté config présentation
+  function _updatePresPlan() {
+    const slides = [];
+    slides.push('🏷️ Titre de la réunion');
+    if (document.getElementById('presSlideKpi')?.checked) slides.push('📊 KPIs — Vue d\'ensemble');
+    if (document.getElementById('presSlideQ1')?.checked) slides.push('🔴 Actions urgentes Q1');
+    if (document.getElementById('presSlideQ2')?.checked) slides.push('🔵 Planification Q2');
+    if (document.getElementById('presSlideOverdue')?.checked) slides.push('⚠️ Tâches en retard');
+    if (document.getElementById('presSlideMembers')?.checked) slides.push('👥 Charge par membre');
+    slides.push('✅ Fin / Questions');
+    const el = document.getElementById('presPlanPreview');
+    if (el) el.innerHTML = slides.map((s,i)=>`<div>${i+1}. ${s}</div>`).join('');
+  }
+
+  // ===== COACH VOCAL =====
+  let _voiceRecognition = null, _voiceListening = false, _voiceSynth = window.speechSynthesis;
+
+  function openVoiceCoach() {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      showMessage('Reconnaissance vocale non supportée sur ce navigateur (Chrome recommandé)', 'warning'); return;
+    }
+    document.getElementById('voiceCoachOverlay').classList.add('active');
+    document.getElementById('voiceTranscript').textContent = 'Appuyez sur l\'orbe pour parler…';
+    document.getElementById('voiceReply').textContent = '';
+    document.getElementById('voiceStatus').textContent = '';
+  }
+
+  function closeVoiceCoach() {
+    _voiceStopListen();
+    document.getElementById('voiceCoachOverlay').classList.remove('active');
+    if (_voiceSynth) _voiceSynth.cancel();
+  }
+
+  function voiceToggleListen() {
+    if (_voiceListening) _voiceStopListen();
+    else _voiceStartListen();
+  }
+
+  function _voiceStartListen() {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    _voiceRecognition = new SpeechRec();
+    _voiceRecognition.lang = 'fr-FR';
+    _voiceRecognition.interimResults = true;
+    _voiceRecognition.continuous = false;
+    _voiceListening = true;
+    document.getElementById('voiceOrb').classList.add('listening');
+    document.getElementById('voiceStatus').textContent = '🎙️ En écoute…';
+    document.getElementById('voiceTranscript').textContent = '';
+
+    _voiceRecognition.onresult = e => {
+      const transcript = Array.from(e.results).map(r=>r[0].transcript).join('');
+      document.getElementById('voiceTranscript').textContent = transcript;
+      if (e.results[e.results.length-1].isFinal) {
+        _voiceStopListen();
+        _voiceSendToCoach(transcript);
+      }
+    };
+    _voiceRecognition.onerror = () => { _voiceStopListen(); document.getElementById('voiceStatus').textContent = 'Erreur micro — réessayez'; };
+    _voiceRecognition.onend = () => _voiceStopListen();
+    _voiceRecognition.start();
+  }
+
+  function _voiceStopListen() {
+    _voiceListening = false;
+    document.getElementById('voiceOrb').classList.remove('listening');
+    document.getElementById('voiceStatus').textContent = '';
+    try { _voiceRecognition?.stop(); } catch(_) {}
+  }
+
+  async function _voiceSendToCoach(text) {
+    if (!text.trim()) return;
+    const apiKey = localStorage.getItem('gesta-groq-key') || GROQ_API_KEY;
+    if (!apiKey) { document.getElementById('voiceReply').textContent = 'Clé API Groq requise.'; return; }
+    document.getElementById('voiceStatus').textContent = '💭 Réflexion…';
+    document.getElementById('voiceReply').textContent = '';
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 300,
+          temperature: 0.4,
+          messages: [
+            { role: 'system', content: _coachBuildSystemPrompt() + '\n\nIMPORTANT : Tu réponds à voix haute donc sois TRÈS concis (2-3 phrases maximum), sans listes ni markdown, en français naturel et direct.' },
+            { role: 'user', content: text }
+          ]
+        })
+      });
+      const data = await resp.json();
+      const reply = data.choices?.[0]?.message?.content || '';
+      document.getElementById('voiceReply').textContent = reply;
+      document.getElementById('voiceStatus').textContent = '🔊 En train de parler…';
+      _voiceSpeak(reply);
+    } catch(e) {
+      document.getElementById('voiceReply').textContent = 'Erreur: ' + e.message;
+      document.getElementById('voiceStatus').textContent = '';
+    }
+  }
+
+  function _voiceSpeak(text) {
+    if (!_voiceSynth) return;
+    _voiceSynth.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'fr-FR'; utt.rate = 1.05; utt.pitch = 1;
+    const voices = _voiceSynth.getVoices().filter(v => v.lang.startsWith('fr'));
+    if (voices.length) utt.voice = voices[0];
+    utt.onend = () => {
+      document.getElementById('voiceStatus').textContent = 'Appuyez pour re-parler';
+    };
+    _voiceSynth.speak(utt);
+  }
+
 </script>
 
 <script>
@@ -8304,6 +8902,25 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
 
 <div id="reportPrintArea"></div>
 
+<!-- PRÉSENTATION PLEIN ÉCRAN -->
+<div id="presOverlay">
+  <div id="presSlide"></div>
+  <div id="presNav">
+    <button class="pres-nav-btn" onclick="presGo(-1)"><i class="fas fa-chevron-left"></i> Précédent</button>
+    <span id="presProgress">1 / 1</span>
+    <button class="pres-nav-btn" onclick="presGo(1)">Suivant <i class="fas fa-chevron-right"></i></button>
+    <button class="pres-nav-btn" onclick="endPresentation()" style="margin-left:24px;border-color:rgba(255,100,100,.5);color:#ff8080;"><i class="fas fa-times"></i> Quitter</button>
+  </div>
+</div>
+
+<!-- COACH VOCAL -->
+<div id="voiceCoachOverlay">
+  <div id="voiceOrb" onclick="voiceToggleListen()">🎙️</div>
+  <div id="voiceTranscript">Appuyez sur l'orbe pour parler…</div>
+  <div id="voiceReply"></div>
+  <div id="voiceStatus"></div>
+  <button onclick="closeVoiceCoach()" style="margin-top:24px;padding:10px 28px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;cursor:pointer;font-size:14px;"><i class="fas fa-times"></i> Fermer</button>
+</div>
 
 </body>
 </html>
