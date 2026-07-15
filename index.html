@@ -2457,6 +2457,7 @@
               <strong>Assignés :</strong>
               <div class="detail-assignees-row" id="taskAssigneesDisplay"></div>
             </div>
+            <div id="detailEscaladeLog" style="display:none;"></div>
             <div id="detailBlockedBy" style="margin-top:10px;">
               <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px;"><i class="fas fa-link" style="color:var(--warning);margin-right:5px;"></i>Dépendances — bloquée par</div>
               <div id="blockedByList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;"></div>
@@ -4097,6 +4098,25 @@
     loadSubTasks(id);
     loadComments(id);
     renderBlockedBy(task);
+
+    // Historique escalade
+    const escaladeEl = document.getElementById('detailEscaladeLog');
+    if (escaladeEl) {
+      const log = Array.isArray(task.escaladeLog) ? task.escaladeLog : [];
+      if (log.length) {
+        escaladeEl.style.display = 'block';
+        escaladeEl.innerHTML = `<div style="margin-top:14px;padding:12px 14px;background:rgba(201,118,10,.08);border:1px solid rgba(201,118,10,.2);border-radius:8px;">
+          <div style="font-size:11px;font-weight:700;color:var(--q3);letter-spacing:.05em;margin-bottom:8px;">⏫ HISTORIQUE DES RECLASSIFICATIONS</div>
+          ${log.map(e => `<div style="font-size:12px;color:var(--text-2);padding:4px 0;border-bottom:1px solid rgba(201,118,10,.1);display:flex;gap:10px;align-items:baseline;">
+            <span style="color:var(--text-3);white-space:nowrap;">${new Date(e.date).toLocaleDateString('fr-FR')}</span>
+            <span><strong>${e.from}</strong> → <strong style="color:var(--q1);">${e.to}</strong></span>
+            <span style="font-style:italic;flex:1;">${e.reason}</span>
+          </div>`).join('')}
+        </div>`;
+      } else {
+        escaladeEl.style.display = 'none';
+      }
+    }
   }
 
   // ===== SÉLECTION MULTIPLE =====
@@ -4607,6 +4627,71 @@
     }
   }
 
+  // ===== ESCALADE AUTOMATIQUE =====
+  const ESCALADE_RULES = [
+    // échéance dépassée → Q1 immédiat (toute tâche)
+    { test: t => t.dueDate && new Date(t.dueDate) < new Date() && t.quadrant !== 'Q1', to: 'Q1', reason: 'Échéance dépassée' },
+    // Q4 sans action depuis 21 jours → Q3
+    { test: t => t.quadrant === 'Q4' && _taskAgedays(t) >= 21, to: 'Q3', reason: 'Sans prise en charge depuis 21 jours' },
+    // Q3 non assigné depuis 14 jours → Q2
+    { test: t => t.quadrant === 'Q3' && _taskAgedays(t) >= 14 && !(t.assignedTo?.length), to: 'Q2', reason: 'Non délégué depuis 14 jours' },
+    // Q2 échéance dans moins de 72h → Q1
+    { test: t => t.quadrant === 'Q2' && t.dueDate && (new Date(t.dueDate) - new Date()) < 72*3600000 && new Date(t.dueDate) >= new Date(), to: 'Q1', reason: 'Échéance dans moins de 72h' },
+    // Q2 sans avancement depuis 10 jours → Q1
+    { test: t => t.quadrant === 'Q2' && _taskAgedays(t) >= 10 && (t.status === 'todo' || t.status === 'planifié' || !t.status), to: 'Q1', reason: 'Sans avancement depuis 10 jours' },
+  ];
+
+  function _taskAgedays(t) {
+    const ref = t.escaladedAt || t.createdAt || t.updatedAt;
+    if (!ref) return 0;
+    return Math.floor((Date.now() - new Date(ref)) / 86400000);
+  }
+
+  async function _runEscalation() {
+    const LAST_KEY = 'gesta-escalade-last';
+    const last = parseInt(localStorage.getItem(LAST_KEY) || '0');
+    const now = Date.now();
+    // run at most once every 6 hours
+    if (now - last < 6 * 3600000) return;
+    localStorage.setItem(LAST_KEY, now);
+
+    let escaladed = 0;
+    for (const t of tasks) {
+      if (t.completed || t.status === 'done') continue;
+      for (const rule of ESCALADE_RULES) {
+        if (!rule.test(t)) continue;
+        const prev = t.quadrant;
+        const entry = { date: new Date().toISOString(), from: prev, to: rule.to, reason: rule.reason };
+        const log = Array.isArray(t.escaladeLog) ? [...t.escaladeLog, entry] : [entry];
+        const updates = { quadrant: rule.to, escaladeLog: log, escaladedAt: entry.date };
+        // update local immediately
+        t.quadrant = rule.to;
+        t.escaladeLog = log;
+        t.escaladedAt = entry.date;
+        escaladed++;
+        await updateTask(t.id, updates);
+        break; // one rule per task per run
+      }
+    }
+    if (escaladed > 0) {
+      renderAll();
+      _showEscaladeAlert(escaladed);
+    }
+  }
+
+  function _showEscaladeAlert(count) {
+    let banner = document.getElementById('escaladeBanner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'escaladeBanner';
+      banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:8000;background:var(--warning);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);display:flex;align-items:center;gap:10px;cursor:pointer;';
+      banner.onclick = () => banner.remove();
+      document.body.appendChild(banner);
+    }
+    banner.innerHTML = `<i class="fas fa-arrow-up"></i> ${count} tâche${count>1?'s':''} reclassifiée${count>1?'s':''} automatiquement <i class="fas fa-times" style="margin-left:8px;opacity:.7;"></i>`;
+    setTimeout(() => banner?.remove(), 8000);
+  }
+
   // ===== RENDER ALL =====
   function updateScopeLabel() {
     const toggle = document.getElementById('taskScopeToggle');
@@ -4652,6 +4737,7 @@
     _updateFocusStats();
     _updatePresPlan();
     checkUrgentNotifications(visibleTasks);
+    _runEscalation();
   }
 
   const VALID_QUADRANTS = ['Q1','Q2','Q3','Q4'];
@@ -4713,7 +4799,7 @@
             style="animation-delay:${i * 0.04}s;${isSelected ? 'border-color:var(--danger);background:rgba(214,51,52,0.06);' : ''}">
             <div class="task-title" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               ${bulkMode ? `<input type="checkbox" ${isSelected ? 'checked' : ''} onclick="toggleTaskSelection('${t.id}',event)" style="width:15px;height:15px;accent-color:var(--danger);flex-shrink:0;">` : ''}
-              ${(t.description||'(sans titre)').substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}
+              ${(t.description||'(sans titre)').substring(0, 48)} ${dueBadge}${t.escaladeLog?.length ? `<span title="${t.escaladeLog[t.escaladeLog.length-1]?.reason||''}" style="font-size:10px;background:rgba(201,118,10,.15);color:var(--q3);padding:1px 6px;border-radius:8px;font-weight:700;cursor:default;">⏫ Reclassifiée</span>` : ''}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}
             </div>
             <div class="task-meta" style="margin-top:6px;">${t.source||''} • <span class="status-badge status-${(t.status||'planifié').replace(/ /g, '-')}">${t.status||'planifié'}</span>${t.scope === 'personal' ? ' <span class="task-scope-badge personal"><i class="fas fa-lock"></i> Perso</span>' : ''}${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}${(()=>{ const deps = Array.isArray(t.blockedBy)?t.blockedBy:[]; const blocking = deps.filter(id=>{ const d=tasks.find(x=>x.id===id); return d&&!d.completed; }); return blocking.length ? ` <span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;background:rgba(234,179,8,.15);color:var(--warning);"><i class="fas fa-lock"></i>${blocking.length} bloquant</span>` : ''; })()}</div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
