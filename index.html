@@ -7339,16 +7339,20 @@ Règles :
     const now     = new Date(); now.setHours(0,0,0,0);
     const end     = new Date(now.getTime() + weeks * 7 * 86400000);
 
-    // Tâches avec dueDate dans la fenêtre, non complétées
-    let taskList = allVisible.filter(t =>
-      !t.completed && t.dueDate &&
-      new Date(t.dueDate) >= now && new Date(t.dueDate) <= end
-    );
+    // Tâches non complétées — avec ou sans dueDate
+    // Celles sans date ou en retard s'affichent ancrées à aujourd'hui
+    let taskList = allVisible.filter(t => !t.completed);
     if (qFilter !== 'all') taskList = taskList.filter(t => t.quadrant === qFilter);
-    taskList = taskList.sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+    // Trier : d'abord celles avec dueDate (chronologique), puis sans date
+    taskList = taskList.sort((a, b) => {
+      if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return 0;
+    });
 
     if (!taskList.length) {
-      container.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:40px;font-size:13px;"><i class="fas fa-calendar-times" style="font-size:32px;display:block;margin-bottom:12px;opacity:.3;"></i>Aucune tâche avec échéance dans cette période.</div>';
+      container.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:40px;font-size:13px;"><i class="fas fa-calendar-times" style="font-size:32px;display:block;margin-bottom:12px;opacity:.3;"></i>Aucune tâche active.</div>';
       return;
     }
 
@@ -7377,11 +7381,11 @@ Règles :
     let rowsHtml = '';
     taskList.forEach((t, i) => {
       const start = t.scheduledDate ? new Date(t.scheduledDate) : now;
-      const due   = new Date(t.dueDate);
+      const due   = t.dueDate ? new Date(t.dueDate) : new Date(now.getTime() + 7 * 86400000);
       const s = Math.max(0, Math.floor((start - now) / 86400000));
-      const e = Math.min(totalDays, Math.ceil((due - now) / 86400000));
+      const e = Math.min(totalDays, Math.max(s + 1, Math.ceil((due - now) / 86400000)));
       const barLeft = s * dayW;
-      const barW    = Math.max(dayW, (e - s) * dayW);
+      const barW    = Math.max(dayW * 2, (e - s) * dayW);
       const isBlocked = (Array.isArray(t.blockedBy) ? t.blockedBy : []).some(id => { const d = tasks.find(x=>x.id===id); return d && !d.completed; });
       const q = t.quadrant || 'Q4';
       const bg = isBlocked ? 'rgba(234,179,8,.25)' : Q_BG[q] || Q_BG.Q4;
@@ -7403,7 +7407,7 @@ Règles :
             <div style="position:absolute;top:0;bottom:0;left:0;width:2px;background:var(--danger);opacity:.6;pointer-events:none;z-index:1;"></div>
             <!-- Barre tâche -->
             <div style="position:absolute;top:6px;height:${rowH-12}px;left:${barLeft}px;width:${barW}px;background:${bg};border:1.5px solid ${border};border-radius:5px;display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:700;color:${bg2};overflow:hidden;white-space:nowrap;cursor:pointer;box-sizing:border-box;">
-              ${due.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}${t.estimatedHours?` · ${t.estimatedHours}h`:''}
+              ${t.dueDate ? due.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : 'Sans date'}${t.estimatedHours?` · ${t.estimatedHours}h`:''}
             </div>
           </div>
         </div>`;
