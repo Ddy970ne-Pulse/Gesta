@@ -1855,6 +1855,16 @@
       </div>
     </div>
 
+    <!-- Membres d'une organisation -->
+    <div style="background:var(--surface);border-radius:16px;padding:24px;border:1px solid var(--border);">
+      <h3 style="font-size:15px;font-weight:700;margin:0 0 16px;"><i class="fas fa-users" style="color:var(--primary);margin-right:8px;"></i>Membres d'une organisation</h3>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <input type="text" id="saasMembersOrgId" placeholder="org ID ex: aaea-cava" style="width:200px;font-size:13px;">
+        <button class="btn btn-primary" onclick="saasLoadOrgMembers()"><i class="fas fa-search"></i> Charger</button>
+      </div>
+      <div id="saasMembersList"></div>
+    </div>
+
     <!-- Migration données legacy -->
     <div style="background:var(--surface);border-radius:16px;padding:24px;border:1px solid var(--border);">
       <h3 style="font-size:15px;font-weight:700;margin:0 0 8px;"><i class="fas fa-database" style="color:var(--warning);margin-right:8px;"></i>Migration données legacy</h3>
@@ -5871,6 +5881,54 @@ Consignes :
       ]);
       showMessage(`Stripe configuré pour ${orgId}`, 'success');
       saasLoadOrgs();
+    } catch (e) { showMessage(e.message, 'error'); }
+  }
+
+  async function saasLoadOrgMembers(orgIdArg) {
+    const orgId = orgIdArg || document.getElementById('saasMembersOrgId').value.trim();
+    if (!orgId) return;
+    document.getElementById('saasMembersOrgId').value = orgId;
+    const container = document.getElementById('saasMembersList');
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-3);"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>';
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/userProfiles.json?auth=${currentUser.idToken}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const profiles = await res.json();
+      if (!profiles) { container.innerHTML = '<div style="font-size:12px;color:var(--text-3);">Aucun membre.</div>'; return; }
+      container.innerHTML = Object.entries(profiles).map(([uid, p]) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">${(p.fullName||'?')[0].toUpperCase()}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:12px;">${p.fullName || '—'}</div>
+            <div style="font-size:11px;color:var(--text-3);">${p.email || uid} · ${p.role || '—'}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${p.isAdmin
+              ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(26,122,110,.12);color:var(--primary);">Admin org</span>
+                 <button class="btn btn-sm btn-secondary" style="font-size:10px;color:var(--danger);" onclick="saasSetOrgAdmin('${orgId}','${uid}',false)">Retirer</button>`
+              : `<button class="btn btn-sm btn-primary" style="font-size:10px;" onclick="saasSetOrgAdmin('${orgId}','${uid}',true)"><i class="fas fa-shield-alt"></i> Promouvoir admin</button>`}
+          </div>
+        </div>`).join('');
+    } catch (e) {
+      container.innerHTML = `<div style="font-size:12px;color:var(--danger);">${e.message}</div>`;
+    }
+  }
+
+  async function saasSetOrgAdmin(orgId, uid, isAdmin) {
+    try {
+      const token = currentUser.idToken;
+      await Promise.all([
+        fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/userProfiles/${uid}/isAdmin.json?auth=${token}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(isAdmin)
+        }),
+        isAdmin
+          ? fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/userProfiles/${uid}/canAddTask.json?auth=${token}`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(true)
+            })
+          : Promise.resolve()
+      ]);
+      showMessage(`${isAdmin ? 'Promu' : 'Rétrogradé'} admin org pour ${uid.slice(0,8)}…`, 'success');
+      saasLoadOrgMembers(orgId);
     } catch (e) { showMessage(e.message, 'error'); }
   }
 
