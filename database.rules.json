@@ -18,23 +18,23 @@
     "orgs": {
       "$orgId": {
         ".read":  "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || root.child('userOrgIndex').child(auth.uid).val() === $orgId)",
-        ".write": "auth != null && root.child('gesta_admins').child(auth.uid).val() === true",
+        ".write": "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || $orgId === ('user-' + auth.uid))",
 
         "tasks": {
           "$taskId": {
-            ".write": "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || (root.child('userOrgIndex').child(auth.uid).val() === $orgId && ((!data.exists() && root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canAddTask').val() === true) || (data.exists() && newData.exists() && (root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canEdit').val() === true || data.child('createdBy').val() === auth.uid)) || (data.exists() && !newData.exists() && root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canDelete').val() === true))))"
+            ".write": "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || $orgId === ('user-' + auth.uid) || (root.child('userOrgIndex').child(auth.uid).val() === $orgId && ((!data.exists() && root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canAddTask').val() === true) || (data.exists() && newData.exists() && (root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canEdit').val() === true || data.child('createdBy').val() === auth.uid)) || (data.exists() && !newData.exists() && root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('canDelete').val() === true))))"
           }
         },
 
         "userTasks": {
           "$uid": {
-            ".read":  "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || (auth.uid === $uid && root.child('userOrgIndex').child(auth.uid).val() === $orgId))",
-            ".write": "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || (auth.uid === $uid && root.child('userOrgIndex').child(auth.uid).val() === $orgId))"
+            ".read":  "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || (auth.uid === $uid && root.child('userOrgIndex').child(auth.uid).val() === $orgId) || $orgId === ('user-' + auth.uid))",
+            ".write": "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || (auth.uid === $uid && root.child('userOrgIndex').child(auth.uid).val() === $orgId) || $orgId === ('user-' + auth.uid))"
           }
         },
 
         "accessLogs": {
-          ".write": "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || root.child('userOrgIndex').child(auth.uid).val() === $orgId)",
+          ".write": "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || root.child('userOrgIndex').child(auth.uid).val() === $orgId || $orgId === ('user-' + auth.uid))",
           ".read":  "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || root.child('orgs').child($orgId).child('userProfiles').child(auth.uid).child('isAdmin').val() === true)"
         }
       }
@@ -51,7 +51,8 @@
       },
       "orgs": {
         "$orgId": {
-          "name": { ".read": true }
+          "name": { ".read": true },
+          ".write": "auth != null && (root.child('gesta_admins').child(auth.uid).val() === true || $orgId === ('user-' + auth.uid))"
         }
       }
     },

@@ -1877,18 +1877,23 @@
       <p>Gestion de Tâches Intelligent · AAEA-CAVA</p>
     </div>
 
-    <form class="login-form" onsubmit="event.preventDefault(); loginUser();">
-      <div id="loginError" class="login-error"><i class="fas fa-exclamation-circle"></i> <span id="loginErrorMsg"></span></div>
+    <!-- Onglets Connexion / Créer un compte -->
+    <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px;">
+      <button id="loginTabBtn" onclick="showLoginTab('login')" style="flex:1;padding:9px;font-size:12px;font-weight:700;background:var(--primary);color:#fff;border:none;cursor:pointer;transition:background .15s;">Connexion</button>
+      <button id="registerTabBtn" onclick="showLoginTab('register')" style="flex:1;padding:9px;font-size:12px;font-weight:700;background:var(--surface-2);color:var(--text-3);border:none;cursor:pointer;transition:background .15s;">Créer un compte</button>
+    </div>
 
+    <!-- Formulaire Connexion -->
+    <form id="loginFormPanel" class="login-form" onsubmit="event.preventDefault(); loginUser();">
+      <div id="loginError" class="login-error"><i class="fas fa-exclamation-circle"></i> <span id="loginErrorMsg"></span></div>
       <div class="login-field">
         <i class="fas fa-envelope"></i>
-        <input type="email" id="loginEmail" placeholder="votre.email@aaea-cava.org" required autocomplete="email">
+        <input type="email" id="loginEmail" placeholder="votre.email@exemple.fr" required autocomplete="email">
       </div>
       <div class="login-field">
         <i class="fas fa-lock"></i>
         <input type="password" id="loginPassword" placeholder="Mot de passe" required autocomplete="current-password">
       </div>
-
       <button type="submit" class="login-btn" id="loginBtn">
         <i class="fas fa-sign-in-alt"></i> Connexion
       </button>
@@ -1897,6 +1902,29 @@
           Mot de passe oublié ?
         </button>
       </div>
+    </form>
+
+    <!-- Formulaire Créer un compte Solo -->
+    <form id="registerFormPanel" class="login-form" style="display:none;" onsubmit="event.preventDefault(); registerSolo();">
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:14px;line-height:1.6;text-align:center;">
+        Espace personnel — utilisez GESTA pour vous seul.<br>Vous pourrez inviter des membres plus tard.
+      </div>
+      <div id="registerError" class="login-error" style="display:none;"><i class="fas fa-exclamation-circle"></i> <span id="registerErrorMsg"></span></div>
+      <div class="login-field">
+        <i class="fas fa-user"></i>
+        <input type="text" id="registerName" placeholder="Prénom et nom" required autocomplete="name">
+      </div>
+      <div class="login-field">
+        <i class="fas fa-envelope"></i>
+        <input type="email" id="registerEmail" placeholder="votre@email.fr" required autocomplete="email">
+      </div>
+      <div class="login-field">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="registerPassword" placeholder="Mot de passe (6 car. min.)" required autocomplete="new-password">
+      </div>
+      <button type="submit" class="login-btn" id="registerBtn">
+        <i class="fas fa-user-plus"></i> Créer mon espace
+      </button>
     </form>
 
     <div id="demoSection" style="display:none;">
@@ -5529,6 +5557,104 @@ Consignes :
     if (!link) { showMessage('Lien de paiement non configuré — contactez dacalor.diego@gmail.com', 'info', 5000); return; }
     const url = link + (link.includes('?') ? '&' : '?') + `client_reference_id=${currentOrgId}`;
     window.open(url, '_blank');
+  }
+
+  // ===== INSCRIPTION SOLO =====
+  function showLoginTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('loginFormPanel').style.display = isLogin ? '' : 'none';
+    document.getElementById('registerFormPanel').style.display = isLogin ? 'none' : '';
+    document.getElementById('loginTabBtn').style.background = isLogin ? 'var(--primary)' : 'var(--surface-2)';
+    document.getElementById('loginTabBtn').style.color = isLogin ? '#fff' : 'var(--text-3)';
+    document.getElementById('registerTabBtn').style.background = isLogin ? 'var(--surface-2)' : 'var(--primary)';
+    document.getElementById('registerTabBtn').style.color = isLogin ? 'var(--text-3)' : '#fff';
+  }
+
+  async function registerSolo() {
+    const fullName = document.getElementById('registerName').value.trim();
+    const email    = document.getElementById('registerEmail').value.trim();
+    const password = document.getElementById('registerPassword').value;
+    const errEl    = document.getElementById('registerError');
+    const msgEl    = document.getElementById('registerErrorMsg');
+    const btn      = document.getElementById('registerBtn');
+
+    function setErr(msg) { errEl.style.display = 'flex'; msgEl.textContent = msg; }
+    errEl.style.display = 'none';
+    if (!fullName || !email || !password) { setErr('Tous les champs sont requis.'); return; }
+    if (password.length < 6) { setErr('Mot de passe : 6 caractères minimum.'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création…';
+
+    try {
+      // 1. Créer le compte Firebase Auth
+      const res = await fetch(`${FIREBASE_AUTH_URL}:signUp?key=${FIREBASE_API_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const code = data?.error?.message || '';
+        const msg = code === 'EMAIL_EXISTS' ? 'Cet email est déjà utilisé — connectez-vous.'
+          : code === 'WEAK_PASSWORD : Password should be at least 6 characters' ? 'Mot de passe trop court.'
+          : code || 'Erreur lors de la création du compte.';
+        throw new Error(msg);
+      }
+
+      const uid     = data.localId;
+      const idToken = data.idToken;
+      const orgId   = `user-${uid}`;
+      const trialEnds = new Date(Date.now() + TRIAL_DAYS * 86400000).toISOString();
+      const orgConfig = {
+        name: fullName,
+        planStatus: 'trial',
+        trialEnds,
+        adminEmail: email,
+        soloMode: true,
+        createdAt: new Date().toISOString()
+      };
+      const userProfile = {
+        fullName, email,
+        role: 'Director',
+        orgId,
+        isAdmin: true,
+        canAddTask: true, canEdit: true, canDelete: true,
+        createdAt: new Date().toISOString()
+      };
+
+      // 2. Créer l'org + profil + index en parallèle
+      await Promise.all([
+        fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/config.json?auth=${idToken}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orgConfig)
+        }),
+        fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/userProfiles/${uid}.json?auth=${idToken}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userProfile)
+        }),
+        fetch(`${FIREBASE_DB_URL}/userOrgIndex/${uid}.json?auth=${idToken}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orgId)
+        }),
+        fetch(`${FIREBASE_DB_URL}/superAdmin/orgs/${orgId}.json?auth=${idToken}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orgConfig)
+        })
+      ]);
+
+      // 3. Connecter directement
+      currentOrgId = orgId;
+      currentOrgConfig = orgConfig;
+      currentUser = {
+        email, uid, idToken,
+        refreshToken: data.refreshToken,
+        tokenExpiry: Date.now() + (parseInt(data.expiresIn || 3600) - 60) * 1000,
+        role: 'Director', fullName, isDemo: false, isSuperAdmin: false
+      };
+      sessionStorage.setItem('gesta-session', JSON.stringify({ ...currentUser, orgId }));
+      applyUserSession();
+
+    } catch (e) {
+      setErr(e.message);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-user-plus"></i> Créer mon espace';
+    }
   }
 
   // ===== SAAS — INVITATION =====
