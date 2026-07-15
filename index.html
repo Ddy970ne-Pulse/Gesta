@@ -1811,11 +1811,12 @@
     <div style="background:var(--surface);border-radius:16px;padding:24px;margin-bottom:24px;border:1px solid var(--border);">
       <h3 style="font-size:15px;font-weight:700;margin:0 0 16px;"><i class="fas fa-building" style="color:var(--primary);margin-right:8px;"></i>Nouvelle organisation</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="input-group" style="margin:0;"><label>ID (slug unique)</label><input type="text" id="saasOrgId" placeholder="aaea-cava"></div>
-        <div class="input-group" style="margin:0;"><label>Nom affiché</label><input type="text" id="saasOrgName" placeholder="AAEA-CAVA"></div>
+        <div class="input-group" style="margin:0;"><label>ID (slug unique)</label><input type="text" id="saasOrgId" placeholder="mairie-pointe-a-pitre"></div>
+        <div class="input-group" style="margin:0;"><label>Nom affiché</label><input type="text" id="saasOrgName" placeholder="Mairie de Pointe-à-Pitre"></div>
         <div class="input-group" style="margin:0;"><label>Plan</label>
           <select id="saasOrgPlan"><option value="trial">Essai (14 jours)</option><option value="active">Actif</option></select></div>
-        <div class="input-group" style="margin:0;"><label>Email admin</label><input type="email" id="saasOrgAdminEmail" placeholder="admin@client.fr"></div>
+        <div class="input-group" style="margin:0;"><label>Email admin client</label><input type="email" id="saasOrgAdminEmail" placeholder="admin@client.fr"></div>
+        <div class="input-group" style="margin:0;grid-column:1/-1;"><label>Stripe Payment Link (optionnel)</label><input type="url" id="saasOrgStripeLink" placeholder="https://buy.stripe.com/xxx"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn btn-primary" onclick="saasCreateOrg()"><i class="fas fa-plus"></i> Créer l'organisation</button>
@@ -5644,9 +5645,11 @@ Consignes :
 
     msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création…';
     try {
+      const stripeLink = document.getElementById('saasOrgStripeLink').value.trim();
       const trialEnds = new Date(Date.now() + TRIAL_DAYS * 86400000).toISOString();
       const config = { name, planStatus: plan, createdAt: new Date().toISOString(),
-        trialEnds: plan === 'trial' ? trialEnds : null, adminEmail };
+        trialEnds: plan === 'trial' ? trialEnds : null, adminEmail,
+        ...(stripeLink ? { stripePaymentLink: stripeLink } : {}) };
 
       // Écrire config org dans /superAdmin/orgs/{orgId} et /orgs/{orgId}/config
       const token = currentUser.idToken;
@@ -5662,6 +5665,7 @@ Consignes :
       msg.innerHTML = `<span style="color:var(--success);"><i class="fas fa-check"></i> Organisation "${name}" créée.</span>`;
       document.getElementById('saasOrgId').value = '';
       document.getElementById('saasOrgName').value = '';
+      document.getElementById('saasOrgStripeLink').value = '';
       saasLoadOrgs();
     } catch (e) {
       msg.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`;
@@ -5680,15 +5684,25 @@ Consignes :
       const data = await res.json();
       if (!data) { container.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Aucune organisation.</div>'; return; }
       container.innerHTML = Object.entries(data).map(([id, org]) => `
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
-          <div style="flex:1;">
-            <div style="font-weight:700;font-size:13px;">${org.name || id}</div>
-            <div style="font-size:11px;color:var(--text-3);">ID: ${id} · Plan: <strong style="color:${org.planStatus==='active'?'var(--success)':org.planStatus==='trial'?'var(--warning)':'var(--danger)'};">${org.planStatus}</strong>${org.trialEnds?' · Essai jusqu\'au '+new Date(org.trialEnds).toLocaleDateString('fr-FR'):''}</div>
+        <div style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:13px;">${org.name || id}</div>
+              <div style="font-size:11px;color:var(--text-3);">ID: ${id} · Plan: <strong style="color:${org.planStatus==='active'?'var(--success)':org.planStatus==='trial'?'var(--warning)':'var(--danger)'};">${org.planStatus}</strong>${org.trialEnds?' · Essai jusqu\'au '+new Date(org.trialEnds).toLocaleDateString('fr-FR'):''}</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+              ${currentOrgId === id ? `<span style="font-size:10px;font-weight:700;color:var(--primary);padding:3px 8px;border-radius:6px;background:rgba(26,122,110,.12);">● Actuelle</span>` : `<button class="btn btn-sm btn-ghost" onclick="saasEnterOrg('${id}')" style="font-weight:700;"><i class="fas fa-sign-in-alt"></i> Entrer</button>`}
+              <button class="btn btn-sm btn-primary" onclick="saasSetPlan('${id}','active')">Activer</button>
+              <button class="btn btn-sm btn-secondary" onclick="saasSetPlan('${id}','suspended')" style="color:var(--danger);">Suspendre</button>
+            </div>
           </div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            ${currentOrgId === id ? `<span style="font-size:10px;font-weight:700;color:var(--primary);padding:3px 8px;border-radius:6px;background:rgba(26,122,110,.12);">● Actuelle</span>` : `<button class="btn btn-sm btn-ghost" onclick="saasEnterOrg('${id}')" style="font-weight:700;"><i class="fas fa-sign-in-alt"></i> Entrer</button>`}
-            <button class="btn btn-sm btn-primary" onclick="saasSetPlan('${id}','active')">Activer</button>
-            <button class="btn btn-sm btn-secondary" onclick="saasSetPlan('${id}','suspended')" style="color:var(--danger);">Suspendre</button>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:10px;color:var(--text-3);font-weight:600;">STRIPE:</span>
+            ${org.stripePaymentLink
+              ? `<code style="font-size:10px;color:var(--primary);background:var(--surface-2);padding:2px 6px;border-radius:4px;word-break:break-all;">${org.stripePaymentLink}</code>
+                 <button class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 8px;" onclick="navigator.clipboard.writeText('${org.stripePaymentLink}').then(()=>showMessage('Lien copié','success'))"><i class="fas fa-copy"></i></button>`
+              : `<span style="font-size:10px;color:var(--text-3);">Non configuré</span>`}
+            <button class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 8px;" onclick="saasEditStripeLink('${id}','${org.stripePaymentLink||''}')"><i class="fas fa-pen"></i> Modifier</button>
           </div>
         </div>`).join('');
     } catch (e) {
@@ -5708,6 +5722,28 @@ Consignes :
         })
       ]);
       showMessage(`Organisation ${orgId} : ${status}`, 'success');
+      saasLoadOrgs();
+    } catch (e) { showMessage(e.message, 'error'); }
+  }
+
+  async function saasEditStripeLink(orgId, current) {
+    const link = prompt(`Stripe Payment Link pour "${orgId}" :`, current || '');
+    if (link === null) return; // annulé
+    const token = currentUser.idToken;
+    try {
+      await Promise.all([
+        fetch(`${FIREBASE_DB_URL}/superAdmin/orgs/${orgId}/stripePaymentLink.json?auth=${token}`, {
+          method: link ? 'PUT' : 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: link ? JSON.stringify(link) : undefined
+        }),
+        fetch(`${FIREBASE_DB_URL}/orgs/${orgId}/config/stripePaymentLink.json?auth=${token}`, {
+          method: link ? 'PUT' : 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: link ? JSON.stringify(link) : undefined
+        })
+      ]);
+      showMessage(`Stripe configuré pour ${orgId}`, 'success');
       saasLoadOrgs();
     } catch (e) { showMessage(e.message, 'error'); }
   }
