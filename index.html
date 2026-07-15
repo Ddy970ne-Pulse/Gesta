@@ -2020,6 +2020,10 @@
       <i class="fas fa-calendar-alt"></i>
       <span>Planificateur</span>
     </button>
+    <button class="nav-item" data-tab="gantt" onclick="switchTab('gantt')">
+      <i class="fas fa-stream"></i>
+      <span>Gantt</span>
+    </button>
 
     <div class="sidebar-section-label" style="margin-top:8px;">Analyse</div>
 
@@ -2315,6 +2319,16 @@
               <strong>Assignés :</strong>
               <div class="detail-assignees-row" id="taskAssigneesDisplay"></div>
             </div>
+            <div id="detailBlockedBy" style="margin-top:10px;">
+              <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px;"><i class="fas fa-link" style="color:var(--warning);margin-right:5px;"></i>Dépendances — bloquée par</div>
+              <div id="blockedByList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;"></div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <select id="blockedBySelect" style="font-size:12px;flex:1;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--surface);">
+                  <option value="">Ajouter une dépendance…</option>
+                </select>
+                <button class="btn btn-sm btn-ghost" onclick="addBlockedBy()" style="flex-shrink:0;"><i class="fas fa-plus"></i></button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2599,6 +2613,33 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- GANTT -->
+  <div id="gantt-tab" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:18px;font-weight:800;">Gantt</div>
+        <div style="font-size:12px;color:var(--text-3);">Vue chronologique des tâches avec échéance</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="ganttFilter" onchange="renderGantt(tasks.filter(_isTaskVisible))" style="font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);">
+          <option value="all">Toutes les tâches</option>
+          <option value="Q1">Q1 — Urgent & Important</option>
+          <option value="Q2">Q2 — Important</option>
+          <option value="Q3">Q3 — Urgent</option>
+          <option value="Q4">Q4 — À déléguer</option>
+        </select>
+        <select id="ganttWeeks" onchange="renderGantt(tasks.filter(_isTaskVisible))" style="font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);">
+          <option value="4">4 semaines</option>
+          <option value="8" selected>8 semaines</option>
+          <option value="12">12 semaines</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <div id="ganttChart" style="min-width:700px;"></div>
     </div>
   </div>
 
@@ -2939,9 +2980,9 @@
   }
 
   function changeRole() {
+    stopRealtimeSync();
     currentUser = null;
     currentRole = null;
-    if (syncInterval) clearInterval(syncInterval);
     document.getElementById('appContainer').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
   }
@@ -2955,6 +2996,7 @@
     'historique': 'Historique',
     'coach': 'Coach IA',
     'planner': 'Planificateur',
+    'gantt': 'Gantt',
     'admin': 'Administration'
   };
 
@@ -2981,6 +3023,7 @@
       else if (name === 'planner') renderPlanner(visible);
       else if (name === 'historique') renderHistory(visible, currentHistoryFilter);
       else if (name === 'coach') renderCoach(visible);
+      else if (name === 'gantt') renderGantt(visible);
     }
   }
 
@@ -3210,13 +3253,31 @@
   function updateSyncStatus(status) {
     const dot = document.querySelector('.sync-dot');
     const text = document.getElementById('syncStatus');
-    
-    if (status === 'connecté') {
+    if (!dot || !text) return;
+    if (status === 'live') {
       dot.style.background = 'var(--success)';
+      dot.style.animation = 'pulse 1.5s infinite';
+      text.textContent = '● En direct';
+      text.style.color = 'var(--success)';
+      text.style.fontWeight = '700';
+    } else if (status === 'connecté') {
+      dot.style.background = 'var(--success)';
+      dot.style.animation = '';
       text.textContent = 'Synchronisé';
-    } else {
+      text.style.color = '';
+      text.style.fontWeight = '';
+    } else if (status === 'polling') {
       dot.style.background = 'var(--warning)';
+      dot.style.animation = '';
+      text.textContent = 'Sync auto';
+      text.style.color = '';
+      text.style.fontWeight = '';
+    } else {
+      dot.style.background = 'var(--danger)';
+      dot.style.animation = '';
       text.textContent = 'Hors ligne (local)';
+      text.style.color = '';
+      text.style.fontWeight = '';
     }
   }
 
@@ -3536,6 +3597,7 @@
     renderChecklist(cl);
     loadSubTasks(id);
     loadComments(id);
+    renderBlockedBy(task);
   }
 
   // ===== SÉLECTION MULTIPLE =====
@@ -4086,6 +4148,7 @@
     renderPlanner(visibleTasks);
     renderAlerts(visibleTasks);
     renderHistory(visibleTasks, currentHistoryFilter);
+    renderGantt(visibleTasks);
     checkUrgentNotifications(visibleTasks);
   }
 
@@ -4150,7 +4213,7 @@
               ${bulkMode ? `<input type="checkbox" ${isSelected ? 'checked' : ''} onclick="toggleTaskSelection('${t.id}',event)" style="width:15px;height:15px;accent-color:var(--danger);flex-shrink:0;">` : ''}
               ${(t.description||'(sans titre)').substring(0, 48)} ${dueBadge}${(() => { const c = tasks.filter(x => x.parentId === t.id).length; return c ? `<span style="background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;"><i class="fas fa-sitemap"></i> ${c}</span>` : ''; })()}
             </div>
-            <div class="task-meta" style="margin-top:6px;">${t.source||''} • <span class="status-badge status-${(t.status||'planifié').replace(/ /g, '-')}">${t.status||'planifié'}</span>${t.scope === 'personal' ? ' <span class="task-scope-badge personal"><i class="fas fa-lock"></i> Perso</span>' : ''}${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}</div>
+            <div class="task-meta" style="margin-top:6px;">${t.source||''} • <span class="status-badge status-${(t.status||'planifié').replace(/ /g, '-')}">${t.status||'planifié'}</span>${t.scope === 'personal' ? ' <span class="task-scope-badge personal"><i class="fas fa-lock"></i> Perso</span>' : ''}${t.repeat && t.repeat !== 'none' ? ` <span class="recur-badge"><i class="fas fa-sync-alt"></i>${t.repeat === 'weekly' ? 'hebdo' : 'mensuel'}</span>` : ''}${(()=>{ const deps = Array.isArray(t.blockedBy)?t.blockedBy:[]; const blocking = deps.filter(id=>{ const d=tasks.find(x=>x.id===id); return d&&!d.completed; }); return blocking.length ? ` <span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;background:rgba(234,179,8,.15);color:var(--warning);"><i class="fas fa-lock"></i>${blocking.length} bloquant</span>` : ''; })()}</div>
             ${avatars ? `<div class="task-assignees" style="margin-top:6px;">${avatars}</div>` : ''}
             ${(t.tags && t.tags.length) ? `<div class="task-tags-row">${t.tags.map(tag => `<span class="task-tag">#${tag}</span>`).join('')}</div>` : ''}
             ${(() => { const s = checklistStats(t.checklist); if (!s.total) return ''; const col = s.pct >= 100 ? 'var(--success)' : s.pct > 0 ? 'var(--warning)' : 'var(--text-3)'; return `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;"><div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${s.pct}%;background:${col};transition:width .3s;"></div></div><span style="font-size:10px;color:${col};font-weight:600;white-space:nowrap;">${s.done}/${s.total}</span></div>`; })()}
@@ -4818,29 +4881,137 @@ Consignes :
 
   // ===== INIT =====
   async function initializeApp() {
-    const permissions = rolePermissions[currentRole];
-    
     showMessage(`Connecté en tant que ${currentRole}`, 'success');
-    
     await initializeFirebaseConnection();
-    
     await fetchTasks();
-    
+
     if (offlineQueue.operations.length > 0) {
-      console.log('📤 Tâches offline détectées, synchronisation...');
       await offlineQueue.processQueue();
     }
-    
-    if (syncInterval) clearInterval(syncInterval);
-    syncInterval = setInterval(() => {
-      fetchTasks();
-      if (offlineQueue.operations.length > 0) {
-        offlineQueue.processQueue();
-      }
-    }, 8000);
 
-    // Briefing proactif après chargement initial (sans bloquer)
+    startRealtimeSync();
     setTimeout(proactiveCoachAnalysis, 2000);
+  }
+
+  // ===== TEMPS RÉEL — Firebase SSE =====
+  let _sseShared = null, _ssePersonal = null, _sseFallbackTimer = null;
+
+  function startRealtimeSync() {
+    stopRealtimeSync();
+    if (!currentUser || currentUser.isDemo || !currentOrgId) {
+      // Mode démo ou pas d'org : polling classique
+      syncInterval = setInterval(() => fetchTasks(), 8000);
+      return;
+    }
+    _openSSE();
+  }
+
+  function stopRealtimeSync() {
+    if (_sseShared)  { _sseShared.close();   _sseShared = null; }
+    if (_ssePersonal){ _ssePersonal.close();  _ssePersonal = null; }
+    if (syncInterval){ clearInterval(syncInterval); syncInterval = null; }
+    if (_sseFallbackTimer){ clearTimeout(_sseFallbackTimer); _sseFallbackTimer = null; }
+  }
+
+  function _openSSE() {
+    const token = currentUser.idToken;
+    const uid   = currentUser.uid;
+
+    // Stream tâches partagées
+    _sseShared = new EventSource(
+      `${FIREBASE_DB_URL}/orgs/${currentOrgId}/tasks.json?auth=${token}`
+    );
+    _sseShared.addEventListener('put',   e => _handleSSEEvent(e, 'shared', null));
+    _sseShared.addEventListener('patch', e => _handleSSEPatch(e, 'shared', null));
+    _sseShared.onerror = _onSSEError;
+    _sseShared.onopen  = _onSSEOpen;
+
+    // Stream tâches personnelles
+    _ssePersonal = new EventSource(
+      `${FIREBASE_DB_URL}/orgs/${currentOrgId}/userTasks/${uid}.json?auth=${token}`
+    );
+    _ssePersonal.addEventListener('put',   e => _handleSSEEvent(e, 'personal', uid));
+    _ssePersonal.addEventListener('patch', e => _handleSSEPatch(e, 'personal', uid));
+    _ssePersonal.onerror = _onSSEError;
+  }
+
+  function _handleSSEEvent(e, scope, ownerUid) {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.path === '/' && msg.data) {
+        // Remplacement complet — merge dans tasks[]
+        const incoming = _normalizeTasks(msg.data, scope, ownerUid);
+        tasks = [
+          ...tasks.filter(t => t.scope !== scope),
+          ...incoming
+        ];
+        saveLocalTasks();
+        renderAll();
+      } else if (msg.path && msg.path !== '/' && msg.data) {
+        // Mise à jour d'une tâche individuelle
+        const id = msg.path.replace('/', '');
+        const idx = tasks.findIndex(t => t.id === id);
+        const updated = { id, scope, ownerUid, ...msg.data };
+        if (updated.checklist && !Array.isArray(updated.checklist))
+          updated.checklist = Object.values(updated.checklist);
+        if (idx >= 0) tasks[idx] = { ...tasks[idx], ...updated };
+        else tasks.push(updated);
+        saveLocalTasks();
+        renderAll();
+      } else if (msg.path && !msg.data) {
+        // Suppression
+        const id = msg.path.replace('/', '');
+        tasks = tasks.filter(t => t.id !== id);
+        saveLocalTasks();
+        renderAll();
+      }
+    } catch(_) {}
+  }
+
+  function _handleSSEPatch(e, scope, ownerUid) {
+    try {
+      const msg = JSON.parse(e.data);
+      if (!msg.data) return;
+      Object.entries(msg.data).forEach(([id, data]) => {
+        if (!data) { tasks = tasks.filter(t => t.id !== id); return; }
+        const idx = tasks.findIndex(t => t.id === id);
+        const updated = { id, scope, ownerUid, ...data };
+        if (updated.checklist && !Array.isArray(updated.checklist))
+          updated.checklist = Object.values(updated.checklist);
+        if (idx >= 0) tasks[idx] = { ...tasks[idx], ...updated };
+        else tasks.push(updated);
+      });
+      saveLocalTasks();
+      renderAll();
+    } catch(_) {}
+  }
+
+  let _sseErrorCount = 0;
+  function _onSSEOpen() {
+    _sseErrorCount = 0;
+    updateSyncStatus('live');
+    if (_sseFallbackTimer) { clearTimeout(_sseFallbackTimer); _sseFallbackTimer = null; }
+  }
+
+  function _onSSEError() {
+    _sseErrorCount++;
+    updateSyncStatus('hors-ligne');
+    if (_sseErrorCount >= 3) {
+      // SSE instable : bascule en polling de secours
+      stopRealtimeSync();
+      updateSyncStatus('polling');
+      syncInterval = setInterval(() => {
+        refreshIdTokenIfNeeded().then(() => {
+          fetchTasks();
+          if (offlineQueue.operations.length > 0) offlineQueue.processQueue();
+        });
+      }, 15000);
+      // Réessayer SSE après 60s
+      _sseFallbackTimer = setTimeout(() => {
+        if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
+        refreshIdTokenIfNeeded().then(() => _openSSE());
+      }, 60000);
+    }
   }
 
   // ===== DRAG & DROP =====
@@ -5591,6 +5762,7 @@ Consignes :
     if (currentUser && !currentUser.isDemo) {
       await logAccess('logout', { email: currentUser.email });
     }
+    stopRealtimeSync();
     currentUser = null;
     currentRole = null;
     currentOrgId = null;
@@ -6014,7 +6186,9 @@ Consignes :
     closeSaasPanel();
     showMessage(`Organisation active : ${orgName}`, 'success');
     knownUsers = [];
+    stopRealtimeSync();
     await fetchTasks();
+    startRealtimeSync();
     loadKnownUsers();
   }
 
@@ -7153,6 +7327,155 @@ Règles :
 
   function switchTabByName(name) {
     switchTab(name);
+  }
+
+  // ===== GANTT =====
+  function renderGantt(allVisible) {
+    const container = document.getElementById('ganttChart');
+    if (!container) return;
+
+    const weeks   = parseInt(document.getElementById('ganttWeeks')?.value || 8);
+    const qFilter = document.getElementById('ganttFilter')?.value || 'all';
+    const now     = new Date(); now.setHours(0,0,0,0);
+    const end     = new Date(now.getTime() + weeks * 7 * 86400000);
+
+    // Tâches avec dueDate dans la fenêtre, non complétées
+    let taskList = allVisible.filter(t =>
+      !t.completed && t.dueDate &&
+      new Date(t.dueDate) >= now && new Date(t.dueDate) <= end
+    );
+    if (qFilter !== 'all') taskList = taskList.filter(t => t.quadrant === qFilter);
+    taskList = taskList.sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    if (!taskList.length) {
+      container.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:40px;font-size:13px;"><i class="fas fa-calendar-times" style="font-size:32px;display:block;margin-bottom:12px;opacity:.3;"></i>Aucune tâche avec échéance dans cette période.</div>';
+      return;
+    }
+
+    const totalDays = weeks * 7;
+    const dayW = Math.max(18, Math.floor(800 / totalDays)); // px par jour
+    const totalW = totalDays * dayW;
+    const rowH = 36;
+    const labelW = 200;
+
+    const Q_COLOR = { Q1:'#ef4444', Q2:'#1A7A6E', Q3:'#f59e0b', Q4:'#6b7280' };
+    const Q_BG    = { Q1:'rgba(239,68,68,.15)', Q2:'rgba(26,122,110,.15)', Q3:'rgba(245,158,11,.15)', Q4:'rgba(107,114,128,.12)' };
+
+    // En-tête semaines
+    let headerHtml = `<div style="display:flex;margin-left:${labelW}px;">`;
+    for (let w = 0; w < weeks; w++) {
+      const wDate = new Date(now.getTime() + w * 7 * 86400000);
+      const wLabel = wDate.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+      headerHtml += `<div style="width:${dayW*7}px;font-size:10px;font-weight:700;color:var(--text-3);border-left:1px solid var(--border);padding:2px 4px;overflow:hidden;white-space:nowrap;">${wLabel}</div>`;
+    }
+    headerHtml += '</div>';
+
+    // Ligne "aujourd'hui"
+    const todayOffset = 0;
+
+    // Lignes de tâches
+    let rowsHtml = '';
+    taskList.forEach((t, i) => {
+      const start = t.scheduledDate ? new Date(t.scheduledDate) : now;
+      const due   = new Date(t.dueDate);
+      const s = Math.max(0, Math.floor((start - now) / 86400000));
+      const e = Math.min(totalDays, Math.ceil((due - now) / 86400000));
+      const barLeft = s * dayW;
+      const barW    = Math.max(dayW, (e - s) * dayW);
+      const isBlocked = (Array.isArray(t.blockedBy) ? t.blockedBy : []).some(id => { const d = tasks.find(x=>x.id===id); return d && !d.completed; });
+      const q = t.quadrant || 'Q4';
+      const bg = isBlocked ? 'rgba(234,179,8,.25)' : Q_BG[q] || Q_BG.Q4;
+      const border = isBlocked ? '#f59e0b' : Q_COLOR[q] || Q_COLOR.Q4;
+      const bg2 = isBlocked ? '#f59e0b' : Q_COLOR[q];
+      const rowBg = i % 2 === 0 ? 'var(--surface)' : 'var(--bg)';
+
+      rowsHtml += `
+        <div style="display:flex;align-items:center;height:${rowH}px;background:${rowBg};border-bottom:1px solid var(--border);" onclick="showTaskDetail('${t.id}')" title="${t.description||''}">
+          <div style="width:${labelW}px;flex-shrink:0;padding:0 10px;font-size:11px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${Q_COLOR[q]};flex-shrink:0;display:inline-block;"></span>
+            ${isBlocked ? '<i class="fas fa-lock" style="color:var(--warning);font-size:9px;"></i>' : ''}
+            ${(t.description||'').substring(0,28)}
+          </div>
+          <div style="flex:1;position:relative;height:100%;overflow:hidden;">
+            <!-- Grille jours -->
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent ${dayW*7-1}px,var(--border) ${dayW*7}px);pointer-events:none;"></div>
+            <!-- Ligne aujourd'hui -->
+            <div style="position:absolute;top:0;bottom:0;left:0;width:2px;background:var(--danger);opacity:.6;pointer-events:none;z-index:1;"></div>
+            <!-- Barre tâche -->
+            <div style="position:absolute;top:6px;height:${rowH-12}px;left:${barLeft}px;width:${barW}px;background:${bg};border:1.5px solid ${border};border-radius:5px;display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:700;color:${bg2};overflow:hidden;white-space:nowrap;cursor:pointer;box-sizing:border-box;">
+              ${due.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}${t.estimatedHours?` · ${t.estimatedHours}h`:''}
+            </div>
+          </div>
+        </div>`;
+    });
+
+    container.innerHTML = headerHtml + `<div style="overflow:hidden;">${rowsHtml}</div>`;
+  }
+
+  // ===== DÉPENDANCES ENTRE TÂCHES =====
+  function renderBlockedBy(task) {
+    const deps = Array.isArray(task.blockedBy) ? task.blockedBy : [];
+
+    // Liste des dépendances actuelles
+    const listEl = document.getElementById('blockedByList');
+    listEl.innerHTML = deps.map(depId => {
+      const dep = tasks.find(t => t.id === depId);
+      if (!dep) return '';
+      const done = dep.completed;
+      return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;background:${done?'rgba(22,163,74,.1)':'rgba(234,179,8,.12)'};color:${done?'var(--success)':'var(--warning)'};">
+        <i class="fas fa-${done?'check-circle':'clock'}"></i>
+        ${dep.description?.substring(0,35)||depId}
+        <button onclick="removeBlockedBy('${depId}')" style="background:none;border:none;cursor:pointer;color:inherit;opacity:.6;font-size:10px;padding:0 0 0 4px;">✕</button>
+      </span>`;
+    }).join('');
+
+    // Alerte si tâche encore bloquée
+    const blocking = deps.filter(id => { const t = tasks.find(x => x.id === id); return t && !t.completed; });
+    const alertEl = document.getElementById('taskDetailContainer')?.querySelector('.dep-alert');
+    if (blocking.length && !alertEl) {
+      const info = document.createElement('div');
+      info.className = 'dep-alert';
+      info.style.cssText = 'background:rgba(234,179,8,.12);border-left:3px solid var(--warning);padding:8px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--warning);font-weight:600;margin-top:8px;';
+      info.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Cette tâche est bloquée par ${blocking.length} tâche${blocking.length>1?'s':''} non complétée${blocking.length>1?'s':''}.`;
+      document.getElementById('detailBlockedBy').appendChild(info);
+    }
+
+    // Peupler le select de la liste des tâches disponibles
+    const sel = document.getElementById('blockedBySelect');
+    sel.innerHTML = '<option value="">Ajouter une dépendance…</option>';
+    tasks.filter(t => t.id !== currentTaskId && !deps.includes(t.id) && !t.completed)
+      .sort((a,b) => (a.quadrant||'').localeCompare(b.quadrant||''))
+      .forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = `[${t.quadrant||'?'}] ${t.description?.substring(0,50)||t.id}`;
+        sel.appendChild(opt);
+      });
+  }
+
+  async function addBlockedBy() {
+    const sel = document.getElementById('blockedBySelect');
+    const depId = sel.value;
+    if (!depId || !currentTaskId) return;
+    const task = tasks.find(t => t.id === currentTaskId);
+    if (!task) return;
+    const deps = Array.isArray(task.blockedBy) ? [...task.blockedBy] : [];
+    if (deps.includes(depId)) return;
+    deps.push(depId);
+    await updateTask(currentTaskId, { blockedBy: deps });
+    task.blockedBy = deps;
+    renderBlockedBy(task);
+    showMessage('Dépendance ajoutée', 'success');
+  }
+
+  async function removeBlockedBy(depId) {
+    if (!currentTaskId) return;
+    const task = tasks.find(t => t.id === currentTaskId);
+    if (!task) return;
+    const deps = (Array.isArray(task.blockedBy) ? task.blockedBy : []).filter(id => id !== depId);
+    await updateTask(currentTaskId, { blockedBy: deps.length ? deps : null });
+    task.blockedBy = deps;
+    renderBlockedBy(task);
   }
 
   // ===== RAPPORT PDF =====
