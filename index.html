@@ -1482,6 +1482,11 @@
       animation: slideIn .4s ease;
     }
     @keyframes slideIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+    @keyframes liveBlink { 0%,100%{opacity:1} 50%{opacity:.2} }
+    .live-recording #crLiveDot { animation: liveBlink .9s ease-in-out infinite; }
+    .cr-live-task { padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px;background:var(--bg-2);animation:slideIn .3s ease; }
+    .cr-live-task .cr-live-task-title { font-weight:600;margin-bottom:3px; }
+    .cr-live-task .cr-live-task-meta { color:var(--text-2);font-size:11px; }
     #presNav {
       display: flex; gap: 16px; align-items: center; justify-content: center;
       padding: 16px; background: rgba(255,255,255,.05); border-top: 1px solid rgba(255,255,255,.1);
@@ -2814,13 +2819,81 @@
   <div id="cr-tab" class="tab-content">
     <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
       <h2 style="margin:0;font-size:1.3rem;"><i class="fas fa-file-alt" style="color:var(--brand);margin-right:8px;"></i>Comptes Rendus</h2>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
+        <button class="btn" onclick="showCrPanel('live')" style="background:#dc2626;color:#fff;">
+          <i class="fas fa-circle"></i> Réunion en direct
+        </button>
         <button class="btn" id="crTabImport" onclick="showCrPanel('import')" style="background:var(--brand);color:#fff;">
           <i class="fas fa-file-import"></i> CR → Tâches
         </button>
         <button class="btn" id="crTabGenerate" onclick="showCrPanel('generate')" style="background:var(--success);color:#fff;">
           <i class="fas fa-file-export"></i> Tâches → CR
         </button>
+      </div>
+    </div>
+
+    <!-- Panel: Réunion en direct -->
+    <div id="crLivePanel" style="display:none;margin-bottom:20px;">
+
+      <!-- Header live -->
+      <div class="card" style="border-left:4px solid #dc2626;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div id="crLiveIndicator" style="display:flex;align-items:center;gap:8px;">
+            <span id="crLiveDot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;"></span>
+            <span id="crLiveStatus" style="font-weight:700;font-size:13px;">Prêt</span>
+          </div>
+          <span id="crLiveTimer" style="font-family:monospace;font-size:1.1rem;font-weight:700;color:var(--text-2);">00:00</span>
+          <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="crLiveStartBtn" onclick="crLiveToggle()" style="padding:8px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+              <i class="fas fa-microphone"></i> Démarrer
+            </button>
+            <button onclick="crLivePause()" id="crLivePauseBtn" style="padding:8px 16px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;display:none;">
+              <i class="fas fa-pause"></i> Pause
+            </button>
+            <button onclick="crLiveFinish()" style="padding:8px 16px;background:var(--success);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+              <i class="fas fa-check"></i> Terminer la réunion
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonnes : transcription | tâches extraites -->
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:12px;">
+
+        <!-- Transcription -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg-2);">
+            <i class="fas fa-closed-captioning" style="color:var(--brand);"></i>
+            <span style="font-weight:600;font-size:13px;">Transcription en direct</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--text-2);">Chrome/Edge requis</span>
+          </div>
+          <div id="crLiveTranscript" style="padding:16px;min-height:300px;max-height:500px;overflow-y:auto;font-size:13px;line-height:1.8;color:var(--text);">
+            <span style="color:var(--text-3);">Le texte de la réunion apparaîtra ici au fil des mots…</span>
+          </div>
+          <div id="crLiveInterim" style="padding:8px 16px;border-top:1px solid var(--border);font-size:13px;color:var(--text-3);font-style:italic;min-height:32px;background:var(--bg-2);"></div>
+        </div>
+
+        <!-- Tâches extraites en live -->
+        <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-2);">
+            <div style="font-weight:600;font-size:13px;"><i class="fas fa-tasks" style="color:var(--success);"></i> Tâches détectées</div>
+            <div style="font-size:11px;color:var(--text-2);margin-top:2px;">Mise à jour automatique toutes les 2 min</div>
+          </div>
+          <div id="crLiveTaskList" style="flex:1;overflow-y:auto;padding:12px;min-height:300px;">
+            <div style="text-align:center;color:var(--text-3);font-size:12px;padding:32px 0;"><i class="fas fa-magic" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.4;"></i>Les actions à mener apparaîtront ici</div>
+          </div>
+          <div style="padding:10px;border-top:1px solid var(--border);background:var(--bg-2);">
+            <button onclick="crLiveExtractNow()" style="width:100%;padding:8px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">
+              <i class="fas fa-sync"></i> Analyser maintenant
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes manuelles -->
+      <div class="card" style="margin-top:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:8px;"><i class="fas fa-pen" style="color:var(--warning);"></i> Notes manuelles <span style="font-size:11px;font-weight:400;color:var(--text-2);">(complément à la transcription)</span></div>
+        <textarea id="crLiveNotes" rows="3" placeholder="Ajoutez des notes, points importants, décisions…" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;"></textarea>
       </div>
     </div>
 
@@ -3418,7 +3491,7 @@
       else if (name === 'gantt') renderGantt(visible);
       else if (name === 'cr') {
         const crWelcome = document.getElementById('crWelcome');
-        if (crWelcome && document.getElementById('crImportPanel').style.display === 'none' && document.getElementById('crGeneratePanel').style.display === 'none') {
+        if (crWelcome && document.getElementById('crImportPanel').style.display === 'none' && document.getElementById('crGeneratePanel').style.display === 'none' && document.getElementById('crLivePanel').style.display === 'none') {
           crWelcome.style.display = 'block';
         }
       }
@@ -8156,6 +8229,7 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
     document.getElementById('crWelcome').style.display = 'none';
     document.getElementById('crImportPanel').style.display = 'none';
     document.getElementById('crGeneratePanel').style.display = 'none';
+    document.getElementById('crLivePanel').style.display = 'none';
     if (panel === 'import') {
       document.getElementById('crImportPanel').style.display = 'block';
     } else if (panel === 'generate') {
@@ -8165,6 +8239,21 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
       if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
       _crPrefillParticipants();
       document.getElementById('crGeneratePanel').style.display = 'block';
+    } else if (panel === 'live') {
+      // Reset si nouvelle réunion
+      if (!_liveRunning) {
+        _liveTranscriptFull = ''; _liveLastAnalyzed = ''; _liveTasks = [];
+        _liveTimerSec = 0;
+        document.getElementById('crLiveTimer').textContent = '00:00';
+        document.getElementById('crLiveStatus').textContent = 'Prêt';
+        document.getElementById('crLiveTranscript').innerHTML = '<span style="color:var(--text-3);">Le texte de la réunion apparaîtra ici au fil des mots…</span>';
+        document.getElementById('crLiveInterim').textContent = '';
+        document.getElementById('crLiveNotes').value = '';
+        _crLiveRenderTasks();
+        document.getElementById('crLiveStartBtn').innerHTML = '<i class="fas fa-microphone"></i> Démarrer';
+        document.getElementById('crLiveStartBtn').style.background = '#dc2626';
+      }
+      document.getElementById('crLivePanel').style.display = 'block';
     }
   }
 
@@ -8489,6 +8578,243 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     printArea.style.display = 'block';
     window.print();
     setTimeout(() => { printArea.style.display = 'none'; }, 2000);
+  }
+
+  // ===== RÉUNION EN DIRECT =====
+  let _liveRecog = null, _liveRunning = false, _livePaused = false;
+  let _liveTranscriptFull = '';   // texte validé (segments finaux)
+  let _liveLastAnalyzed = '';     // texte déjà envoyé à l'IA
+  let _liveTasks = [];            // tâches extraites cumulées
+  let _liveTimerSec = 0, _liveTimerInterval = null;
+  let _liveAutoAnalyzeInterval = null;
+
+  function showCrLivePanel() {
+    document.getElementById('crLivePanel').style.display = 'block';
+    document.getElementById('crWelcome').style.display = 'none';
+    document.getElementById('crImportPanel').style.display = 'none';
+    document.getElementById('crGeneratePanel').style.display = 'none';
+  }
+
+  function crLiveToggle() {
+    if (_liveRunning) _crLiveStop();
+    else _crLiveStart();
+  }
+
+  function _crLiveStart() {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      showMessage('Transcription vocale non disponible — utilisez Chrome ou Edge', 'warning'); return;
+    }
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    _liveRecog = new SpeechRec();
+    _liveRecog.lang = 'fr-FR';
+    _liveRecog.continuous = true;
+    _liveRecog.interimResults = true;
+
+    _liveRecog.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) {
+          _liveTranscriptFull += t + ' ';
+          _crLiveRenderTranscript();
+        } else {
+          interim += t;
+        }
+      }
+      document.getElementById('crLiveInterim').textContent = interim;
+    };
+    _liveRecog.onerror = e => {
+      if (e.error === 'no-speech') return;
+      document.getElementById('crLiveStatus').textContent = 'Erreur micro: ' + e.error;
+    };
+    _liveRecog.onend = () => {
+      if (_liveRunning && !_livePaused) {
+        // Redémarrage automatique (Chrome arrête après ~60s de silence)
+        try { _liveRecog.start(); } catch(_) {}
+      }
+    };
+
+    _liveRecog.start();
+    _liveRunning = true; _livePaused = false;
+    document.getElementById('crLiveStartBtn').innerHTML = '<i class="fas fa-stop"></i> Arrêter';
+    document.getElementById('crLiveStartBtn').style.background = '#7f1d1d';
+    document.getElementById('crLivePauseBtn').style.display = '';
+    document.getElementById('crLiveStatus').textContent = 'Enregistrement en cours…';
+    document.getElementById('crLivePanel').classList.add('live-recording');
+
+    // Timer
+    _liveTimerInterval = setInterval(() => {
+      _liveTimerSec++;
+      const m = String(Math.floor(_liveTimerSec/60)).padStart(2,'0');
+      const s = String(_liveTimerSec%60).padStart(2,'0');
+      document.getElementById('crLiveTimer').textContent = `${m}:${s}`;
+    }, 1000);
+
+    // Analyse auto toutes les 2 minutes
+    _liveAutoAnalyzeInterval = setInterval(() => {
+      const newText = _liveTranscriptFull.slice(_liveLastAnalyzed.length).trim();
+      if (newText.length > 100) crLiveExtractNow();
+    }, 120000);
+  }
+
+  function _crLiveStop() {
+    _liveRunning = false; _livePaused = false;
+    try { _liveRecog?.stop(); } catch(_) {}
+    clearInterval(_liveTimerInterval);
+    clearInterval(_liveAutoAnalyzeInterval);
+    document.getElementById('crLiveStartBtn').innerHTML = '<i class="fas fa-microphone"></i> Reprendre';
+    document.getElementById('crLiveStartBtn').style.background = '#dc2626';
+    document.getElementById('crLivePauseBtn').style.display = 'none';
+    document.getElementById('crLiveStatus').textContent = 'Arrêté';
+    document.getElementById('crLivePanel').classList.remove('live-recording');
+    document.getElementById('crLiveInterim').textContent = '';
+  }
+
+  function crLivePause() {
+    if (_livePaused) {
+      _livePaused = false;
+      try { _liveRecog?.start(); } catch(_) {}
+      document.getElementById('crLivePauseBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+      document.getElementById('crLiveStatus').textContent = 'Enregistrement en cours…';
+      document.getElementById('crLivePanel').classList.add('live-recording');
+    } else {
+      _livePaused = true;
+      try { _liveRecog?.stop(); } catch(_) {}
+      document.getElementById('crLivePauseBtn').innerHTML = '<i class="fas fa-play"></i> Reprendre';
+      document.getElementById('crLiveStatus').textContent = 'En pause';
+      document.getElementById('crLivePanel').classList.remove('live-recording');
+    }
+  }
+
+  function _crLiveRenderTranscript() {
+    const el = document.getElementById('crLiveTranscript');
+    if (!_liveTranscriptFull.trim()) { el.innerHTML = '<span style="color:var(--text-3);">Le texte de la réunion apparaîtra ici au fil des mots…</span>'; return; }
+    // Afficher le texte avec les tâches déjà extraites surlignées
+    const taskTitles = _liveTasks.map(t => t.title?.toLowerCase());
+    el.innerHTML = `<p style="margin:0;white-space:pre-wrap;">${_liveTranscriptFull}</p>`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function crLiveExtractNow() {
+    const newText = _liveTranscriptFull.slice(_liveLastAnalyzed.length).trim();
+    const notes = document.getElementById('crLiveNotes')?.value || '';
+    const combined = (newText + (notes ? '\n\nNotes : ' + notes : '')).trim();
+    if (combined.length < 30) { showMessage('Pas assez de texte à analyser', 'info'); return; }
+
+    const apiKey = localStorage.getItem('gesta-groq-key') || GROQ_API_KEY;
+    if (!apiKey) { showMessage('Clé API Groq requise', 'warning'); return; }
+
+    const btn = document.querySelector('#crLivePanel button[onclick="crLiveExtractNow()"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse…'; }
+
+    const userList = (knownUsers||[]).map(u => u.fullName||u.email).join(', ') || 'membres de l\'équipe';
+
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.2,
+          messages: [
+            { role: 'system', content: `Tu es un assistant de réunion. Analyse ce fragment de transcription et extrait UNIQUEMENT les nouvelles actions à mener, décisions prises, ou engagements pris. Membres de l'équipe : ${userList}. Pour chaque action : title, assignee (ou null), dueDate (ISO ou null), quadrant (1-4), subtasks (tableau ou vide). Réponds UNIQUEMENT avec un tableau JSON valide.` },
+            { role: 'user', content: combined }
+          ]
+        })
+      });
+      const data = await resp.json();
+      let raw = (data.choices?.[0]?.message?.content || '[]').replace(/```json?\s*/g,'').replace(/```/g,'').trim();
+      let extracted = JSON.parse(raw);
+      if (!Array.isArray(extracted)) extracted = [];
+
+      // Dédoublonner par titre
+      const existingTitles = new Set(_liveTasks.map(t => t.title?.toLowerCase()));
+      const newTasks = extracted.filter(t => t.title && !existingTitles.has(t.title.toLowerCase()));
+      _liveTasks = [..._liveTasks, ...newTasks];
+      _liveLastAnalyzed = _liveTranscriptFull;
+      _crLiveRenderTasks();
+      if (newTasks.length) showMessage(`${newTasks.length} nouvelle(s) tâche(s) détectée(s)`, 'success', 3000);
+    } catch(e) {
+      showMessage('Erreur analyse: ' + e.message, 'error');
+    }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-sync"></i> Analyser maintenant'; }
+  }
+
+  function _crLiveRenderTasks() {
+    const el = document.getElementById('crLiveTaskList');
+    if (!_liveTasks.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--text-3);font-size:12px;padding:32px 0;"><i class="fas fa-magic" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.4;"></i>Les actions à mener apparaîtront ici</div>';
+      return;
+    }
+    el.innerHTML = _liveTasks.map((t, i) => `
+      <div class="cr-live-task">
+        <div style="display:flex;gap:6px;align-items:flex-start;">
+          <span style="font-size:10px;background:var(--brand);color:#fff;border-radius:3px;padding:1px 5px;flex-shrink:0;margin-top:2px;">Q${t.quadrant||1}</span>
+          <div style="flex:1;">
+            <div class="cr-live-task-title">${_crEsc(t.title)}</div>
+            <div class="cr-live-task-meta">
+              ${t.assignee ? `<span><i class="fas fa-user"></i> ${_crEsc(t.assignee)}</span> ` : ''}
+              ${t.dueDate ? `<span><i class="fas fa-calendar"></i> ${t.dueDate}</span>` : ''}
+              ${(t.subtasks||[]).length ? `<span> · ${t.subtasks.length} sous-tâche${t.subtasks.length>1?'s':''}</span>` : ''}
+            </div>
+          </div>
+          <button onclick="_liveTasks.splice(${i},1);_crLiveRenderTasks()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0;flex-shrink:0;">×</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function crLiveFinish() {
+    _crLiveStop();
+    if (!_liveTranscriptFull.trim() && !_liveTasks.length) {
+      showMessage('Aucun contenu enregistré', 'info'); return;
+    }
+    // Analyse finale du texte restant
+    const remaining = _liveTranscriptFull.slice(_liveLastAnalyzed.length).trim();
+    if (remaining.length > 50) await crLiveExtractNow();
+
+    // Pré-remplir le module CR avec la transcription complète
+    document.getElementById('crImportText').value = _liveTranscriptFull + (document.getElementById('crLiveNotes')?.value ? '\n\n' + document.getElementById('crLiveNotes').value : '');
+    _crExtractedTasks = [..._liveTasks];
+    _crRenderExtractedPreview(_crExtractedTasks);
+
+    // Proposer : importer tâches ou générer CR
+    const action = await _crLiveShowFinishDialog();
+    if (action === 'tasks') {
+      showCrPanel('import');
+      document.getElementById('crExtractedPreview').style.display = 'block';
+    } else if (action === 'cr') {
+      showCrPanel('generate');
+    } else {
+      showCrPanel('import');
+    }
+  }
+
+  function _crLiveShowFinishDialog() {
+    return new Promise(resolve => {
+      const existing = document.getElementById('crLiveFinishDialog');
+      if (existing) existing.remove();
+      const d = document.createElement('div');
+      d.id = 'crLiveFinishDialog';
+      d.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;';
+      d.innerHTML = `
+        <div style="background:var(--bg);border-radius:12px;padding:28px 32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+          <div style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">✅ Réunion terminée</div>
+          <div style="font-size:13px;color:var(--text-2);margin-bottom:20px;">${_liveTasks.length} tâche(s) extraite(s) · ${Math.round(_liveTimerSec/60)} min de réunion</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <button onclick="document.getElementById('crLiveFinishDialog').remove();(window._crLiveResolve||function(){})('tasks')" style="padding:12px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
+              <i class="fas fa-tasks"></i> Importer les ${_liveTasks.length} tâche(s) dans GESTA
+            </button>
+            <button onclick="document.getElementById('crLiveFinishDialog').remove();(window._crLiveResolve||function(){})('cr')" style="padding:12px;background:var(--success);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
+              <i class="fas fa-file-alt"></i> Générer le Compte Rendu
+            </button>
+            <button onclick="document.getElementById('crLiveFinishDialog').remove();(window._crLiveResolve||function(){})('none')" style="padding:12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text);">
+              Voir le texte transcrit
+            </button>
+          </div>
+        </div>`;
+      document.body.appendChild(d);
+      window._crLiveResolve = resolve;
+    });
   }
 
   // ===== FOCUS + POMODORO =====
