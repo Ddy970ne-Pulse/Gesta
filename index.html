@@ -2865,7 +2865,7 @@
           <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg-2);">
             <i class="fas fa-closed-captioning" style="color:var(--brand);"></i>
             <span style="font-weight:600;font-size:13px;">Transcription en direct</span>
-            <span style="margin-left:auto;font-size:11px;color:var(--text-2);">Chrome/Edge requis</span>
+            <span id="crLiveModeLabel" style="margin-left:auto;font-size:11px;color:var(--text-2);"></span>
           </div>
           <div id="crLiveTranscript" style="padding:16px;min-height:300px;max-height:500px;overflow-y:auto;font-size:13px;line-height:1.8;color:var(--text);">
             <span style="color:var(--text-3);">Le texte de la réunion apparaîtra ici au fil des mots…</span>
@@ -8252,6 +8252,12 @@ Commence par "Bonjour ${currentUser.fullName.split(' ')[0]}," et conclus par la 
         _crLiveRenderTasks();
         document.getElementById('crLiveStartBtn').innerHTML = '<i class="fas fa-microphone"></i> Démarrer';
         document.getElementById('crLiveStartBtn').style.background = '#dc2626';
+        // Afficher le mode détecté
+        const m = _crDetectMode();
+        const mLabel = document.getElementById('crLiveModeLabel');
+        if (mLabel) mLabel.innerHTML = m === 'webspeech'
+          ? '<span style="color:var(--success);">● Transcription instantanée</span>'
+          : '<span style="color:var(--warning);">● Mode Whisper (segments 30s)</span>';
       }
       document.getElementById('crLivePanel').style.display = 'block';
     }
@@ -8582,11 +8588,28 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
 
   // ===== RÉUNION EN DIRECT =====
   let _liveRecog = null, _liveRunning = false, _livePaused = false;
-  let _liveTranscriptFull = '';   // texte validé (segments finaux)
-  let _liveLastAnalyzed = '';     // texte déjà envoyé à l'IA
-  let _liveTasks = [];            // tâches extraites cumulées
+  let _liveTranscriptFull = '';
+  let _liveLastAnalyzed = '';
+  let _liveTasks = [];
   let _liveTimerSec = 0, _liveTimerInterval = null;
   let _liveAutoAnalyzeInterval = null;
+
+  // MediaRecorder (mode Whisper — universel)
+  let _liveMediaRecorder = null, _liveAudioChunks = [], _liveMediaStream = null;
+  let _liveWhisperInterval = null;
+
+  // Détection du mode optimal
+  function _crDetectMode() {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isChromeIOS = isIOS && /CriOS/.test(ua);
+    const isFirefox = /Firefox/.test(ua);
+    const hasSpeechAPI = ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+    // Web Speech : Chrome/Edge desktop + Chrome Android (pas iOS)
+    if (hasSpeechAPI && !isIOS && !isFirefox) return 'webspeech';
+    // Tous les autres → MediaRecorder + Whisper
+    return 'whisper';
+  }
 
   function showCrLivePanel() {
     document.getElementById('crLivePanel').style.display = 'block';
@@ -8600,46 +8623,25 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     else _crLiveStart();
   }
 
-  function _crLiveStart() {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      showMessage('Transcription vocale non disponible — utilisez Chrome ou Edge', 'warning'); return;
+  async function _crLiveStart() {
+    const mode = _crDetectMode();
+    const apiKey = localStorage.getItem('gesta-groq-key') || GROQ_API_KEY;
+
+    if (mode === 'whisper' && !apiKey) {
+      showMessage('Clé API Groq requise pour la transcription sur ce navigateur/appareil', 'warning'); return;
     }
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    _liveRecog = new SpeechRec();
-    _liveRecog.lang = 'fr-FR';
-    _liveRecog.continuous = true;
-    _liveRecog.interimResults = true;
 
-    _liveRecog.onresult = e => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) {
-          _liveTranscriptFull += t + ' ';
-          _crLiveRenderTranscript();
-        } else {
-          interim += t;
-        }
-      }
-      document.getElementById('crLiveInterim').textContent = interim;
-    };
-    _liveRecog.onerror = e => {
-      if (e.error === 'no-speech') return;
-      document.getElementById('crLiveStatus').textContent = 'Erreur micro: ' + e.error;
-    };
-    _liveRecog.onend = () => {
-      if (_liveRunning && !_livePaused) {
-        // Redémarrage automatique (Chrome arrête après ~60s de silence)
-        try { _liveRecog.start(); } catch(_) {}
-      }
-    };
+    // Demander accès micro (les deux modes en ont besoin)
+    try {
+      _liveMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch(e) {
+      showMessage('Accès au microphone refusé — autorisez-le dans les réglages du navigateur', 'error'); return;
+    }
 
-    _liveRecog.start();
     _liveRunning = true; _livePaused = false;
     document.getElementById('crLiveStartBtn').innerHTML = '<i class="fas fa-stop"></i> Arrêter';
     document.getElementById('crLiveStartBtn').style.background = '#7f1d1d';
     document.getElementById('crLivePauseBtn').style.display = '';
-    document.getElementById('crLiveStatus').textContent = 'Enregistrement en cours…';
     document.getElementById('crLivePanel').classList.add('live-recording');
 
     // Timer
@@ -8652,16 +8654,97 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
 
     // Analyse auto toutes les 2 minutes
     _liveAutoAnalyzeInterval = setInterval(() => {
-      const newText = _liveTranscriptFull.slice(_liveLastAnalyzed.length).trim();
-      if (newText.length > 100) crLiveExtractNow();
+      if (_liveTranscriptFull.slice(_liveLastAnalyzed.length).trim().length > 100) crLiveExtractNow();
     }, 120000);
+
+    if (mode === 'webspeech') {
+      _crLiveStartWebSpeech();
+    } else {
+      _crLiveStartWhisper(apiKey);
+    }
+  }
+
+  // ---- Mode 1 : Web Speech API (Chrome/Edge desktop + Android) ----
+  function _crLiveStartWebSpeech() {
+    document.getElementById('crLiveStatus').textContent = '🎙️ Transcription en direct…';
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    _liveRecog = new SpeechRec();
+    _liveRecog.lang = 'fr-FR';
+    _liveRecog.continuous = true;
+    _liveRecog.interimResults = true;
+    _liveRecog.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) { _liveTranscriptFull += t + ' '; _crLiveRenderTranscript(); }
+        else interim += t;
+      }
+      document.getElementById('crLiveInterim').textContent = interim;
+    };
+    _liveRecog.onerror = e => { if (e.error !== 'no-speech') document.getElementById('crLiveStatus').textContent = 'Erreur micro: ' + e.error; };
+    _liveRecog.onend = () => { if (_liveRunning && !_livePaused) { try { _liveRecog.start(); } catch(_) {} } };
+    _liveRecog.start();
+  }
+
+  // ---- Mode 2 : MediaRecorder + Groq Whisper (iOS, Firefox, tous autres) ----
+  function _crLiveStartWhisper(apiKey) {
+    document.getElementById('crLiveStatus').textContent = '🎙️ Enregistrement (Whisper)…';
+    document.getElementById('crLiveInterim').textContent = 'Transcription par segments de 30s via Groq Whisper';
+
+    // Choisir le format le mieux supporté
+    const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+    _liveAudioChunks = [];
+
+    const startSegment = () => {
+      _liveMediaRecorder = new MediaRecorder(_liveMediaStream, mimeType ? { mimeType } : {});
+      _liveAudioChunks = [];
+      _liveMediaRecorder.ondataavailable = e => { if (e.data.size > 0) _liveAudioChunks.push(e.data); };
+      _liveMediaRecorder.onstop = async () => {
+        if (!_liveAudioChunks.length) return;
+        const blob = new Blob(_liveAudioChunks, { type: mimeType || 'audio/webm' });
+        if (blob.size < 2000) return; // trop court, probablement silence
+        document.getElementById('crLiveStatus').textContent = '⏳ Transcription du segment…';
+        try {
+          const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+          const fd = new FormData();
+          fd.append('file', blob, `segment.${ext}`);
+          fd.append('model', 'whisper-large-v3');
+          fd.append('language', 'fr');
+          fd.append('response_format', 'text');
+          const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}` }, body: fd
+          });
+          if (res.ok) {
+            const text = (await res.text()).trim();
+            if (text) { _liveTranscriptFull += text + ' '; _crLiveRenderTranscript(); }
+          }
+        } catch(_) {}
+        document.getElementById('crLiveStatus').textContent = _liveRunning && !_livePaused ? '🎙️ Enregistrement (Whisper)…' : 'En pause';
+      };
+      _liveMediaRecorder.start();
+    };
+
+    startSegment();
+    // Découper en segments de 30 secondes
+    _liveWhisperInterval = setInterval(() => {
+      if (!_liveRunning || _livePaused) return;
+      if (_liveMediaRecorder?.state === 'recording') {
+        _liveMediaRecorder.stop();
+        setTimeout(startSegment, 500);
+      }
+    }, 30000);
   }
 
   function _crLiveStop() {
     _liveRunning = false; _livePaused = false;
+    // Web Speech
     try { _liveRecog?.stop(); } catch(_) {}
+    // MediaRecorder
+    try { if (_liveMediaRecorder?.state === 'recording') _liveMediaRecorder.stop(); } catch(_) {}
+    try { _liveMediaStream?.getTracks().forEach(t => t.stop()); } catch(_) {}
     clearInterval(_liveTimerInterval);
     clearInterval(_liveAutoAnalyzeInterval);
+    clearInterval(_liveWhisperInterval);
     document.getElementById('crLiveStartBtn').innerHTML = '<i class="fas fa-microphone"></i> Reprendre';
     document.getElementById('crLiveStartBtn').style.background = '#dc2626';
     document.getElementById('crLivePauseBtn').style.display = 'none';
@@ -8673,13 +8756,17 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
   function crLivePause() {
     if (_livePaused) {
       _livePaused = false;
+      // Web Speech
       try { _liveRecog?.start(); } catch(_) {}
+      // MediaRecorder
+      try { if (_liveMediaRecorder?.state === 'paused') _liveMediaRecorder.resume(); } catch(_) {}
       document.getElementById('crLivePauseBtn').innerHTML = '<i class="fas fa-pause"></i> Pause';
-      document.getElementById('crLiveStatus').textContent = 'Enregistrement en cours…';
+      document.getElementById('crLiveStatus').textContent = '🎙️ Enregistrement en cours…';
       document.getElementById('crLivePanel').classList.add('live-recording');
     } else {
       _livePaused = true;
       try { _liveRecog?.stop(); } catch(_) {}
+      try { if (_liveMediaRecorder?.state === 'recording') _liveMediaRecorder.pause(); } catch(_) {}
       document.getElementById('crLivePauseBtn').innerHTML = '<i class="fas fa-play"></i> Reprendre';
       document.getElementById('crLiveStatus').textContent = 'En pause';
       document.getElementById('crLivePanel').classList.remove('live-recording');
