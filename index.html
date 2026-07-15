@@ -1532,6 +1532,34 @@
     #voiceReply { color: rgba(255,255,255,.8); font-size: 15px; max-width: 600px; text-align: center; min-height: 48px; line-height: 1.6; }
     #voiceStatus { color: rgba(255,255,255,.5); font-size:12px; margin-top:16px; }
 
+    /* ===== COMMAND PALETTE ===== */
+    #cmdPalette { position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding-top:15vh;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .15s; }
+    #cmdPalette.active { opacity:1;pointer-events:all; }
+    #cmdBox { background:var(--bg-1);border:1px solid var(--border);border-radius:14px;width:min(560px,92vw);box-shadow:0 24px 60px rgba(0,0,0,.4);overflow:hidden;transform:translateY(-8px);transition:transform .15s; }
+    #cmdPalette.active #cmdBox { transform:translateY(0); }
+    #cmdSearchWrap { display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border); }
+    #cmdSearchWrap i { color:var(--text-2);font-size:15px; }
+    #cmdInput { flex:1;background:none;border:none;outline:none;font-size:16px;color:var(--text-1); }
+    #cmdInput::placeholder { color:var(--text-3); }
+    #cmdResults { max-height:380px;overflow-y:auto;padding:6px; }
+    .cmd-section { padding:4px 10px 2px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin-top:4px; }
+    .cmd-item { display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:background .1s;color:var(--text-1); }
+    .cmd-item:hover,.cmd-item.cmd-active { background:var(--bg-2); }
+    .cmd-item i { width:18px;text-align:center;color:var(--text-2);font-size:14px; }
+    .cmd-item-label { flex:1;font-size:14px; }
+    .cmd-item-badge { font-size:11px;color:var(--text-3);background:var(--bg-3);padding:2px 7px;border-radius:20px; }
+    .cmd-kbd { font-size:11px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:monospace; }
+    #cmdEmpty { text-align:center;padding:32px;color:var(--text-3);font-size:14px; }
+
+    /* ===== TASK TEMPLATES ===== */
+    #templatesPanel { padding:24px;display:none; }
+    .tpl-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:16px; }
+    .tpl-card { background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color .2s,transform .1s; }
+    .tpl-card:hover { border-color:var(--brand);transform:translateY(-1px); }
+    .tpl-card-icon { font-size:22px;margin-bottom:8px; }
+    .tpl-card-title { font-weight:600;font-size:14px;color:var(--text-1);margin-bottom:4px; }
+    .tpl-card-desc { font-size:12px;color:var(--text-2);line-height:1.5; }
+
     /* ===== PRINT ===== */
     @media print {
       body * { visibility: hidden; }
@@ -4620,6 +4648,9 @@
     renderAlerts(visibleTasks);
     renderHistory(visibleTasks, currentHistoryFilter);
     renderGantt(visibleTasks);
+    focusLoadTasks();
+    _updateFocusStats();
+    _updatePresPlan();
     checkUrgentNotifications(visibleTasks);
   }
 
@@ -9293,6 +9324,152 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     _voiceSynth.speak(utt);
   }
 
+  // ===== COMMAND PALETTE =====
+  const CMD_ITEMS = [
+    { section: 'Navigation', items: [
+      { icon:'fa-home', label:'Tableau de bord', badge:'1', action:()=>switchTab('dashboard') },
+      { icon:'fa-tasks', label:'Mes tâches', badge:'2', action:()=>switchTab('myspace') },
+      { icon:'fa-chart-pie', label:'Analytique', badge:'3', action:()=>switchTab('analytics') },
+      { icon:'fa-calendar-alt', label:'Planificateur', badge:'4', action:()=>switchTab('planner') },
+      { icon:'fa-file-alt', label:'Comptes Rendus', badge:'5', action:()=>switchTab('cr') },
+      { icon:'fa-crosshairs', label:'Mode Focus', badge:'6', action:()=>switchTab('focus') },
+      { icon:'fa-tv', label:'Présentation', badge:'7', action:()=>switchTab('presentation') },
+      { icon:'fa-history', label:'Historique', action:()=>switchTab('historique') },
+      { icon:'fa-project-diagram', label:'Gantt', action:()=>switchTab('gantt') },
+    ]},
+    { section: 'Actions rapides', items: [
+      { icon:'fa-plus', label:'Nouvelle tâche', kbd:'N', action:()=>{ switchTab('dashboard'); setTimeout(()=>{ const el=document.getElementById('taskInput'); if(el){el.focus();el.scrollIntoView({behavior:'smooth'});} },150); } },
+      { icon:'fa-microphone', label:'Coach Vocal IA', action:()=>openVoiceCoach() },
+      { icon:'fa-file-import', label:'Importer un compte rendu', action:()=>{ switchTab('cr'); setTimeout(()=>showCrPanel('import'),200); } },
+      { icon:'fa-broadcast-tower', label:'Réunion en direct', action:()=>{ switchTab('cr'); setTimeout(()=>showCrPanel('live'),200); } },
+      { icon:'fa-keyboard', label:'Raccourcis clavier', kbd:'?', action:()=>showKeyboardHelp() },
+    ]},
+    { section: 'Templates de tâches', items: [
+      { icon:'fa-check-circle', label:'Tâche rapide Q1 (Urgent)', action:()=>_cmdUseTemplate('q1') },
+      { icon:'fa-calendar-check', label:'Planification de réunion', action:()=>_cmdUseTemplate('reunion') },
+      { icon:'fa-envelope', label:'Suivi de communication', action:()=>_cmdUseTemplate('comms') },
+      { icon:'fa-file-signature', label:'Rédaction de document', action:()=>_cmdUseTemplate('doc') },
+      { icon:'fa-users', label:'Action collective', action:()=>_cmdUseTemplate('team') },
+    ]},
+  ];
+
+  const TASK_TEMPLATES = {
+    q1: { title:'Action urgente', description:'', quadrant:1, tags:['urgent'], checklist:[{id:'t1',text:'Définir la priorité',done:false},{id:'t2',text:'Identifier le responsable',done:false},{id:'t3',text:'Fixer une échéance',done:false}] },
+    reunion: { title:'Préparation réunion', description:'Organiser et animer la réunion', quadrant:2, tags:['réunion'], checklist:[{id:'t1',text:'Définir ordre du jour',done:false},{id:'t2',text:'Envoyer convocation',done:false},{id:'t3',text:'Préparer supports',done:false},{id:'t4',text:'Rédiger compte rendu',done:false}] },
+    comms: { title:'Suivi communication', description:'', quadrant:2, tags:['communication'], checklist:[{id:'t1',text:'Rédiger le message',done:false},{id:'t2',text:'Identifier destinataires',done:false},{id:'t3',text:'Envoyer',done:false},{id:'t4',text:'Relancer si nécessaire',done:false}] },
+    doc: { title:'Rédaction document', description:'', quadrant:2, tags:['document'], checklist:[{id:'t1',text:'Définir plan',done:false},{id:'t2',text:'Rédiger premier jet',done:false},{id:'t3',text:'Relecture / correction',done:false},{id:'t4',text:'Validation',done:false},{id:'t5',text:'Diffusion',done:false}] },
+    team: { title:'Action collective', description:'', quadrant:2, tags:['équipe'], checklist:[{id:'t1',text:'Définir objectif',done:false},{id:'t2',text:'Répartir les rôles',done:false},{id:'t3',text:'Fixer les jalons',done:false},{id:'t4',text:'Suivi d\'avancement',done:false}] },
+  };
+
+  let _cmdActiveIdx = -1;
+  let _cmdAllItems = [];
+
+  function openCmdPalette() {
+    const pal = document.getElementById('cmdPalette');
+    pal.classList.add('active');
+    const inp = document.getElementById('cmdInput');
+    inp.value = '';
+    _cmdFilter('');
+    setTimeout(() => inp.focus(), 50);
+  }
+
+  function closeCmdPalette() {
+    document.getElementById('cmdPalette').classList.remove('active');
+  }
+
+  function _cmdFilter(q) {
+    _cmdActiveIdx = -1;
+    const results = document.getElementById('cmdResults');
+    const search = q.toLowerCase().trim();
+
+    // search tasks too
+    const matchedTasks = search.length > 1
+      ? tasks.filter(t => t.title?.toLowerCase().includes(search) && t.status !== 'done').slice(0,5)
+      : [];
+
+    _cmdAllItems = [];
+    let html = '';
+
+    CMD_ITEMS.forEach(({ section, items }) => {
+      const filtered = items.filter(it => !search || it.label.toLowerCase().includes(search));
+      if (!filtered.length) return;
+      html += `<div class="cmd-section">${section}</div>`;
+      filtered.forEach((it, i) => {
+        const idx = _cmdAllItems.length;
+        _cmdAllItems.push(it);
+        html += `<div class="cmd-item" data-idx="${idx}" onclick="_cmdRun(${idx})">
+          <i class="fas ${it.icon}"></i>
+          <span class="cmd-item-label">${it.label}</span>
+          ${it.kbd ? `<span class="cmd-kbd">${it.kbd}</span>` : ''}
+          ${it.badge ? `<span class="cmd-item-badge">touche ${it.badge}</span>` : ''}
+        </div>`;
+      });
+    });
+
+    if (matchedTasks.length) {
+      html += `<div class="cmd-section">Tâches trouvées</div>`;
+      matchedTasks.forEach(t => {
+        const idx = _cmdAllItems.length;
+        _cmdAllItems.push({ action: () => openTaskDetail(t._key || t.id) });
+        html += `<div class="cmd-item" data-idx="${idx}" onclick="_cmdRun(${idx})">
+          <i class="fas fa-circle-dot"></i>
+          <span class="cmd-item-label">${t.title}</span>
+          <span class="cmd-item-badge">Q${t.quadrant||'?'}</span>
+        </div>`;
+      });
+    }
+
+    if (!html) html = '<div id="cmdEmpty"><i class="fas fa-search" style="opacity:.4;display:block;font-size:24px;margin-bottom:8px;"></i>Aucun résultat</div>';
+    results.innerHTML = html;
+  }
+
+  function _cmdRun(idx) {
+    const it = _cmdAllItems[idx];
+    if (!it) return;
+    closeCmdPalette();
+    setTimeout(() => it.action(), 80);
+  }
+
+  function _cmdKey(e) {
+    const items = document.querySelectorAll('#cmdResults .cmd-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _cmdActiveIdx = Math.min(_cmdActiveIdx+1, items.length-1);
+      items.forEach((el,i) => el.classList.toggle('cmd-active', i===_cmdActiveIdx));
+      items[_cmdActiveIdx]?.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _cmdActiveIdx = Math.max(_cmdActiveIdx-1, 0);
+      items.forEach((el,i) => el.classList.toggle('cmd-active', i===_cmdActiveIdx));
+      items[_cmdActiveIdx]?.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (_cmdActiveIdx >= 0) _cmdRun(parseInt(items[_cmdActiveIdx].dataset.idx));
+    } else if (e.key === 'Escape') {
+      closeCmdPalette();
+    }
+  }
+
+  function _cmdUseTemplate(key) {
+    const tpl = TASK_TEMPLATES[key];
+    if (!tpl) return;
+    switchTab('dashboard');
+    setTimeout(() => {
+      const el = document.getElementById('taskInput');
+      if (el) { el.value = tpl.title; el.focus(); el.scrollIntoView({behavior:'smooth'}); }
+    }, 150);
+  }
+
+  // Ctrl+K listener (added separately so it fires before the existing keydown handler)
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      const pal = document.getElementById('cmdPalette');
+      if (pal.classList.contains('active')) closeCmdPalette();
+      else openCmdPalette();
+    }
+  }, true);
+
 </script>
 
 <script>
@@ -9333,6 +9510,18 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
   <div id="voiceReply"></div>
   <div id="voiceStatus"></div>
   <button onclick="closeVoiceCoach()" style="margin-top:24px;padding:10px 28px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;cursor:pointer;font-size:14px;"><i class="fas fa-times"></i> Fermer</button>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div id="cmdPalette" onclick="if(event.target===this)closeCmdPalette()">
+  <div id="cmdBox">
+    <div id="cmdSearchWrap">
+      <i class="fas fa-search"></i>
+      <input id="cmdInput" type="text" placeholder="Rechercher une action, une tâche…" autocomplete="off"
+        oninput="_cmdFilter(this.value)" onkeydown="_cmdKey(event)">
+    </div>
+    <div id="cmdResults"></div>
+  </div>
 </div>
 
 </body>
