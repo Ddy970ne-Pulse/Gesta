@@ -1532,6 +1532,50 @@
     #voiceReply { color: rgba(255,255,255,.8); font-size: 15px; max-width: 600px; text-align: center; min-height: 48px; line-height: 1.6; }
     #voiceStatus { color: rgba(255,255,255,.5); font-size:12px; margin-top:16px; }
 
+    /* ===== KANBAN ===== */
+    .kanban-col { flex:0 0 260px;display:flex;flex-direction:column;gap:0; }
+    .kanban-col-header { padding:12px 14px;border-radius:10px 10px 0 0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:8px; }
+    .kanban-col-body { flex:1;background:var(--bg-2);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:120px; }
+    .kanban-card { background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:11px 12px;cursor:pointer;transition:border-color .15s,transform .1s;border-left:3px solid transparent; }
+    .kanban-card:hover { border-color:var(--brand);transform:translateY(-1px); }
+    .kanban-card-title { font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:5px;line-height:1.4; }
+    .kanban-card-meta { font-size:11px;color:var(--text-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center; }
+    .kanban-card-avatar { width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center; }
+    .kanban-empty { text-align:center;padding:24px 12px;color:var(--text-3);font-size:12px; }
+    /* col colors */
+    .kcol-planifie .kanban-col-header   { background:rgba(107,114,128,.12);color:var(--text-2); }
+    .kcol-en-cours .kanban-col-header   { background:rgba(217,119,6,.12);color:var(--warning); }
+    .kcol-done .kanban-col-header       { background:rgba(22,163,74,.12);color:var(--success); }
+    .kcol-bloque .kanban-col-header     { background:rgba(220,38,38,.12);color:var(--danger); }
+    .kcol-q1 .kanban-col-header { background:rgba(220,38,38,.12);color:var(--danger); }
+    .kcol-q2 .kanban-col-header { background:rgba(26,122,110,.12);color:var(--brand); }
+    .kcol-q3 .kanban-col-header { background:rgba(201,118,10,.12);color:var(--q3); }
+    .kcol-q4 .kanban-col-header { background:rgba(107,114,128,.12);color:var(--text-2); }
+
+    /* ===== DIRECTION DASHBOARD ===== */
+    .dir-kpi { background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px; }
+    .dir-kpi-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
+    .dir-kpi-val { font-size:26px;font-weight:800;line-height:1; }
+    .dir-kpi-label { font-size:11px;color:var(--text-2);margin-top:3px; }
+    .dir-alerte { display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:8px;margin-bottom:8px;font-size:13px; }
+    .dir-alerte.critical { background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);color:var(--danger); }
+    .dir-alerte.warning  { background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.2);color:var(--warning); }
+    .dir-charge-row { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
+    .dir-charge-name { width:120px;font-size:12px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .dir-charge-bar-wrap { flex:1;height:8px;background:var(--bg-2);border-radius:4px;overflow:hidden; }
+    .dir-charge-bar { height:100%;border-radius:4px;transition:width .4s; }
+    .dir-quad-row { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
+    .dir-quad-label { width:80px;font-size:12px;font-weight:700; }
+    .dir-quad-bar-wrap { flex:1;height:10px;background:var(--bg-2);border-radius:5px;overflow:hidden; }
+    .dir-quad-bar { height:100%;border-radius:5px;transition:width .4s; }
+    .dir-quad-pct { font-size:11px;color:var(--text-2);width:36px;text-align:right; }
+    .dir-task-row { display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px; }
+    .dir-task-row:last-child { border-bottom:none; }
+    .dir-task-row:hover { color:var(--brand); }
+    .dir-alerte.info { background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);color:#6366f1; }
+    @keyframes flash-hl { 0%,100%{background:transparent} 40%{background:rgba(26,122,110,.18)} }
+    .flash-highlight { animation:flash-hl 1.5s ease; }
+
     /* ===== COURRIER MODULE ===== */
     .courrier-item { background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;transition:border-color .15s; }
     .courrier-item:hover { border-color:var(--brand); }
@@ -2241,6 +2285,14 @@
     <button class="nav-item" data-tab="courrier" onclick="switchTab('courrier')">
       <i class="fas fa-envelope"></i>
       <span>Courrier</span>
+    </button>
+    <button class="nav-item" data-tab="kanban" onclick="switchTab('kanban')">
+      <i class="fas fa-columns"></i>
+      <span>Kanban</span>
+    </button>
+    <button class="nav-item" data-tab="direction" onclick="switchTab('direction')">
+      <i class="fas fa-tachometer-alt"></i>
+      <span>Direction</span>
     </button>
     <button class="nav-item" data-tab="focus" onclick="switchTab('focus')">
       <i class="fas fa-crosshairs"></i>
@@ -3477,6 +3529,67 @@
     </div>
   </div>
 
+  <!-- KANBAN -->
+  <div id="kanban-tab" class="tab-content">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
+      <h2 style="margin:0;font-size:1.3rem;"><i class="fas fa-columns" style="color:var(--brand);margin-right:8px;"></i>Vue Kanban</h2>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+        <select id="kanbanGroupBy" onchange="_kanbanRender()" style="padding:7px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg-2);color:var(--text-1);font-size:12px;">
+          <option value="status">Par statut</option>
+          <option value="quadrant">Par quadrant</option>
+          <option value="assignee">Par responsable</option>
+        </select>
+        <select id="kanbanQuadFilter" onchange="_kanbanRender()" style="padding:7px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg-2);color:var(--text-1);font-size:12px;">
+          <option value="">Tous quadrants</option>
+          <option value="Q1">Q1 — Urgent</option>
+          <option value="Q2">Q2 — Important</option>
+          <option value="Q3">Q3 — Déléguer</option>
+          <option value="Q4">Q4 — Planifier</option>
+        </select>
+      </div>
+    </div>
+    <div id="kanbanBoard" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;min-height:400px;"></div>
+  </div>
+
+  <!-- DIRECTION -->
+  <div id="direction-tab" class="tab-content">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
+      <h2 style="margin:0;font-size:1.3rem;"><i class="fas fa-tachometer-alt" style="color:var(--brand);margin-right:8px;"></i>Tableau de bord Direction</h2>
+      <span style="font-size:12px;color:var(--text-2);" id="directionDate"></span>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="window.print()"><i class="fas fa-print"></i> Imprimer</button>
+    </div>
+
+    <!-- KPIs row -->
+    <div id="dirKpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px;"></div>
+
+    <!-- Alertes critiques -->
+    <div id="dirAlertes" style="margin-bottom:24px;"></div>
+
+    <!-- Charge par membre + Avancement par quadrant -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+      <div class="card" style="padding:20px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);margin-bottom:16px;"><i class="fas fa-users" style="margin-right:6px;color:var(--brand);"></i>Charge par membre</div>
+        <div id="dirCharge"></div>
+      </div>
+      <div class="card" style="padding:20px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);margin-bottom:16px;"><i class="fas fa-chart-pie" style="margin-right:6px;color:var(--brand);"></i>Avancement par quadrant</div>
+        <div id="dirQuadrant"></div>
+      </div>
+    </div>
+
+    <!-- Tâches critiques + Courrier à traiter -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="card" style="padding:20px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);margin-bottom:12px;"><i class="fas fa-fire" style="margin-right:6px;color:var(--danger);"></i>Tâches critiques Q1</div>
+        <div id="dirQ1Tasks"></div>
+      </div>
+      <div class="card" style="padding:20px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);margin-bottom:12px;"><i class="fas fa-envelope" style="margin-right:6px;color:var(--q3);"></i>Courrier à traiter</div>
+        <div id="dirCourrier"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ADMIN -->
   <div id="admin-tab" class="tab-content">
     <div class="grid-2" style="margin-bottom:24px;">
@@ -3774,6 +3887,8 @@
     'cr': 'Comptes Rendus',
     'documents': 'Modèles de documents',
     'courrier': 'Suivi de courrier',
+    'kanban': 'Vue Kanban',
+    'direction': 'Tableau de bord Direction',
     'focus': 'Mode Focus — Pomodoro',
     'presentation': 'Mode Présentation',
     'admin': 'Administration'
@@ -3804,6 +3919,8 @@
       else if (name === 'coach') { renderCoach(visible); const sb = document.getElementById('coachSendBtn'); if (sb) sb.disabled = false; }
       else if (name === 'documents') { _docRenderGallery(); }
       else if (name === 'courrier') { _courrierRender(); }
+      else if (name === 'kanban') { _kanbanRender(visible); }
+      else if (name === 'direction') { _directionRender(visible); }
       else if (name === 'focus') { focusLoadTasks(); _updateFocusStats(); }
       else if (name === 'presentation') { _updatePresPlan(); }
       else if (name === 'gantt') renderGantt(visible);
@@ -9746,6 +9863,221 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
       document.getElementById('voiceStatus').textContent = 'Appuyez pour re-parler';
     };
     _voiceSynth.speak(utt);
+  }
+
+  // ===== VUE KANBAN =====
+  function _kanbanRender(visibleTasks) {
+    const board = document.getElementById('kanbanBoard');
+    if (!board) return;
+    const groupBy = document.getElementById('kanbanGroupBy')?.value || 'status';
+    const quadFilter = document.getElementById('kanbanQuadFilter')?.value || '';
+    let src = (visibleTasks || tasks).filter(t => t.status !== 'terminé');
+    if (quadFilter) src = src.filter(t => t.quadrant === quadFilter);
+
+    let groups = {};
+    if (groupBy === 'status') {
+      const cols = ['todo','en cours','en attente','planifié'];
+      const labels = { 'todo':'À faire','en cours':'En cours','en attente':'En attente','planifié':'Planifié' };
+      cols.forEach(s => { groups[s] = { label: labels[s] || s, tasks: [], cls: 'kcol-'+s.replace(' ','-') }; });
+      src.forEach(t => {
+        const s = t.status || 'todo';
+        if (!groups[s]) groups[s] = { label: s, tasks: [], cls: 'kcol-todo' };
+        groups[s].tasks.push(t);
+      });
+    } else if (groupBy === 'quadrant') {
+      const cols = ['Q1','Q2','Q3','Q4'];
+      const labels = { Q1:'Q1 — Urgente & Importante', Q2:'Q2 — Importante', Q3:'Q3 — Urgente', Q4:'Q4 — À déléguer' };
+      cols.forEach(q => { groups[q] = { label: labels[q], tasks: [], cls: 'kcol-'+q.toLowerCase() }; });
+      src.forEach(t => {
+        const q = t.quadrant || 'Q4';
+        if (!groups[q]) groups[q] = { label: q, tasks: [], cls: 'kcol-q4' };
+        groups[q].tasks.push(t);
+      });
+    } else {
+      src.forEach(t => {
+        const key = t.assignedTo || '_none';
+        const label = t.assignedTo ? (knownUsers.find(u => u.uid === t.assignedTo || u.email === t.assignedTo)?.fullName || t.assignedTo) : 'Non assigné';
+        if (!groups[key]) groups[key] = { label, tasks: [], cls: 'kcol-todo' };
+        groups[key].tasks.push(t);
+      });
+    }
+
+    const statusOpts = ['todo','en cours','en attente','planifié','terminé'];
+    const statusLabels = { 'todo':'À faire','en cours':'En cours','en attente':'En attente','planifié':'Planifié','terminé':'Terminé' };
+    const quadBadge = { Q1:'🔴','Q2':'🟠','Q3':'🟡','Q4':'🔵' };
+
+    board.innerHTML = Object.values(groups).map(g => `
+      <div class="kanban-col ${g.cls}">
+        <div class="kanban-col-header">${g.label} <span style="margin-left:auto;background:var(--bg-1);border-radius:10px;padding:2px 8px;font-size:11px;">${g.tasks.length}</span></div>
+        <div class="kanban-col-body">
+          ${g.tasks.sort((a,b) => { const p={Q1:0,Q2:1,Q3:2,Q4:3}; return (p[a.quadrant]??3)-(p[b.quadrant]??3); }).map(t => {
+            const due = t.dueDate ? new Date(t.dueDate) : null;
+            const overdue = due && due < new Date();
+            const dueTxt = due ? due.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}) : '';
+            const assignee = t.assignedTo ? (knownUsers.find(u=>u.uid===t.assignedTo||u.email===t.assignedTo)?.fullName||t.assignedTo).split(' ')[0] : '';
+            return `<div class="kanban-card" onclick="_kCardClick('${t.id}')">
+              <div class="kanban-card-meta" style="margin-bottom:5px;">
+                <span>${quadBadge[t.quadrant]||'⚪'}</span>
+                ${t.escaladeLog?.length ? '<span title="Reclassifiée">⏫</span>' : ''}
+                ${overdue ? '<span style="background:rgba(220,38,38,.1);color:var(--danger);border-radius:4px;padding:1px 5px;font-size:10px;">En retard</span>' : ''}
+              </div>
+              <div class="kanban-card-title">${t.description||'Sans titre'}</div>
+              <div class="kanban-card-meta" style="margin-top:6px;justify-content:space-between;">
+                ${assignee ? `<span><i class="fas fa-user" style="margin-right:3px;"></i>${assignee}</span>` : '<span></span>'}
+                ${dueTxt ? `<span style="${overdue?'color:var(--danger);font-weight:600;':''}">${dueTxt}</span>` : ''}
+              </div>
+              <div style="margin-top:7px;">
+                <select onchange="_kStatusChange('${t.id}',this.value)" onclick="event.stopPropagation()" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg-2);color:var(--text-1);width:100%;">
+                  ${statusOpts.map(s=>`<option value="${s}"${(t.status||'todo')===s?' selected':''}>${statusLabels[s]}</option>`).join('')}
+                </select>
+              </div>
+            </div>`;
+          }).join('')}
+          ${!g.tasks.length ? '<div class="kanban-empty">Aucune tâche</div>' : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function _kCardClick(id) {
+    const t = tasks.find(t=>t.id===id);
+    if (!t) return;
+    switchTab('tasks');
+    setTimeout(() => {
+      const el = document.querySelector(`[data-task-id="${id}"]`);
+      if (el) { el.scrollIntoView({behavior:'smooth',block:'center'}); el.classList.add('flash-highlight'); setTimeout(()=>el.classList.remove('flash-highlight'),1500); }
+    }, 300);
+  }
+
+  function _kStatusChange(id, status) {
+    updateTask(id, { status });
+  }
+
+  // ===== TABLEAU DE BORD DIRECTION =====
+  function _directionRender(visibleTasks) {
+    const src = visibleTasks || tasks;
+    _dirKpis(src);
+    _dirAlertes(src);
+    _dirCharge(src);
+    _dirQuadrant(src);
+    _dirQ1Tasks(src);
+    _dirCourrier();
+  }
+
+  function _dirKpis(src) {
+    const el = document.getElementById('dirKpis');
+    if (!el) return;
+    const total = src.length;
+    const enCours = src.filter(t=>t.status==='en cours').length;
+    const termine = src.filter(t=>t.status==='terminé').length;
+    const q1 = src.filter(t=>t.quadrant==='Q1'&&t.status!=='terminé').length;
+    const retard = src.filter(t=>t.dueDate&&new Date(t.dueDate)<new Date()&&t.status!=='terminé').length;
+    const rate = total ? Math.round(termine/total*100) : 0;
+    el.innerHTML = [
+      { icon:'fa-tasks', val: total, label:'Tâches totales', color:'var(--brand)' },
+      { icon:'fa-spinner', val: enCours, label:'En cours', color:'#3b82f6' },
+      { icon:'fa-check-circle', val: termine, label:'Terminées', color:'#22c55e' },
+      { icon:'fa-fire', val: q1, label:'Urgentes Q1', color:'#ef4444' },
+      { icon:'fa-exclamation-triangle', val: retard, label:'En retard', color:'#f97316' },
+      { icon:'fa-percent', val: rate+'%', label:'Taux achèvement', color:'#8b5cf6' },
+    ].map(k=>`<div class="dir-kpi"><div class="dir-kpi-icon" style="background:${k.color}22;"><i class="fas ${k.icon}" style="color:${k.color};"></i></div><div><span class="dir-kpi-val" style="color:${k.color}">${k.val}</span><div class="dir-kpi-label">${k.label}</div></div></div>`).join('');
+  }
+
+  function _dirAlertes(src) {
+    const el = document.getElementById('dirAlertes');
+    if (!el) return;
+    const alerts = [];
+    const retard = src.filter(t=>t.dueDate&&new Date(t.dueDate)<new Date()&&t.status!=='terminé');
+    if (retard.length) alerts.push({ level:'danger', msg:`${retard.length} tâche(s) en retard` });
+    const q1todo = src.filter(t=>t.quadrant==='Q1'&&(t.status==='todo'||!t.status));
+    if (q1todo.length) alerts.push({ level:'danger', msg:`${q1todo.length} tâche(s) Q1 non démarrée(s)` });
+    const nonAssign = src.filter(t=>!t.assignedTo&&t.status!=='terminé');
+    if (nonAssign.length) alerts.push({ level:'warn', msg:`${nonAssign.length} tâche(s) sans responsable` });
+    const escaladees = src.filter(t=>t.escaladeLog?.length&&t.status!=='terminé');
+    if (escaladees.length) alerts.push({ level:'info', msg:`${escaladees.length} tâche(s) reclassifiée(s) automatiquement` });
+    el.innerHTML = alerts.length
+      ? alerts.map(a=>`<div class="dir-alerte ${a.level==='danger'?'critical':a.level==='warn'?'warning':'info'}"><i class="fas ${a.level==='danger'?'fa-times-circle':a.level==='warn'?'fa-exclamation-circle':'fa-info-circle'}"></i> ${a.msg}</div>`).join('')
+      : '<div class="dir-alerte" style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);color:var(--success);"><i class="fas fa-check-circle"></i> Aucune alerte active</div>';
+  }
+
+  function _dirCharge(src) {
+    const el = document.getElementById('dirCharge');
+    if (!el) return;
+    const active = src.filter(t=>t.status!=='terminé'&&t.assignedTo);
+    const byUser = {};
+    active.forEach(t=>{
+      const uid = t.assignedTo;
+      byUser[uid] = (byUser[uid]||0)+1;
+    });
+    const max = Math.max(...Object.values(byUser),1);
+    const rows = Object.entries(byUser).sort((a,b)=>b[1]-a[1]).map(([uid,count])=>{
+      const name = knownUsers.find(u=>u.uid===uid||u.email===uid)?.fullName || uid;
+      const pct = Math.round(count/max*100);
+      const barColor = count>=8?'var(--danger)':count>=5?'var(--warning)':'var(--brand)';
+      return `<div class="dir-charge-row">
+        <span class="dir-charge-name">${name}</span>
+        <div class="dir-charge-bar-wrap"><div class="dir-charge-bar" style="width:${pct}%;background:${barColor};"></div></div>
+        <span style="font-size:12px;color:var(--text-2);width:24px;text-align:right;">${count}</span>
+      </div>`;
+    });
+    el.innerHTML = rows.length ? rows.join('') : '<p style="color:var(--text-2);font-size:13px">Aucune tâche assignée</p>';
+  }
+
+  function _dirQuadrant(src) {
+    const el = document.getElementById('dirQuadrant');
+    if (!el) return;
+    const quads = ['Q1','Q2','Q3','Q4'];
+    const labels = { Q1:'Urgente & Importante', Q2:'Importante', Q3:'Urgente', Q4:'À déléguer' };
+    const colors = { Q1:'#ef4444', Q2:'#f97316', Q3:'#eab308', Q4:'#3b82f6' };
+    el.innerHTML = quads.map(q=>{
+      const all = src.filter(t=>t.quadrant===q);
+      const done = all.filter(t=>t.status==='terminé').length;
+      const total = all.length;
+      const pct = total ? Math.round(done/total*100) : 0;
+      return `<div class="dir-quad-row">
+        <span class="dir-quad-label" style="color:${colors[q]}">${q}</span>
+        <div class="dir-quad-bar-wrap"><div class="dir-quad-bar" style="width:${pct}%;background:${colors[q]};"></div></div>
+        <span class="dir-quad-pct">${done}/${total}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function _dirQ1Tasks(src) {
+    const el = document.getElementById('dirQ1Tasks');
+    if (!el) return;
+    const q1 = src.filter(t=>t.quadrant==='Q1'&&t.status!=='terminé').sort((a,b)=>{
+      const da = a.dueDate?new Date(a.dueDate):new Date('9999');
+      const db = b.dueDate?new Date(b.dueDate):new Date('9999');
+      return da-db;
+    }).slice(0,10);
+    if (!q1.length) { el.innerHTML='<p style="color:var(--text-2);font-size:13px">Aucune tâche Q1 active</p>'; return; }
+    el.innerHTML = q1.map(t=>{
+      const due = t.dueDate?new Date(t.dueDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'—';
+      const overdue = t.dueDate&&new Date(t.dueDate)<new Date();
+      const assignee = t.assignedTo?(knownUsers.find(u=>u.uid===t.assignedTo||u.email===t.assignedTo)?.fullName||t.assignedTo):'—';
+      return `<div class="dir-task-row" onclick="_kCardClick('${t.id}')">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.description||'Sans titre'}</span>
+        <span style="width:110px;font-size:11px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${assignee}</span>
+        <span style="width:52px;font-size:11px;${overdue?'color:var(--danger);font-weight:600;':''}">${due}</span>
+        <span style="width:70px;font-size:10px;text-align:right;color:var(--text-2);">${t.status||'todo'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function _dirCourrier() {
+    const el = document.getElementById('dirCourrier');
+    if (!el) return;
+    try {
+      const data = JSON.parse(localStorage.getItem('gesta-courrier') || '[]');
+      const pending = data.filter(c=>c.statut==='reçu'||c.statut==='en traitement').slice(0,8);
+      if (!pending.length) { el.innerHTML='<p style="color:var(--text-2);font-size:13px">Aucun courrier en attente</p>'; return; }
+      el.innerHTML = pending.map(c=>`<div class="dir-task-row">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.numero||'—'} — ${c.objet||'Sans objet'}</span>
+        <span style="width:110px;font-size:11px;color:var(--text-2);">${c.expediteur||'—'}</span>
+        <span style="width:52px;font-size:11px;color:var(--text-2);">${c.date||'—'}</span>
+        <span class="courrier-status cs-${(c.statut||'').replace(' ','-')}">${c.statut||'—'}</span>
+      </div>`).join('');
+    } catch(e) { el.innerHTML='<p style="color:var(--text-2);font-size:13px">Erreur de chargement</p>'; }
   }
 
   // ===== RAPPELS & NOTIFICATIONS =====
