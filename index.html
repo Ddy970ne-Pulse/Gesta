@@ -5193,6 +5193,9 @@
     checkUrgentNotifications(visibleTasks);
     _runEscalation();
     if (typeof _notifCheck === 'function') _notifCheck();
+    // Mettre à jour kanban et direction si l'onglet est actif
+    if (document.getElementById('kanban-tab')?.classList.contains('active')) _kanbanRender(visibleTasks);
+    if (document.getElementById('direction-tab')?.classList.contains('active')) _directionRender(visibleTasks);
   }
 
   const VALID_QUADRANTS = ['Q1','Q2','Q3','Q4'];
@@ -9833,7 +9836,8 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     if (!board) return;
     const groupBy = document.getElementById('kanbanGroupBy')?.value || 'status';
     const quadFilter = document.getElementById('kanbanQuadFilter')?.value || '';
-    let src = (visibleTasks || tasks).filter(t => t.status !== 'terminé');
+    const base = (Array.isArray(visibleTasks) && visibleTasks.length >= 0) ? visibleTasks : tasks.filter(_isTaskVisible);
+    let src = base.filter(t => t.status !== 'terminé');
     if (quadFilter) src = src.filter(t => t.quadrant === quadFilter);
 
     let groups = {};
