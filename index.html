@@ -4994,7 +4994,7 @@
     
     await updateTask(currentTaskId, {
       completed: true,
-      status: 'complété',
+      status: 'terminé',
       completedAt: new Date().toISOString()
     });
 
@@ -7815,7 +7815,7 @@ Consignes :
         `SUMMARY:[${t.quadrant}] ${esc(t.description)}`,
         `DESCRIPTION:Source: ${esc(t.source)} | Statut: ${esc(t.status)} | Assigné: ${esc(Array.isArray(t.assignedTo)?t.assignedTo.join(', '):t.assignedTo)}`,
         `CATEGORIES:${t.quadrant},GESTA`,
-        `STATUS:${t.status === 'complété' ? 'COMPLETED' : 'CONFIRMED'}`,
+        `STATUS:${(t.status === 'terminé' || t.status === 'complété' || t.completed) ? 'COMPLETED' : 'CONFIRMED'}`,
         'END:VEVENT'
       );
     }
@@ -9799,11 +9799,12 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
   function _dirKpis(src) {
     const el = document.getElementById('dirKpis');
     if (!el) return;
+    const isDone = t => t.completed || t.status==='terminé' || t.status==='complété';
     const total = src.length;
     const enCours = src.filter(t=>t.status==='en cours').length;
-    const termine = src.filter(t=>t.status==='terminé').length;
-    const q1 = src.filter(t=>t.quadrant==='Q1'&&t.status!=='terminé').length;
-    const retard = src.filter(t=>t.dueDate&&new Date(t.dueDate)<new Date()&&t.status!=='terminé').length;
+    const termine = src.filter(isDone).length;
+    const q1 = src.filter(t=>t.quadrant==='Q1'&&!isDone(t)).length;
+    const retard = src.filter(t=>t.dueDate&&new Date(t.dueDate)<new Date()&&!isDone(t)).length;
     const rate = total ? Math.round(termine/total*100) : 0;
     el.innerHTML = [
       { icon:'fa-tasks', val: total, label:'Tâches totales', color:'var(--brand)' },
@@ -9819,13 +9820,14 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     const el = document.getElementById('dirAlertes');
     if (!el) return;
     const alerts = [];
-    const retard = src.filter(t=>t.dueDate&&new Date(t.dueDate)<new Date()&&t.status!=='terminé');
+    const _done = t=>t.completed||t.status==='terminé'||t.status==='complété';
+    const retard = src.filter(t=>t.dueDate&&new Date(t.dueDate)<new Date()&&!_done(t));
     if (retard.length) alerts.push({ level:'danger', msg:`${retard.length} tâche(s) en retard` });
-    const q1todo = src.filter(t=>t.quadrant==='Q1'&&(t.status==='todo'||!t.status));
+    const q1todo = src.filter(t=>t.quadrant==='Q1'&&!_done(t)&&(t.status==='todo'||t.status==='planifié'||!t.status));
     if (q1todo.length) alerts.push({ level:'danger', msg:`${q1todo.length} tâche(s) Q1 non démarrée(s)` });
-    const nonAssign = src.filter(t=>!t.assignedTo&&t.status!=='terminé');
+    const nonAssign = src.filter(t=>!t.assignedTo&&!_done(t));
     if (nonAssign.length) alerts.push({ level:'warn', msg:`${nonAssign.length} tâche(s) sans responsable` });
-    const escaladees = src.filter(t=>t.escaladeLog?.length&&t.status!=='terminé');
+    const escaladees = src.filter(t=>t.escaladeLog?.length&&!_done(t));
     if (escaladees.length) alerts.push({ level:'info', msg:`${escaladees.length} tâche(s) reclassifiée(s) automatiquement` });
     el.innerHTML = alerts.length
       ? alerts.map(a=>`<div class="dir-alerte ${a.level==='danger'?'critical':a.level==='warn'?'warning':'info'}"><i class="fas ${a.level==='danger'?'fa-times-circle':a.level==='warn'?'fa-exclamation-circle':'fa-info-circle'}"></i> ${a.msg}</div>`).join('')
@@ -9863,7 +9865,7 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     const colors = { Q1:'#ef4444', Q2:'#f97316', Q3:'#eab308', Q4:'#3b82f6' };
     el.innerHTML = quads.map(q=>{
       const all = src.filter(t=>t.quadrant===q);
-      const done = all.filter(t=>t.status==='terminé').length;
+      const done = all.filter(t=>t.completed||t.status==='terminé'||t.status==='complété').length;
       const total = all.length;
       const pct = total ? Math.round(done/total*100) : 0;
       return `<div class="dir-quad-row">
