@@ -1532,26 +1532,6 @@
     #voiceReply { color: rgba(255,255,255,.8); font-size: 15px; max-width: 600px; text-align: center; min-height: 48px; line-height: 1.6; }
     #voiceStatus { color: rgba(255,255,255,.5); font-size:12px; margin-top:16px; }
 
-    /* ===== KANBAN ===== */
-    .kanban-col { flex:0 0 260px;display:flex;flex-direction:column;gap:0; }
-    .kanban-col-header { padding:12px 14px;border-radius:10px 10px 0 0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:8px; }
-    .kanban-col-body { flex:1;background:var(--bg-2);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:120px; }
-    .kanban-card { background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:11px 12px;cursor:pointer;transition:border-color .15s,transform .1s;border-left:3px solid transparent; }
-    .kanban-card:hover { border-color:var(--brand);transform:translateY(-1px); }
-    .kanban-card-title { font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:5px;line-height:1.4; }
-    .kanban-card-meta { font-size:11px;color:var(--text-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center; }
-    .kanban-card-avatar { width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center; }
-    .kanban-empty { text-align:center;padding:24px 12px;color:var(--text-3);font-size:12px; }
-    /* col colors */
-    .kcol-planifie .kanban-col-header   { background:rgba(107,114,128,.12);color:var(--text-2); }
-    .kcol-en-cours .kanban-col-header   { background:rgba(217,119,6,.12);color:var(--warning); }
-    .kcol-done .kanban-col-header       { background:rgba(22,163,74,.12);color:var(--success); }
-    .kcol-bloque .kanban-col-header     { background:rgba(220,38,38,.12);color:var(--danger); }
-    .kcol-q1 .kanban-col-header { background:rgba(220,38,38,.12);color:var(--danger); }
-    .kcol-q2 .kanban-col-header { background:rgba(26,122,110,.12);color:var(--brand); }
-    .kcol-q3 .kanban-col-header { background:rgba(201,118,10,.12);color:var(--q3); }
-    .kcol-q4 .kanban-col-header { background:rgba(107,114,128,.12);color:var(--text-2); }
-
     /* ===== DIRECTION DASHBOARD ===== */
     .dir-kpi { background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px; }
     .dir-kpi-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
@@ -2286,10 +2266,7 @@
       <i class="fas fa-envelope"></i>
       <span>Courrier</span>
     </button>
-    <button class="nav-item" data-tab="kanban" onclick="switchTab('kanban')">
-      <i class="fas fa-columns"></i>
-      <span>Kanban</span>
-    </button>
+
     <button class="nav-item" data-tab="direction" onclick="switchTab('direction')">
       <i class="fas fa-tachometer-alt"></i>
       <span>Direction</span>
@@ -3527,27 +3504,7 @@
     </div>
   </div>
 
-  <!-- KANBAN -->
-  <div id="kanban-tab" class="tab-content">
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
-      <h2 style="margin:0;font-size:1.3rem;"><i class="fas fa-columns" style="color:var(--brand);margin-right:8px;"></i>Vue Kanban</h2>
-      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-        <select id="kanbanGroupBy" onchange="_kanbanRender()" style="padding:7px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg-2);color:var(--text-1);font-size:12px;">
-          <option value="status">Par statut</option>
-          <option value="quadrant">Par quadrant</option>
-          <option value="assignee">Par responsable</option>
-        </select>
-        <select id="kanbanQuadFilter" onchange="_kanbanRender()" style="padding:7px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg-2);color:var(--text-1);font-size:12px;">
-          <option value="">Tous quadrants</option>
-          <option value="Q1">Q1 — Urgent</option>
-          <option value="Q2">Q2 — Important</option>
-          <option value="Q3">Q3 — Déléguer</option>
-          <option value="Q4">Q4 — Planifier</option>
-        </select>
-      </div>
-    </div>
-    <div id="kanbanBoard" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;min-height:400px;"></div>
-  </div>
+
 
   <!-- DIRECTION -->
   <div id="direction-tab" class="tab-content">
@@ -3885,7 +3842,7 @@
     'cr': 'Comptes Rendus',
     'documents': 'Modèles de documents',
     'courrier': 'Suivi de courrier',
-    'kanban': 'Vue Kanban',
+
     'direction': 'Tableau de bord Direction',
     'focus': 'Mode Focus — Pomodoro',
     'presentation': 'Mode Présentation',
@@ -3917,7 +3874,7 @@
       else if (name === 'coach') { renderCoach(visible); const sb = document.getElementById('coachSendBtn'); if (sb) sb.disabled = false; }
       else if (name === 'documents') { _docRenderGallery(); }
       else if (name === 'courrier') { _courrierRender(); }
-      else if (name === 'kanban') { _kanbanRender(visible); }
+
       else if (name === 'direction') { _directionRender(visible); }
       else if (name === 'focus') { focusLoadTasks(); _updateFocusStats(); }
       else if (name === 'presentation') { _updatePresPlan(); }
@@ -5193,8 +5150,6 @@
     checkUrgentNotifications(visibleTasks);
     _runEscalation();
     if (typeof _notifCheck === 'function') _notifCheck();
-    // Mettre à jour kanban et direction si l'onglet est actif
-    if (document.getElementById('kanban-tab')?.classList.contains('active')) _kanbanRender(visibleTasks);
     if (document.getElementById('direction-tab')?.classList.contains('active')) _directionRender(visibleTasks);
   }
 
@@ -9830,127 +9785,6 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
     _voiceSynth.speak(utt);
   }
 
-  // ===== VUE KANBAN =====
-  function _kanbanRender(visibleTasks) {
-    const board = document.getElementById('kanbanBoard');
-    if (!board) return;
-
-    const groupBy = document.getElementById('kanbanGroupBy') ? document.getElementById('kanbanGroupBy').value : 'status';
-    const quadFilter = document.getElementById('kanbanQuadFilter') ? document.getElementById('kanbanQuadFilter').value : '';
-    const base = Array.isArray(visibleTasks) ? visibleTasks : tasks.filter(_isTaskVisible);
-    let src = base.filter(function(t) { return t.status !== 'terminé' && !t.completed; });
-    if (quadFilter) src = src.filter(function(t) { return t.quadrant === quadFilter; });
-
-    if (src.length === 0 && base.length === 0) {
-      board.innerHTML = '<div style="padding:40px;color:var(--text-2);text-align:center;width:100%;"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:12px;opacity:.4;"></i>Aucune tâche à afficher</div>';
-      return;
-    }
-
-    var groups = {};
-    var colOrder = [];
-
-    if (groupBy === 'quadrant') {
-      colOrder = ['Q1','Q2','Q3','Q4'];
-      var qLabels = { Q1:'Q1 — Urgente & Importante', Q2:'Q2 — Importante', Q3:'Q3 — Urgente', Q4:'Q4 — À déléguer' };
-      var qCls = { Q1:'kcol-q1', Q2:'kcol-q2', Q3:'kcol-q3', Q4:'kcol-q4' };
-      colOrder.forEach(function(q) { groups[q] = { label: qLabels[q], tasks: [], cls: qCls[q] }; });
-      src.forEach(function(t) {
-        var q = t.quadrant || 'Q4';
-        if (!groups[q]) groups[q] = { label: q, tasks: [], cls: 'kcol-q4' };
-        groups[q].tasks.push(t);
-      });
-    } else if (groupBy === 'assignee') {
-      src.forEach(function(t) {
-        var assignedArr = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
-        if (!assignedArr.length) assignedArr = ['_none'];
-        assignedArr.forEach(function(uid) {
-          var user = knownUsers.find(function(u) { return u.uid === uid || u.email === uid; });
-          var label = uid === '_none' ? 'Non assigné' : (user ? user.fullName : uid);
-          if (!groups[uid]) { groups[uid] = { label: label, tasks: [], cls: 'kcol-todo' }; colOrder.push(uid); }
-          if (!groups[uid].tasks.find(function(x) { return x.id === t.id; })) groups[uid].tasks.push(t);
-        });
-      });
-    } else {
-      colOrder = ['todo','en cours','en attente','planifié'];
-      var sLabels = { 'todo':'À faire', 'en cours':'En cours', 'en attente':'En attente', 'planifié':'Planifié' };
-      var sCls = { 'todo':'kcol-todo', 'en cours':'kcol-en-cours', 'en attente':'kcol-bloque', 'planifié':'kcol-planifie' };
-      colOrder.forEach(function(s) { groups[s] = { label: sLabels[s], tasks: [], cls: sCls[s] }; });
-      src.forEach(function(t) {
-        var s = t.status || 'planifié';
-        if (!groups[s]) groups[s] = { label: s, tasks: [], cls: 'kcol-todo' };
-        groups[s].tasks.push(t);
-      });
-    }
-
-    var quadBadge = { Q1:'🔴', Q2:'🟠', Q3:'🟡', Q4:'🔵' };
-    var allStatuses = ['todo','en cours','en attente','planifié','terminé'];
-    var allStatusLabels = { 'todo':'À faire','en cours':'En cours','en attente':'En attente','planifié':'Planifié','terminé':'Terminé' };
-
-    var html = '';
-    var orderedGroups = colOrder.length ? colOrder.map(function(k) { return groups[k]; }).filter(Boolean) : Object.values(groups);
-
-    orderedGroups.forEach(function(g) {
-      var cardsHtml = '';
-      var sorted = g.tasks.slice().sort(function(a,b) {
-        var p = { Q1:0, Q2:1, Q3:2, Q4:3 };
-        return (p[a.quadrant] !== undefined ? p[a.quadrant] : 3) - (p[b.quadrant] !== undefined ? p[b.quadrant] : 3);
-      });
-
-      sorted.forEach(function(t) {
-        var due = t.dueDate ? new Date(t.dueDate) : null;
-        var overdue = due && due < new Date();
-        var dueTxt = due ? due.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' }) : '';
-        var assignedArr = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
-        var firstAssignee = '';
-        if (assignedArr.length) {
-          var u = knownUsers.find(function(u) { return u.uid === assignedArr[0] || u.email === assignedArr[0]; });
-          firstAssignee = u ? u.fullName.split(' ')[0] : assignedArr[0];
-        }
-        var opts = allStatuses.map(function(s) {
-          return '<option value="' + s + '"' + ((t.status || 'planifié') === s ? ' selected' : '') + '>' + allStatusLabels[s] + '</option>';
-        }).join('');
-
-        cardsHtml += '<div class="kanban-card" onclick="_kCardClick(\'' + t.id + '\')">';
-        cardsHtml += '<div class="kanban-card-meta" style="margin-bottom:5px;">';
-        cardsHtml += '<span>' + (quadBadge[t.quadrant] || '⚪') + '</span>';
-        if (t.escaladeLog && t.escaladeLog.length) cardsHtml += ' <span title="Reclassifiée">⏫</span>';
-        if (overdue) cardsHtml += ' <span style="background:rgba(220,38,38,.1);color:var(--danger);border-radius:4px;padding:1px 5px;font-size:10px;">En retard</span>';
-        cardsHtml += '</div>';
-        cardsHtml += '<div class="kanban-card-title">' + (t.description || 'Sans titre') + '</div>';
-        cardsHtml += '<div class="kanban-card-meta" style="margin-top:6px;justify-content:space-between;">';
-        cardsHtml += firstAssignee ? '<span><i class="fas fa-user" style="margin-right:3px;"></i>' + firstAssignee + '</span>' : '<span></span>';
-        cardsHtml += dueTxt ? '<span style="' + (overdue ? 'color:var(--danger);font-weight:600;' : '') + '">' + dueTxt + '</span>' : '';
-        cardsHtml += '</div>';
-        cardsHtml += '<div style="margin-top:7px;"><select onchange="_kStatusChange(\'' + t.id + '\',this.value)" onclick="event.stopPropagation()" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg-2);color:var(--text-1);width:100%;">';
-        cardsHtml += opts;
-        cardsHtml += '</select></div></div>';
-      });
-
-      if (!sorted.length) cardsHtml = '<div class="kanban-empty">Aucune tâche</div>';
-
-      html += '<div class="kanban-col ' + g.cls + '">';
-      html += '<div class="kanban-col-header">' + g.label + ' <span style="margin-left:auto;background:var(--bg-1);border-radius:10px;padding:2px 8px;font-size:11px;">' + g.tasks.length + '</span></div>';
-      html += '<div class="kanban-col-body">' + cardsHtml + '</div>';
-      html += '</div>';
-    });
-
-    board.innerHTML = html;
-  }
-
-  function _kCardClick(id) {
-    const t = tasks.find(t=>t.id===id);
-    if (!t) return;
-    switchTab('tasks');
-    setTimeout(() => {
-      const el = document.querySelector(`[data-task-id="${id}"]`);
-      if (el) { el.scrollIntoView({behavior:'smooth',block:'center'}); el.classList.add('flash-highlight'); setTimeout(()=>el.classList.remove('flash-highlight'),1500); }
-    }, 300);
-  }
-
-  function _kStatusChange(id, status) {
-    updateTask(id, { status });
-  }
-
   // ===== TABLEAU DE BORD DIRECTION =====
   function _directionRender(visibleTasks) {
     const src = visibleTasks || tasks;
@@ -10053,7 +9887,7 @@ ${prochaineReunion?`<div class="cr-section-title">${sIdx+1}. Prochaine réunion<
       const due = t.dueDate?new Date(t.dueDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'—';
       const overdue = t.dueDate&&new Date(t.dueDate)<new Date();
       const assignee = t.assignedTo?(knownUsers.find(u=>u.uid===t.assignedTo||u.email===t.assignedTo)?.fullName||t.assignedTo):'—';
-      return `<div class="dir-task-row" onclick="_kCardClick('${t.id}')">
+      return `<div class="dir-task-row" onclick="switchTab('tasks')">
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.description||'Sans titre'}</span>
         <span style="width:110px;font-size:11px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${assignee}</span>
         <span style="width:52px;font-size:11px;${overdue?'color:var(--danger);font-weight:600;':''}">${due}</span>
