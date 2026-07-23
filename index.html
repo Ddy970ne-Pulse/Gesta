@@ -4001,11 +4001,14 @@
 
   function _normalizeTasks(data, scope, ownerUid) {
     if (!data) return [];
-    return Object.keys(data).map(key => {
-      const t = { id: key, scope: scope || 'shared', ownerUid: ownerUid || null, ...data[key] };
-      if (t.checklist && !Array.isArray(t.checklist)) t.checklist = Object.values(t.checklist);
-      return t;
-    });
+    return Object.keys(data)
+      .filter(key => data[key] != null && typeof data[key] === 'object')
+      .map(key => {
+        const t = { id: key, scope: scope || 'shared', ownerUid: ownerUid || null, ...data[key] };
+        if (t.checklist && !Array.isArray(t.checklist)) t.checklist = Object.values(t.checklist);
+        return t;
+      })
+      .filter(t => t.description || t.createdAt); // rejette les entrées vides
   }
 
   async function fetchTasks(isRetry = false) {
@@ -5998,7 +6001,7 @@ Consignes :
         if (updated.checklist && !Array.isArray(updated.checklist))
           updated.checklist = Object.values(updated.checklist);
         if (idx >= 0) tasks[idx] = { ...tasks[idx], ...updated };
-        else tasks.push(updated);
+        else if (updated.description || updated.createdAt) tasks.push(updated);
         saveLocalTasks();
         renderAll();
       } else if (msg.path && !msg.data) {
@@ -6022,7 +6025,7 @@ Consignes :
         if (updated.checklist && !Array.isArray(updated.checklist))
           updated.checklist = Object.values(updated.checklist);
         if (idx >= 0) tasks[idx] = { ...tasks[idx], ...updated };
-        else tasks.push(updated);
+        else if (updated.description || updated.createdAt) tasks.push(updated);
       });
       saveLocalTasks();
       renderAll();
