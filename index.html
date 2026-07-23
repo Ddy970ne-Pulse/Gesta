@@ -2378,8 +2378,6 @@
       </div>
     </div>
 
-    <!-- Alertes banner -->
-    <div id="alertsBanner" class="alerts-banner" style="display:none;"></div>
 
     <!-- Page body -->
     <div class="page-body">
@@ -3789,7 +3787,7 @@
   let currentTaskId = null;
   let syncInterval = null;
   let chartDonut = null, chartCharge = null, chartLine = null;
-  let dismissedAlerts = new Set();
+
   let draggedTaskId = null;
   let currentHistoryFilter = 'all';
 
@@ -5186,7 +5184,7 @@
     renderAnalytics(visibleTasks);
     renderCoach(visibleTasks);
     renderPlanner(visibleTasks);
-    renderAlerts(visibleTasks);
+
     renderHistory(visibleTasks, currentHistoryFilter);
     renderGantt(visibleTasks);
     focusLoadTasks();
@@ -7633,45 +7631,6 @@ Consignes :
 
   function closeSearch() {
     document.getElementById('searchResults').style.display = 'none';
-  }
-
-  // ===== ALERTES ÉCHÉANCES =====
-  function renderAlerts(visibleTasks) {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const banner = document.getElementById('alertsBanner');
-    const alerts = [];
-
-    visibleTasks.filter(t => !t.completed).forEach(t => {
-      if (dismissedAlerts.has(t.id + '_overdue') || dismissedAlerts.has(t.id + '_soon') || dismissedAlerts.has(t.id + '_blocked')) return;
-      if (t.dueDate) {
-        const due = new Date(t.dueDate); due.setHours(0,0,0,0);
-        const daysLeft = Math.ceil((due - today) / 86400000);
-        if (daysLeft < 0 && !dismissedAlerts.has(t.id + '_overdue')) {
-          alerts.push({ key: t.id + '_overdue', cls: 'alert-overdue', icon: 'exclamation-circle', text: `Tâche en retard de ${Math.abs(daysLeft)}j : "${(t.description||'(sans titre)').substring(0,40)}"` });
-        } else if (daysLeft <= 2 && daysLeft >= 0 && !dismissedAlerts.has(t.id + '_soon')) {
-          alerts.push({ key: t.id + '_soon', cls: 'alert-due-soon', icon: 'clock', text: `Échéance dans ${daysLeft === 0 ? "aujourd'hui" : daysLeft + ' jour(s)'} : "${(t.description||'(sans titre)').substring(0,40)}"` });
-        }
-      }
-      if (t.status === 'bloqué' && !dismissedAlerts.has(t.id + '_blocked')) {
-        alerts.push({ key: t.id + '_blocked', cls: 'alert-blocked', icon: 'ban', text: `Tâche bloquée : "${(t.description||'(sans titre)').substring(0,40)}"` });
-      }
-    });
-
-    if (alerts.length === 0) { banner.style.display = 'none'; return; }
-    banner.style.display = 'block';
-    banner.innerHTML = alerts.slice(0, 5).map(a =>
-      `<div class="alert-item ${a.cls}">
-        <i class="fas fa-${a.icon}"></i>
-        ${a.text}
-        <button class="alert-dismiss" onclick="dismissAlert('${a.key}')">×</button>
-      </div>`
-    ).join('');
-  }
-
-  function dismissAlert(key) {
-    dismissedAlerts.add(key);
-    const p = rolePermissions[currentRole];
-    renderAlerts(tasks.filter(t => p.canView.includes(t.source) || currentRole === 'Director' || currentRole === 'Coordinateur RH'));
   }
 
   // ===== MULTI-ASSIGN =====
